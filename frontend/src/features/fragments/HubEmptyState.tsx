@@ -22,13 +22,13 @@ const VARIANTS: Record<EmptyStateVariant, VariantConfig> = {
   "no-apps": {
     icon: PackageOpen,
     title: "No applications assigned yet",
-    body: "Your account has no applications assigned. This is usually a configuration issue — contact an administrator so they can grant your access.",
+    body: "Your account has no applications assigned. This is usually a configuration issue, so contact an administrator to get your access granted.",
     action: "Contact administrator",
   },
   error: {
     icon: CloudOff,
     title: "Couldn't load the catalog",
-    body: "The application catalog failed to load. This is on our side, not yours — try again in a moment.",
+    body: "The application catalog failed to load. This is on our side, not yours, so try again in a moment.",
     action: "Try again",
   },
 };

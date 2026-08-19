@@ -37,7 +37,7 @@ const SupportHubPage = memo(() => {
   // do something visible now so the locked state can actually be reviewed.
   const handleRequestAccess = useCallback((app: HubApplication) => {
     toast("Access request noted", {
-      description: `Requesting access to ${app.name}. This is a mock action — no request has been sent yet.`,
+      description: `Requesting access to ${app.name}. This is a mock action, no request has been sent yet.`,
     });
   }, []);
 
