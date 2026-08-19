@@ -32,8 +32,8 @@ export type HubCategoryFilterOption = {
   count: number;
 };
 
-// TODO(fase-3): replace with the real session shape once the Hub has its
-// own Google Workspace login + central-DB role lookup wired up.
+// UI-facing shape HubHeader/etc render - see model/auth-model.ts's
+// toHubUser() for how this gets derived from a real Central identity.
 export type HubUser = {
   name: string;
   email: string;

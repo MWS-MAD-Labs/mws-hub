@@ -9,15 +9,14 @@ import HubEmptyState from "@/features/fragments/HubEmptyState";
 import { AppCardSkeletonGrid } from "@/features/fragments/AppCardSkeleton";
 import { HUB_GRID_CLASS } from "@/features/fragments/hubGrid";
 import useHubCatalog from "@/hooks/useHubCatalog";
-import type { HubApplication, HubUser } from "@/model/hub-model";
+import type { HubApplication } from "@/model/hub-model";
+import { toHubUser } from "@/model/auth-model";
+import { useAuth } from "@/features/auth/hooks/useAuth";
 
 const SUPPORT_EMAIL = import.meta.env.VITE_SUPPORT_EMAIL || "admin@millennia21.id";
 
-// TODO(fase-3): replace with the real session once the Hub has its own
-// Google Workspace login + central-DB role lookup wired up.
-const MOCK_USER: HubUser = { name: "Preview User", email: "preview@millennia21.id", role: "teacher" };
-
 const SupportHubPage = memo(() => {
+  const { user } = useAuth();
   const {
     isLoading,
     hasError,
@@ -48,7 +47,7 @@ const SupportHubPage = memo(() => {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <HubHeader user={MOCK_USER} />
+      <HubHeader user={user ? toHubUser(user) : undefined} />
 
       <main className="mx-auto max-w-[1600px] px-4 py-7 sm:px-6 sm:py-9">
         <HubIntro />
