@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { HUB_APPLICATIONS } from "@/data/hubApplications";
-import { HUB_CATEGORIES, getCategoryLabel } from "@/data/hubCategories";
-import type { HubApplication, HubCategoryFilterOption } from "@/model/hub-model";
+import { getCategoryLabel } from "@/data/hubCategories";
+import type { HubApplication } from "@/model/hub-model";
 
 // Mock latency so the skeleton state is real code that runs, not a branch
 // nobody ever sees. Replace this with the catalog fetch later.
@@ -24,21 +24,17 @@ const matchesQuery = (app: HubApplication, query: string): boolean => {
 export type UseHubCatalogResult = {
   isLoading: boolean;
   hasError: boolean;
-  categories: HubCategoryFilterOption[];
-  activeCategory: string;
   query: string;
   isFiltering: boolean;
   visibleApplications: HubApplication[];
-  lockedCount: number;
   hasCatalog: boolean;
   setQuery: (value: string) => void;
-  setCategory: (value: string) => void;
   clearFilters: () => void;
   retry: () => void;
 };
 
-// Search and category live in the URL so a filtered hub can be shared and
-// survives a refresh - the same reason the dashboards here do it.
+// Search lives in the URL so a filtered hub can be shared and survives a
+// refresh - the same reason the dashboards here do it.
 export default function useHubCatalog(): UseHubCatalogResult {
   const [searchParams, setSearchParams] = useSearchParams();
   const [isLoading, setIsLoading] = useState(true);
@@ -55,7 +51,6 @@ export default function useHubCatalog(): UseHubCatalogResult {
 
   const query = normalize(searchParams.get("q") || "");
   const rawQuery = searchParams.get("q") || "";
-  const activeCategory = searchParams.get("cat") || "all";
 
   const updateParams = useCallback(
     (patch: Record<string, string>) => {
@@ -75,8 +70,7 @@ export default function useHubCatalog(): UseHubCatalogResult {
   );
 
   const setQuery = useCallback((value: string) => updateParams({ q: value }), [updateParams]);
-  const setCategory = useCallback((value: string) => updateParams({ cat: value }), [updateParams]);
-  const clearFilters = useCallback(() => updateParams({ q: "", cat: "all" }), [updateParams]);
+  const clearFilters = useCallback(() => updateParams({ q: "", cat: "" }), [updateParams]);
   const retry = useCallback(() => updateParams({ mockError: "" }), [updateParams]);
 
   // `discoverable: false` drops an app entirely rather than locking it -
@@ -86,45 +80,21 @@ export default function useHubCatalog(): UseHubCatalogResult {
     return HUB_APPLICATIONS.filter((app) => app.discoverable !== false);
   }, [isLoading, hasError]);
 
-  const categories = useMemo<HubCategoryFilterOption[]>(
-    () => [
-      { id: "all", label: "All", count: applications.length },
-      ...HUB_CATEGORIES.map((category) => ({
-        id: category.id,
-        label: category.label,
-        count: applications.filter((app) => app.category === category.id).length,
-      })),
-    ],
-    [applications],
-  );
-
   const visibleApplications = useMemo(
-    () =>
-      applications.filter(
-        (app) => (activeCategory === "all" || app.category === activeCategory) && matchesQuery(app, query),
-      ),
-    [applications, activeCategory, query],
+    () => applications.filter((app) => matchesQuery(app, query)),
+    [applications, query],
   );
 
-  const isFiltering = Boolean(query) || activeCategory !== "all";
-
-  const lockedCount = useMemo(
-    () => applications.filter((app) => app.access === "locked").length,
-    [applications],
-  );
+  const isFiltering = Boolean(query);
 
   return {
     isLoading,
     hasError,
-    categories,
-    activeCategory,
     query: rawQuery,
     isFiltering,
     visibleApplications,
-    lockedCount,
     hasCatalog: applications.length > 0,
     setQuery,
-    setCategory,
     clearFilters,
     retry,
   };

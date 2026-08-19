@@ -51,27 +51,31 @@ const AppCard = memo(({ app, onRequestAccess }: AppCardProps) => {
   return (
     <article
       className={cn(
-        "group relative flex items-start gap-3 rounded-xl border border-border/50 bg-card/40 p-3.5 transition-colors",
+        "group relative flex h-full min-w-0 flex-col items-center justify-center gap-1 overflow-hidden rounded-lg p-0 text-center transition duration-200 sm:h-auto sm:flex-row sm:items-start sm:justify-start sm:gap-3 sm:overflow-visible sm:rounded-xl sm:border sm:border-border/50 sm:bg-card/40 sm:p-3.5 sm:text-left sm:transition-colors",
         isOpenable
-          ? "hover:border-border hover:bg-card focus-within:border-ring focus-within:bg-card"
+          ? "active:scale-[0.98] sm:active:scale-100 sm:hover:border-border sm:hover:bg-card sm:focus-within:border-ring sm:focus-within:bg-card"
           : "opacity-70",
       )}
     >
       <span
         className={cn(
-          "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ring-1",
+          "flex aspect-square h-[clamp(2.5rem,7.2svh,4rem)] w-[clamp(2.5rem,7.2svh,4rem)] shrink-0 items-center justify-center rounded-[16px] shadow-[0_10px_24px_rgba(15,23,42,0.16)] ring-1 sm:h-10 sm:w-10 sm:rounded-lg sm:shadow-none",
           getCategoryTone(app.category),
           !isOpenable && "opacity-60 grayscale",
         )}
       >
-        <Icon className="h-[18px] w-[18px]" />
+        <Icon className="h-[clamp(1.15rem,3.4svh,1.8rem)] w-[clamp(1.15rem,3.4svh,1.8rem)] sm:h-[18px] sm:w-[18px]" />
       </span>
 
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <h3 className="truncate text-sm font-medium text-foreground">{app.name}</h3>
+      <div className="min-w-0 sm:flex-1 sm:w-auto">
+        <div className="flex min-w-0 items-center justify-center gap-2 sm:justify-start">
+          <h3 className="line-clamp-2 min-h-6 max-w-[5.75rem] text-[10px] font-medium leading-3 text-foreground sm:min-h-0 sm:max-w-full sm:truncate sm:text-sm sm:leading-normal">
+            {app.name}
+          </h3>
           {app.status === "new" && isOpenable && (
-            <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-primary">New</span>
+            <span className="hidden shrink-0 text-[10px] font-semibold uppercase tracking-wide text-primary sm:inline">
+              New
+            </span>
           )}
           {isOpenable && app.external && (
             <ArrowUpRight
@@ -85,7 +89,7 @@ const AppCard = memo(({ app, onRequestAccess }: AppCardProps) => {
             keeps every tile in the row the same height. */}
         <p
           className={cn(
-            "mt-0.5 text-xs leading-relaxed text-muted-foreground",
+            "mt-0.5 hidden text-xs leading-relaxed text-muted-foreground sm:block",
             blocked ? "line-clamp-1" : "line-clamp-2",
           )}
         >
@@ -93,7 +97,7 @@ const AppCard = memo(({ app, onRequestAccess }: AppCardProps) => {
         </p>
 
         {blocked && BlockedIcon && (
-          <p className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground/80">
+          <p className="mt-1 hidden items-center gap-1.5 text-[11px] text-muted-foreground/80 sm:flex">
             <BlockedIcon className="h-3 w-3 shrink-0" aria-hidden="true" />
             <span className="truncate">{blocked.text(app)}</span>
             {blockedKey === "locked" && (
@@ -117,7 +121,7 @@ const AppCard = memo(({ app, onRequestAccess }: AppCardProps) => {
           href={launchHref}
           target="_blank"
           rel="noopener noreferrer"
-          className="absolute inset-0 rounded-xl focus:outline-none"
+          className="absolute inset-0 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:rounded-xl"
         >
           <span className="sr-only">{`Open ${app.name} in a new tab`}</span>
         </a>

@@ -12,7 +12,6 @@ export function GoogleLoginButton() {
     try {
       const code = await requestGoogleCode({
         clientId: env.googleClientId,
-        redirectUri: env.googleRedirectUri,
       });
       await loginWithGoogle(code);
     } catch (error) {
