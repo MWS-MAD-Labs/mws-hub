@@ -2,6 +2,7 @@ import "dotenv/config";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { authRoute } from "./route/auth-route";
+import { appsRoute } from "./route/apps-route";
 import { ResponseError } from "./error/response-error";
 import { logger } from "./lib/logger";
 
@@ -18,6 +19,7 @@ app.use(
 app.get("/health", (c) => c.json({ data: "ok" }));
 
 app.route("/auth", authRoute);
+app.route("/apps", appsRoute);
 
 app.onError((err, c) => {
   if (err instanceof ResponseError) {

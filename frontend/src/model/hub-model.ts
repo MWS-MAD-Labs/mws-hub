@@ -14,6 +14,11 @@ export type HubApplication = {
   status: HubApplicationStatus;
   access: HubApplicationAccess;
   discoverable: boolean;
+  // Set only for apps with a token-relay SSO exchange endpoint (see
+  // mws-hub/backend's src/lib/sso-relay.ts SSO_APPS). When present, AppCard
+  // routes the click through Hub's own /apps/:id/launch instead of `href`
+  // directly, so the user lands in already logged in.
+  ssoAppId?: string;
 };
 
 export type HubCategoryTone = "violet" | "sky" | "emerald" | "amber" | "slate" | "neutral";

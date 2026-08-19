@@ -2,6 +2,7 @@ import { memo } from "react";
 import { ArrowUpRight, Lock, Wrench, Clock3, Unlink, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getAppIcon, getCategoryTone } from "@/data/hubCategories";
+import { env } from "@/config/env";
 import type { HubApplication } from "@/model/hub-model";
 
 type BlockedKey = "locked" | "maintenance" | "coming_soon" | "no_link";
@@ -41,6 +42,11 @@ const AppCard = memo(({ app, onRequestAccess }: AppCardProps) => {
   const isOpenable = !blockedKey;
   const blocked = blockedKey ? BLOCKED[blockedKey] : null;
   const BlockedIcon = blocked?.icon;
+
+  // SSO-enabled apps route through Hub's own backend first, which mints a
+  // short-lived relay token and forwards the browser on - the app's real
+  // href never gets touched directly for those.
+  const launchHref = app.ssoAppId ? `${env.hubApiBaseUrl}/apps/${app.ssoAppId}/launch` : app.href;
 
   return (
     <article
@@ -106,9 +112,9 @@ const AppCard = memo(({ app, onRequestAccess }: AppCardProps) => {
       {/* Every catalog entry is an external URL now that the Hub is its own
           app - stretched-link anchor keeps the whole tile clickable while
           staying a real <a> so middle-click / "open in new tab" still work. */}
-      {isOpenable && app.href && (
+      {isOpenable && launchHref && (
         <a
-          href={app.href}
+          href={launchHref}
           target="_blank"
           rel="noopener noreferrer"
           className="absolute inset-0 rounded-xl focus:outline-none"

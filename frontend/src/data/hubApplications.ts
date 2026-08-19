@@ -18,9 +18,11 @@
 // MTSS and Daily Check-in used to be same-app internal routes back when the
 // Hub lived inside mws-daily-checkin. Now that the Hub is its own app, every
 // entry is a plain external URL like the rest of the catalog - the role-
-// aware landing route (MTSS's old resolveHref) becomes that app's own
-// problem to solve on arrival, or gets carried as a hint once the
-// token-relay SSO handoff exists.
+// aware landing route (MTSS's old resolveHref) is that app's own problem to
+// solve on arrival. Daily Check-in now carries `ssoAppId` so its card routes
+// through Hub's token-relay handoff instead of a bare href (see AppCard's
+// launchHref) - MTSS still opens as a plain link and will need its own
+// account there or a second ssoAppId entry once that's worth doing.
 import type { HubApplication } from "@/model/hub-model";
 
 export const HUB_APPLICATIONS: HubApplication[] = [
@@ -82,6 +84,7 @@ export const HUB_APPLICATIONS: HubApplication[] = [
     category: "students", audience: "Everyone", keywords: ["mood", "wellbeing", "checkin", "analytics"],
     href: "https://app.millenniaws.sch.id/select-role", external: true,
     status: "active", access: "granted", discoverable: true,
+    ssoAppId: "daily-checkin",
   },
   {
     id: "reading-buddy", name: "Reading Buddy", icon: "BookOpenText",
