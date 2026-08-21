@@ -28,6 +28,7 @@ const ACCESS_ALIASES: Record<string, HubCatalogEntry["allowedSources"][number]> 
   directors: "director",
   direktur: "director",
   administrator: "admin",
+  "database-admin": "admin",
   "super-admin": "admin",
   superadmin: "admin",
   resources: "resource",
@@ -152,14 +153,21 @@ function getUserAccessSources(user: HubUser): Set<HubCatalogEntry["allowedSource
   // fallback while Central's lookup shape evolves.
   sources.add("staff");
 
-  [
+  const centralClaims = [
     user.role,
     ...(user.roles || []).flatMap(claimToStrings),
-    user.job_position,
-    user.job_level,
-    user.unit,
-    user.employment_type,
-  ].forEach((value) => addKnownSource(sources, value));
+    ...(user.permissions || []).flatMap(claimToStrings),
+  ];
+  centralClaims.forEach((value) => addKnownSource(sources, value));
+
+  if (!centralClaims.some(Boolean)) {
+    [
+      user.job_position,
+      user.job_level,
+      user.unit,
+      user.employment_type,
+    ].forEach((value) => addKnownSource(sources, value));
+  }
 
   return sources;
 }

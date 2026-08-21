@@ -19,11 +19,11 @@ conventions from [ticketing-school](https://github.com/Rhzslya/ticketing-school)
 - [x] Frontend wired to the real `/auth/me` - `/login` page with a Google
       sign-in button, `RequireAuth` guard redirects unauthenticated visits to
       `/support-hub`/`/profile` back to `/login`
-- [x] Token-relay SSO handoff into Daily Check-in - `GET /apps/:appId/launch`
-      mints a short-lived, single-use, audience-scoped relay token
-      (`HUB_SSO_SECRET`, separate from every other secret in either app) and
-      redirects into Daily Check-in's own `/auth/sso` exchange endpoint.
-      MTSS still opens as a plain link - not wired up yet.
+- [x] Token-relay SSO handoff into satellite apps - `GET /apps/:appId/launch`
+      mints a short-lived, audience-scoped RS256 relay token with Hub's private
+      key and redirects into the app's own `/auth/sso` exchange endpoint.
+      Satellite apps verify with Hub's public key only, so they cannot mint
+      forged Hub tokens.
 
 ## Local development
 
@@ -55,10 +55,13 @@ Routes:
   lookup, sets an httpOnly session cookie, returns the resolved user.
 - `GET /auth/me` - current session's user, 401 if not signed in.
 - `POST /auth/logout` - clears the session cookie.
-- `GET /apps/:appId/launch` - session-protected. Mints a relay token for the
-  current user and 302s into that app's SSO exchange endpoint (see
-  `src/lib/sso-relay.ts`'s `SSO_APPS` registry). Needs `HUB_SSO_SECRET` and
-  `DAILY_CHECKIN_API_URL` set.
+- `GET /.well-known/jwks.json` - public RS256 verification keys for satellite
+  apps. Keys are published with `kid` for rotation.
+- `GET /apps/:appId/launch` - session-protected. Re-checks the user against
+  Central DB, applies the app catalog policy, then either 302s to a plain app
+  URL or mints an RS256 relay token for that app's SSO endpoint. Needs
+  `HUB_SSO_PRIVATE_KEY`; each satellite app needs the matching public key for
+  verification, not any shared signing secret.
 
 Frontend:
 

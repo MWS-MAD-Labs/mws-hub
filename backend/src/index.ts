@@ -5,6 +5,7 @@ import { authRoute } from "./route/auth-route";
 import { appsRoute } from "./route/apps-route";
 import { ResponseError } from "./error/response-error";
 import { logger } from "./lib/logger";
+import { hubSsoJwks } from "./lib/sso-relay";
 
 const app = new Hono();
 
@@ -17,6 +18,10 @@ app.use(
 );
 
 app.get("/health", (c) => c.json({ data: "ok" }));
+app.get("/.well-known/jwks.json", (c) => {
+  c.header("Cache-Control", "public, max-age=300");
+  return c.json(hubSsoJwks());
+});
 
 app.route("/auth", authRoute);
 app.route("/apps", appsRoute);
