@@ -1,4 +1,5 @@
-import { memo, useCallback } from "react";
+import { memo, useCallback, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import HubHeader from "@/features/fragments/HubHeader";
 import HubIntro from "@/features/fragments/HubIntro";
@@ -15,8 +16,27 @@ import { useAuth } from "@/features/auth/hooks/useAuth";
 
 const SUPPORT_EMAIL = import.meta.env.VITE_SUPPORT_EMAIL || "admin@millennia21.id";
 
+// Why a launch bounced back here instead of opening the app. The backend's
+// /apps/:appId/launch redirects with one of these codes rather than showing
+// a raw error body in the tab it just opened.
+const LAUNCH_ERRORS: Record<string, { title: string; description: string }> = {
+  app_access_denied: {
+    title: "You don't have access to that app",
+    description: "Your MWS account isn't admitted to this application yet. Use Request access if you need it.",
+  },
+  account_inactive: {
+    title: "Your account is no longer active",
+    description: `Your record in the Central database is inactive, so apps can't be opened. Contact ${SUPPORT_EMAIL} to restore it.`,
+  },
+  central_unavailable: {
+    title: "Couldn't check your access",
+    description: "The Central database didn't answer just now. Try opening the app again in a moment.",
+  },
+};
+
 const SupportHubPage = memo(() => {
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const {
     isLoading,
     hasError,
@@ -28,6 +48,27 @@ const SupportHubPage = memo(() => {
     clearFilters,
     retry,
   } = useHubCatalog();
+
+  // A refused launch lands back here with ?error=<code>. Surface it once,
+  // then strip the param so a refresh doesn't replay the same toast.
+  useEffect(() => {
+    const code = searchParams.get("error");
+    if (!code) return;
+
+    const failure = LAUNCH_ERRORS[code];
+    if (failure) {
+      toast.error(failure.title, { description: failure.description });
+    }
+
+    setSearchParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        next.delete("error");
+        return next;
+      },
+      { replace: true },
+    );
+  }, [searchParams, setSearchParams]);
 
   // Placeholder until the access-request flow exists - the affordance must
   // do something visible now so the locked state can actually be reviewed.

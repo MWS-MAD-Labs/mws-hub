@@ -14,10 +14,9 @@ export type HubApplication = {
   status: HubApplicationStatus;
   access: HubApplicationAccess;
   discoverable: boolean;
-  // Set only for apps with a token-relay SSO exchange endpoint (see
-  // mws-hub/backend's src/lib/sso-relay.ts SSO_APPS). When present, AppCard
-  // routes the click through Hub's own /apps/:id/launch instead of `href`
-  // directly, so the user lands in already logged in.
+  // Set only for apps with a token-relay SSO exchange endpoint. AppCard
+  // routes every click through Hub's own /apps/:id/launch; this value tells
+  // Hub which SSO audience to mint when it differs from the catalog id.
   ssoAppId?: string;
 };
 

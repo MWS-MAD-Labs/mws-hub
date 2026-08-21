@@ -1,3 +1,20 @@
+export type CentralClaim =
+  | string
+  | {
+      name?: string | null;
+      slug?: string | null;
+      key?: string | null;
+      code?: string | null;
+      role?: string | null;
+      permission?: string | null;
+    };
+
+export type CentralAccessClaims = {
+  role?: string | null;
+  roles?: CentralClaim[] | null;
+  permissions?: CentralClaim[] | null;
+};
+
 export type EmployeeLookupResponse = {
   id: string;
   employee_id: string;
@@ -10,7 +27,7 @@ export type EmployeeLookupResponse = {
   job_level: string | null;
   status: string;
   employment_type: string | null;
-};
+} & CentralAccessClaims;
 
 export type StudentLookupResponse = {
   id: string;
@@ -22,7 +39,7 @@ export type StudentLookupResponse = {
   status: string;
   current_grade: string | null;
   current_class: string | null;
-};
+} & CentralAccessClaims;
 
 export type HubUser =
   | ({ source: "employee" } & EmployeeLookupResponse)

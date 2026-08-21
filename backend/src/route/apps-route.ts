@@ -5,4 +5,5 @@ import type { SessionVariables } from "../type/hono-context";
 
 export const appsRoute = new Hono<{ Variables: SessionVariables }>();
 
+appsRoute.get("/", sessionAuthMiddleware, AppsController.list);
 appsRoute.get("/:appId/launch", sessionAuthMiddleware, AppsController.launch);

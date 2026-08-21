@@ -1,12 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { HUB_APPLICATIONS } from "@/data/hubApplications";
+import { hubApi } from "@/features/hub/api/hubApi";
 import { getCategoryLabel } from "@/data/hubCategories";
 import type { HubApplication } from "@/model/hub-model";
-
-// Mock latency so the skeleton state is real code that runs, not a branch
-// nobody ever sees. Replace this with the catalog fetch later.
-const MOCK_LOAD_MS = 550;
 
 const normalize = (value = ""): string => String(value || "").toLowerCase().trim();
 
@@ -37,17 +33,40 @@ export type UseHubCatalogResult = {
 // refresh - the same reason the dashboards here do it.
 export default function useHubCatalog(): UseHubCatalogResult {
   const [searchParams, setSearchParams] = useSearchParams();
+  const [applications, setApplications] = useState<HubApplication[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [reloadCount, setReloadCount] = useState(0);
 
-  // ?mockError=1 forces the failure branch. The real fetch will set this
-  // from a rejected request; until then the error state needs a way to be
-  // reviewed without editing code.
-  const hasError = searchParams.get("mockError") === "1";
-
+  // The catalog arrives already filtered to this person - GET /apps only
+  // returns what they may open, so there is no access check left to do here.
   useEffect(() => {
-    const timeoutId = window.setTimeout(() => setIsLoading(false), MOCK_LOAD_MS);
-    return () => window.clearTimeout(timeoutId);
-  }, []);
+    let cancelled = false;
+
+    setIsLoading(true);
+    setLoadFailed(false);
+
+    hubApi
+      .listApplications()
+      .then((apps) => {
+        if (!cancelled) setApplications(apps);
+      })
+      .catch(() => {
+        if (!cancelled) setLoadFailed(true);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [reloadCount]);
+
+  // ?mockError=1 still forces the failure branch. A real fetch can fail on
+  // its own now, but keeping the override means the error state stays
+  // reviewable without having to break the backend to see it.
+  const hasError = loadFailed || searchParams.get("mockError") === "1";
 
   const query = normalize(searchParams.get("q") || "");
   const rawQuery = searchParams.get("q") || "";
@@ -71,20 +90,24 @@ export default function useHubCatalog(): UseHubCatalogResult {
 
   const setQuery = useCallback((value: string) => updateParams({ q: value }), [updateParams]);
   const clearFilters = useCallback(() => updateParams({ q: "", cat: "" }), [updateParams]);
-  const retry = useCallback(() => updateParams({ mockError: "" }), [updateParams]);
+
+  const retry = useCallback(() => {
+    updateParams({ mockError: "" });
+    setReloadCount((count) => count + 1);
+  }, [updateParams]);
 
   // `discoverable: false` drops an app entirely rather than locking it -
-  // the lever for tools a normal user should not even know exist.
-  const applications = useMemo(() => {
+  // the lever for tools a normal user should not even know exist. The
+  // backend already applies it, this keeps the guarantee if a stale
+  // response ever slips through.
+  const visibleApplications = useMemo(() => {
     if (isLoading || hasError) return [];
-    return HUB_APPLICATIONS.filter((app) => app.discoverable !== false);
-  }, [isLoading, hasError]);
+    return applications
+      .filter((app) => app.discoverable !== false)
+      .filter((app) => matchesQuery(app, query));
+  }, [applications, isLoading, hasError, query]);
 
-  const visibleApplications = useMemo(
-    () => applications.filter((app) => matchesQuery(app, query)),
-    [applications, query],
-  );
-
+  const hasCatalog = !isLoading && !hasError && applications.length > 0;
   const isFiltering = Boolean(query);
 
   return {
@@ -93,7 +116,7 @@ export default function useHubCatalog(): UseHubCatalogResult {
     query: rawQuery,
     isFiltering,
     visibleApplications,
-    hasCatalog: applications.length > 0,
+    hasCatalog,
     setQuery,
     clearFilters,
     retry,
