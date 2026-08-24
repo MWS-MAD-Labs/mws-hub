@@ -1,17 +1,15 @@
-import { Navigate, useLocation } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import Logo from "@/assets/logo.webp";
 import { GoogleLoginButton } from "@/features/auth/components/GoogleLoginButton";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 
-type LocationState = { from?: { pathname?: string } };
+const HOME_PATH = "/support-hub";
 
 export default function LoginPage() {
-  const location = useLocation();
   const { isAuthenticated, isSessionLoading } = useAuth();
-  const targetPath = (location.state as LocationState)?.from?.pathname || "/support-hub";
 
   if (isAuthenticated) {
-    return <Navigate to={targetPath} replace />;
+    return <Navigate to={HOME_PATH} replace />;
   }
 
   return (

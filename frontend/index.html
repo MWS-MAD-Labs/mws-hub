@@ -3,6 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Runtime config, rewritten by the container on every start. Sits in
+         <head> ahead of the bundle so the order is explicit rather than
+         relying on module scripts being implicitly deferred. -->
+    <script src="/env.js"></script>
     <title>MWS Hub</title>
   </head>
   <body>

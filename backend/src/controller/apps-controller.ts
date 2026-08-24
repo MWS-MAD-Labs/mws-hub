@@ -11,9 +11,14 @@ import type { SessionVariables } from "../type/hono-context";
 // somewhere a person can read. Same shape the satellite apps already use for
 // their own SSO failures: back to the hub with a code, never a raw JSON body
 // in a fresh tab.
-function launchFailure(c: Context, code: string) {
+function launchFailure(c: Context, code: string, appName?: string) {
   const origin = process.env.FRONTEND_ORIGIN || "http://localhost:5175";
-  return c.redirect(`${origin}/support-hub?error=${code}`, 302);
+  const params = new URLSearchParams({ error: code });
+  // Naming the app turns "something went wrong" into "Exima is under
+  // maintenance", which is the difference between a notice and a shrug.
+  if (appName) params.set("app", appName);
+
+  return c.redirect(`${origin}/support-hub?${params}`, 302);
 }
 
 export class AppsController {
@@ -62,15 +67,15 @@ export class AppsController {
         `Launch refused, ${user.source} not admitted by ${entry.id}:`,
         user.email,
       );
-      return launchFailure(c, "app_access_denied");
+      return launchFailure(c, "app_access_denied", entry.name);
     }
 
     if (entry.status === "maintenance") {
-      return launchFailure(c, "app_maintenance");
+      return launchFailure(c, "app_maintenance", entry.name);
     }
 
     if (entry.status === "coming_soon") {
-      return launchFailure(c, "app_coming_soon");
+      return launchFailure(c, "app_coming_soon", entry.name);
     }
 
     if (entry.sso) {
@@ -83,7 +88,7 @@ export class AppsController {
     }
 
     if (!entry.href) {
-      return launchFailure(c, "app_no_link");
+      return launchFailure(c, "app_no_link", entry.name);
     }
 
     return c.redirect(entry.href, 302);

@@ -1,8 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { hubApi } from "@/features/hub/api/hubApi";
-import { getCategoryLabel } from "@/data/hubCategories";
-import type { HubApplication } from "@/model/hub-model";
+import { getCategoryLabel, HUB_CATEGORIES } from "@/data/hubCategories";
+import type { HubApplication, HubCategoryFilterOption } from "@/model/hub-model";
+
+// The pseudo-category the filter row opens on. Kept out of HUB_CATEGORIES
+// because it is a view concern, not a bucket an app can belong to.
+const ALL_CATEGORY = "all";
 
 const normalize = (value = ""): string => String(value || "").toLowerCase().trim();
 
@@ -24,7 +28,10 @@ export type UseHubCatalogResult = {
   isFiltering: boolean;
   visibleApplications: HubApplication[];
   hasCatalog: boolean;
+  categories: HubCategoryFilterOption[];
+  activeCategory: string;
   setQuery: (value: string) => void;
+  setCategory: (id: string) => void;
   clearFilters: () => void;
   retry: () => void;
 };
@@ -70,6 +77,7 @@ export default function useHubCatalog(): UseHubCatalogResult {
 
   const query = normalize(searchParams.get("q") || "");
   const rawQuery = searchParams.get("q") || "";
+  const activeCategory = searchParams.get("cat") || ALL_CATEGORY;
 
   const updateParams = useCallback(
     (patch: Record<string, string>) => {
@@ -89,6 +97,7 @@ export default function useHubCatalog(): UseHubCatalogResult {
   );
 
   const setQuery = useCallback((value: string) => updateParams({ q: value }), [updateParams]);
+  const setCategory = useCallback((id: string) => updateParams({ cat: id }), [updateParams]);
   const clearFilters = useCallback(() => updateParams({ q: "", cat: "" }), [updateParams]);
 
   const retry = useCallback(() => {
@@ -100,15 +109,44 @@ export default function useHubCatalog(): UseHubCatalogResult {
   // the lever for tools a normal user should not even know exist. The
   // backend already applies it, this keeps the guarantee if a stale
   // response ever slips through.
-  const visibleApplications = useMemo(() => {
+  const searchable = useMemo(() => {
     if (isLoading || hasError) return [];
     return applications
       .filter((app) => app.discoverable !== false)
       .filter((app) => matchesQuery(app, query));
   }, [applications, isLoading, hasError, query]);
 
+  // Counts follow the search but ignore the selected category, so the row
+  // keeps saying how much is behind each tab. Counting after the category
+  // filter would zero out every tab except the open one, which turns the
+  // counts into noise and hides where the rest of the results went.
+  const categories = useMemo(() => {
+    const tally = new Map<string, number>();
+    searchable.forEach((app) => tally.set(app.category, (tally.get(app.category) || 0) + 1));
+
+    return [
+      { id: ALL_CATEGORY, label: "All", count: searchable.length },
+      ...HUB_CATEGORIES.map((category) => ({
+        id: category.id,
+        label: category.label,
+        count: tally.get(category.id) || 0,
+      })),
+      // An empty bucket still shows, greyed by its own zero. Tabs that come
+      // and go as you type make the row jump around and cost more than the
+      // space they save.
+    ];
+  }, [searchable]);
+
+  const visibleApplications = useMemo(
+    () =>
+      activeCategory === ALL_CATEGORY
+        ? searchable
+        : searchable.filter((app) => app.category === activeCategory),
+    [searchable, activeCategory],
+  );
+
   const hasCatalog = !isLoading && !hasError && applications.length > 0;
-  const isFiltering = Boolean(query);
+  const isFiltering = Boolean(query) || activeCategory !== ALL_CATEGORY;
 
   return {
     isLoading,
@@ -117,7 +155,10 @@ export default function useHubCatalog(): UseHubCatalogResult {
     isFiltering,
     visibleApplications,
     hasCatalog,
+    categories,
+    activeCategory,
     setQuery,
+    setCategory,
     clearFilters,
     retry,
   };

@@ -20,6 +20,5 @@ export async function sessionAuthMiddleware(
   }
 
   c.set("user", session.user);
-  c.set("sid", session.sid);
   await next();
 }

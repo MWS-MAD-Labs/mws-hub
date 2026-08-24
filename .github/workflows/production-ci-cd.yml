@@ -1,0 +1,189 @@
+name: MWS Hub - Production CI/CD
+
+on:
+  push:
+    branches: ["master"]
+  pull_request:
+    branches: ["master"]
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  BE_IMAGE: ${{ github.repository_owner }}/mws-hub-be
+  FE_IMAGE: ${{ github.repository_owner }}/mws-hub-fe
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  test-be:
+    name: BE Quality Gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install BE deps
+        run: bun install --frozen-lockfile
+        working-directory: backend
+
+      # Hub has no test suite yet. Typecheck is the gate that actually holds
+      # here: the catalog, the access policy and the token claims are all
+      # typed, so a shape mistake fails the build rather than production.
+      - name: Typecheck BE
+        run: bun run typecheck
+        working-directory: backend
+
+  test-fe:
+    name: FE Quality Gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install FE deps
+        run: bun install --frozen-lockfile
+        working-directory: frontend
+
+      - name: Lint FE
+        run: bunx eslint src
+        working-directory: frontend
+
+      - name: Build FE
+        run: bun run build
+        working-directory: frontend
+
+  build-be:
+    name: Build & Push BE Image
+    runs-on: ubuntu-latest
+    needs: [test-be]
+    if: github.ref == 'refs/heads/master'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker metadata - BE
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.BE_IMAGE }}
+          tags: |
+            type=raw,value=production
+            type=sha,prefix=production-
+            type=raw,value=production-${{ github.run_number }}
+
+      - name: Build and push BE
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=hub-be-production
+          cache-to: type=gha,mode=max,scope=hub-be-production
+          platforms: linux/amd64
+
+      - name: Summary BE
+        run: |
+          echo "## MWS Hub - Backend Production Image" >> $GITHUB_STEP_SUMMARY
+          echo "**Tags:** \`${{ steps.meta.outputs.tags }}\`" >> $GITHUB_STEP_SUMMARY
+
+  build-fe:
+    name: Build & Push FE Image
+    runs-on: ubuntu-latest
+    needs: [test-fe]
+    if: github.ref == 'refs/heads/master'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker metadata - FE
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.FE_IMAGE }}
+          tags: |
+            type=raw,value=production
+            type=sha,prefix=production-
+            type=raw,value=production-${{ github.run_number }}
+
+      # No VITE_* build args on purpose: config is written into env.js at
+      # container start, so this image is environment-agnostic.
+      - name: Build and push FE
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=hub-fe-production
+          cache-to: type=gha,mode=max,scope=hub-fe-production
+          platforms: linux/amd64
+
+      - name: Summary FE
+        run: |
+          echo "## MWS Hub - Frontend Production Image" >> $GITHUB_STEP_SUMMARY
+          echo "**Tags:** \`${{ steps.meta.outputs.tags }}\`" >> $GITHUB_STEP_SUMMARY
+
+  deploy:
+    name: Deploy to Komodo (Production)
+    runs-on: ubuntu-latest
+    needs: [build-be, build-fe]
+    if: |
+      always() &&
+      (needs.build-be.result == 'success' || needs.build-fe.result == 'success')
+    steps:
+      - name: Trigger Komodo - mws-hub-production stack
+        env:
+          KOMODO_WEBHOOK_URL: ${{ secrets.KOMODO_PRODUCTION_WEBHOOK_URL || secrets.KOMODO_WEBHOOK_URL }}
+          KOMODO_WEBHOOK_SECRET: ${{ secrets.KOMODO_PRODUCTION_WEBHOOK_SECRET || secrets.KOMODO_WEBHOOK_SECRET }}
+        run: |
+          if [ -z "$KOMODO_WEBHOOK_URL" ] || [ -z "$KOMODO_WEBHOOK_SECRET" ]; then
+            echo "Missing production Komodo webhook secrets."
+            echo "Set KOMODO_PRODUCTION_WEBHOOK_URL/KOMODO_PRODUCTION_WEBHOOK_SECRET, or keep the legacy KOMODO_WEBHOOK_URL/KOMODO_WEBHOOK_SECRET."
+            exit 1
+          fi
+
+          BODY='{"ref":"refs/heads/master","repository":{"name":"mws-hub"},"tag":"production","environment":"production"}'
+          SIGNATURE=$(echo -n "$BODY" | openssl dgst -sha256 -hmac "$KOMODO_WEBHOOK_SECRET" | awk '{print "sha256="$2}')
+          HTTP_STATUS=$(curl -s -o /tmp/komodo_resp.txt -w "%{http_code}" \
+            -X POST \
+            -H "Content-Type: application/json" \
+            -H "X-Hub-Signature-256: $SIGNATURE" \
+            -d "$BODY" \
+            "$KOMODO_WEBHOOK_URL")
+          echo "Komodo response [HTTP $HTTP_STATUS]:"
+          cat /tmp/komodo_resp.txt
+          [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ] || exit 1
+
+      - name: Deployment summary
+        run: |
+          echo "## MWS Hub deployed to Production" >> $GITHUB_STEP_SUMMARY
+          echo "- **BE image:** \`ghcr.io/${{ env.BE_IMAGE }}:production-${{ github.run_number }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **FE image:** \`ghcr.io/${{ env.FE_IMAGE }}:production-${{ github.run_number }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Komodo stack:** \`mws-hub\`" >> $GITHUB_STEP_SUMMARY

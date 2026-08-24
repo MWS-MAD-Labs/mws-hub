@@ -1,0 +1,71 @@
+# mws-hub STAGING - Komodo manual compose
+# Image-based, no build step. Komodo does not build; GitHub Actions pushes
+# images to GHCR and then calls this stack's webhook.
+#
+# Production lives in deploy/production.compose.yml.
+#
+# Only the frontend joins the gateway network. Nginx serves the app and
+# proxies /auth, /apps and /.well-known to the backend over the internal
+# network, so Hub's SameSite=Strict session cookie stays first-party and
+# app launches are same-origin navigations. See KOMODO_SETUP.md.
+
+services:
+  backend:
+    image: ghcr.io/mws-mad-labs/mws-hub-be:staging
+    container_name: mws-hub-be
+    restart: unless-stopped
+    env_file:
+      - ${ENV_FILE:-.env}
+    environment:
+      NODE_ENV: production
+      PORT: 4001
+    expose:
+      - "4001"
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "bun -e 'await fetch(\"http://127.0.0.1:4001/health\")' || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  frontend:
+    image: ghcr.io/mws-mad-labs/mws-hub-fe:staging
+    container_name: mws-hub-fe
+    restart: unless-stopped
+    environment:
+      # Empty on purpose - same origin, nginx proxies the API next door.
+      HUB_API_BASE_URL: ""
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      SUPPORT_EMAIL: ${SUPPORT_EMAIL:-admin@millennia21.id}
+      HUB_PUBLIC_URL: ${HUB_PUBLIC_URL:-https://hub-stg.mws.web.id}
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - internal
+      - mws-unified
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/ >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  internal:
+    driver: bridge
+  mws-unified:
+    external: true
+    name: mws-unified

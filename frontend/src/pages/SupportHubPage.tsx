@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import HubHeader from "@/features/fragments/HubHeader";
 import HubIntro from "@/features/fragments/HubIntro";
 import HubSearch from "@/features/fragments/HubSearch";
+import CategoryFilter from "@/features/fragments/CategoryFilter";
 import AppCard from "@/features/fragments/AppCard";
 import MobileAppLauncher from "@/features/fragments/MobileAppLauncher";
 import HubEmptyState from "@/features/fragments/HubEmptyState";
@@ -19,21 +20,36 @@ const SUPPORT_EMAIL = import.meta.env.VITE_SUPPORT_EMAIL || "admin@millennia21.i
 // Why a launch bounced back here instead of opening the app. The backend's
 // /apps/:appId/launch redirects with one of these codes rather than showing
 // a raw error body in the tab it just opened.
-const LAUNCH_ERRORS: Record<string, { title: string; description: string }> = {
-  app_access_denied: {
-    title: "You don't have access to that app",
-    description: "Your MWS account isn't admitted to this application yet. Use Request access if you need it.",
-  },
-  account_inactive: {
+// Why a launch bounced back here instead of opening the app. The backend's
+// /apps/:appId/launch redirects with one of these codes rather than showing
+// a raw error body in the tab it just opened, and passes the app name so the
+// notice can say which one.
+const LAUNCH_ERRORS: Record<string, (app: string) => { title: string; description: string }> = {
+  app_access_denied: (app) => ({
+    title: `You don't have access to ${app}`,
+    description: "Your MWS account isn't admitted to this application yet. Ask MAD Labs if you need it.",
+  }),
+  app_maintenance: (app) => ({
+    title: `${app} is under maintenance`,
+    description: "It's temporarily switched off while MAD Labs works on it. Try again later.",
+  }),
+  app_coming_soon: (app) => ({
+    title: `${app} isn't released yet`,
+    description: "It's listed here early. You'll be able to open it once it goes live.",
+  }),
+  app_no_link: (app) => ({
+    title: `${app} has no link yet`,
+    description: `It's in the catalog but no URL has been registered for it. Let MAD Labs know at ${SUPPORT_EMAIL}.`,
+  }),
+  account_inactive: () => ({
     title: "Your account is no longer active",
     description: `Your record in the Central database is inactive, so apps can't be opened. Contact ${SUPPORT_EMAIL} to restore it.`,
-  },
-  central_unavailable: {
+  }),
+  central_unavailable: () => ({
     title: "Couldn't check your access",
     description: "The Central database didn't answer just now. Try opening the app again in a moment.",
-  },
+  }),
 };
-
 const SupportHubPage = memo(() => {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -44,7 +60,10 @@ const SupportHubPage = memo(() => {
     isFiltering,
     visibleApplications,
     hasCatalog,
+    categories,
+    activeCategory,
     setQuery,
+    setCategory,
     clearFilters,
     retry,
   } = useHubCatalog();
@@ -55,8 +74,11 @@ const SupportHubPage = memo(() => {
     const code = searchParams.get("error");
     if (!code) return;
 
-    const failure = LAUNCH_ERRORS[code];
-    if (failure) {
+    const build = LAUNCH_ERRORS[code];
+    if (build) {
+      // "That app" reads better than an empty gap when the name is missing,
+      // which happens for failures that are not about a specific app.
+      const failure = build(searchParams.get("app") || "That app");
       toast.error(failure.title, { description: failure.description });
     }
 
@@ -64,6 +86,7 @@ const SupportHubPage = memo(() => {
       (current) => {
         const next = new URLSearchParams(current);
         next.delete("error");
+        next.delete("app");
         return next;
       },
       { replace: true },
@@ -96,6 +119,19 @@ const SupportHubPage = memo(() => {
         <div className="mt-5 hidden max-w-xl sm:block">
           <HubSearch query={query} onQueryChange={setQuery} />
         </div>
+
+        {/* Sits between search and results because that is the order the
+            filtering happens in - type first, then narrow. Desktop only, the
+            same as HubSearch: mobile has its own spotlight search. */}
+        {isSettled && hasCatalog && (
+          <div className="mt-4 hidden sm:block">
+            <CategoryFilter
+              categories={categories}
+              activeCategory={activeCategory}
+              onSelect={setCategory}
+            />
+          </div>
+        )}
 
         <section className="min-h-0 flex-1 sm:mt-6 sm:block sm:h-auto">
           <div className="mb-3 hidden items-baseline gap-2 sm:flex">
