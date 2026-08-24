@@ -1,42 +1,25 @@
-# mws-hub STAGING - Komodo stack
-# Same deployment concept as mws-daily-checkin and mws-mtss-system: GitHub
-# Actions builds and pushes images to GHCR, then triggers the webhook. Komodo
-# only pulls and runs - it never builds, which is what keeps a deploy measured
-# in seconds instead of a full Vite build on the server.
-#
-# Production lives in deploy/production.compose.yml.
-#
-# Only the frontend joins the gateway network. Nginx serves the app and
-# proxies /auth, /apps and /.well-known to the backend over the internal
-# network, so Hub's SameSite=Strict session cookie stays first-party and
-# app launches are same-origin navigations. See KOMODO_SETUP.md.
+# mws-hub local/staging compose.
+# The frontend is the single browser entry point and proxies /auth, /apps and
+# /.well-known to the backend over Docker's internal network.
 
 services:
   backend:
-    image: ghcr.io/mws-mad-labs/mws-hub-be:staging
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     container_name: mws-hub-be
     restart: unless-stopped
+    env_file:
+      - path: ./backend/.env
+        required: false
     environment:
-      NODE_ENV: ${NODE_ENV:-production}
-      PORT: ${PORT:-4001}
-      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN}
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
-      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
-      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-postmessage}
-      ALLOWED_DOMAIN: ${ALLOWED_DOMAIN:-millennia21.id}
-      CENTRAL_API_BASE_URL: ${CENTRAL_API_BASE_URL}
-      CENTRAL_API_TOKEN: ${CENTRAL_API_TOKEN}
-      JWT_SECRET: ${JWT_SECRET}
-      SESSION_COOKIE_NAME: ${SESSION_COOKIE_NAME:-hub_session}
-      HUB_SSO_PRIVATE_KEY: ${HUB_SSO_PRIVATE_KEY}
-      HUB_SSO_KEY_ID: ${HUB_SSO_KEY_ID:-mws-hub-sso-stg}
-      HUB_SSO_PUBLIC_KEY: ${HUB_SSO_PUBLIC_KEY}
-      DAILY_CHECKIN_API_URL: ${DAILY_CHECKIN_API_URL}
-      MTSS_API_URL: ${MTSS_API_URL}
+      NODE_ENV: production
+      PORT: 4001
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:5175}
     expose:
       - "4001"
     networks:
-      - internal
+      - hub
     logging:
       driver: json-file
       options:
@@ -44,22 +27,24 @@ services:
         max-file: "3"
 
   frontend:
-    image: ghcr.io/mws-mad-labs/mws-hub-fe:staging
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
     container_name: mws-hub-fe
     restart: unless-stopped
+    env_file:
+      - path: ./backend/.env
+        required: false
     environment:
       # Empty on purpose - same origin, nginx proxies the API next door.
       HUB_API_BASE_URL: ""
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
-      SUPPORT_EMAIL: ${SUPPORT_EMAIL:-admin@millennia21.id}
-      # Leave empty before a real staging domain exists. The frontend nginx
-      # entrypoint will then accept Komodo's temporary host.
       HUB_PUBLIC_URL: ${HUB_PUBLIC_URL:-}
     depends_on:
       - backend
+    ports:
+      - "${FRONTEND_PORT:-18080}:80"
     networks:
-      - internal
-      - mws-unified
+      - hub
     logging:
       driver: json-file
       options:
@@ -67,8 +52,5 @@ services:
         max-file: "3"
 
 networks:
-  internal:
+  hub:
     driver: bridge
-  mws-unified:
-    external: true
-    name: mws-unified

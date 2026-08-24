@@ -8,5 +8,6 @@ runtime_host="$(printf '%s' "${HUB_PUBLIC_URL:-}" | sed -E 's#^[a-zA-Z]+://##; s
 if [ -n "$runtime_host" ]; then
   sed -i "s/server_name hub\.millenniaws\.sch\.id localhost;/server_name $runtime_host localhost;/" /etc/nginx/conf.d/default.conf
 else
+  sed -i '1,/^}$/d' /etc/nginx/conf.d/default.conf
   sed -i "s/server_name hub\.millenniaws\.sch\.id localhost;/server_name _;/" /etc/nginx/conf.d/default.conf
 fi
