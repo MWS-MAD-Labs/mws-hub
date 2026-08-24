@@ -160,23 +160,26 @@ jobs:
     steps:
       - name: Trigger Komodo - mws-hub stack
         env:
-          KOMODO_WEBHOOK_URL: ${{ secrets.KOMODO_STAGING_WEBHOOK_URL || secrets.KOMODO_WEBHOOK_URL }}
-          KOMODO_WEBHOOK_SECRET: ${{ secrets.KOMODO_STAGING_WEBHOOK_SECRET || secrets.KOMODO_WEBHOOK_SECRET }}
+          KOMODO_WEBHOOK_URL: ${{ secrets.KOMODO_WEBHOOK_URL_STAGING || secrets.KOMODO_STAGING_WEBHOOK_URL || secrets.KOMODO_WEBHOOK_URL }}
+          KOMODO_WEBHOOK_SECRET: ${{ secrets.KOMODO_WEBHOOK_SECRET_STAGING || secrets.KOMODO_STAGING_WEBHOOK_SECRET || secrets.KOMODO_WEBHOOK_SECRET }}
         run: |
           if [ -z "$KOMODO_WEBHOOK_URL" ] || [ -z "$KOMODO_WEBHOOK_SECRET" ]; then
             echo "Missing staging Komodo webhook secrets."
-            echo "Set KOMODO_STAGING_WEBHOOK_URL/KOMODO_STAGING_WEBHOOK_SECRET, or keep the legacy KOMODO_WEBHOOK_URL/KOMODO_WEBHOOK_SECRET."
+            echo "Set KOMODO_WEBHOOK_URL_STAGING/KOMODO_WEBHOOK_SECRET_STAGING, KOMODO_STAGING_WEBHOOK_URL/KOMODO_STAGING_WEBHOOK_SECRET, or keep the legacy KOMODO_WEBHOOK_URL/KOMODO_WEBHOOK_SECRET."
             exit 1
           fi
 
-          BODY='{"ref":"refs/heads/staging","repository":{"name":"mws-hub"},"tag":"staging","environment":"staging"}'
-          SIGNATURE=$(echo -n "$BODY" | openssl dgst -sha256 -hmac "$KOMODO_WEBHOOK_SECRET" | awk '{print "sha256="$2}')
+          payload='{"ref":"refs/heads/staging"}'
+          signature="sha256=$(printf '%s' "$payload" | openssl dgst -sha256 -hmac "$KOMODO_WEBHOOK_SECRET" | sed 's/^.* //')"
+
           HTTP_STATUS=$(curl -s -o /tmp/komodo_resp.txt -w "%{http_code}" \
             -X POST \
             -H "Content-Type: application/json" \
-            -H "X-Hub-Signature-256: $SIGNATURE" \
-            -d "$BODY" \
+            -H "X-GitHub-Event: push" \
+            -H "X-Hub-Signature-256: $signature" \
+            -d "$payload" \
             "$KOMODO_WEBHOOK_URL")
+
           echo "Komodo response [HTTP $HTTP_STATUS]:"
           cat /tmp/komodo_resp.txt
           [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ] || exit 1
