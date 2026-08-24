@@ -1,4 +1,5 @@
 import { HUB_CATALOG } from "../data/hub-catalog";
+import { applyStatusOverrides } from "../lib/status-overrides";
 import type { CentralClaim, HubUser } from "../type/central-type";
 import type { HubAppResponse, HubCatalogEntry } from "../type/catalog-type";
 
@@ -233,12 +234,19 @@ function toResponse(entry: HubCatalogEntry): HubAppResponse {
   };
 }
 
+// The catalog as this deployment actually sees it: the code-declared entries
+// with any HUB_APP_STATUS_OVERRIDES applied. Everything below reads this, so
+// the listing and the launch gate can never disagree about an app's status.
+const EFFECTIVE_CATALOG = applyStatusOverrides(HUB_CATALOG);
+
 export class AppsService {
   static listFor(user: HubUser): HubAppResponse[] {
-    return HUB_CATALOG.filter((entry) => isVisibleTo(entry, user)).map(toResponse);
+    return EFFECTIVE_CATALOG.filter((entry) => isVisibleTo(entry, user)).map(toResponse);
   }
 
   static findByLaunchId(appId: string): HubCatalogEntry | null {
-    return HUB_CATALOG.find((entry) => entry.id === appId || entry.sso?.appId === appId) ?? null;
+    return (
+      EFFECTIVE_CATALOG.find((entry) => entry.id === appId || entry.sso?.appId === appId) ?? null
+    );
   }
 }

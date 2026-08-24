@@ -7,8 +7,14 @@ on:
     branches: ["staging"]
   workflow_dispatch:
 
+env:
+  REGISTRY: ghcr.io
+  BE_IMAGE: ${{ github.repository_owner }}/mws-hub-be
+  FE_IMAGE: ${{ github.repository_owner }}/mws-hub-fe
+
 permissions:
   contents: read
+  packages: write
 
 jobs:
   test-be:
@@ -54,10 +60,88 @@ jobs:
         run: bun run build
         working-directory: frontend
 
+  build-be:
+    name: Build & Push BE Image
+    runs-on: ubuntu-latest
+    needs: [test-be]
+    if: github.ref == 'refs/heads/staging' && github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker metadata - BE
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.BE_IMAGE }}
+          tags: |
+            type=raw,value=staging
+            type=raw,value=staging-${{ github.run_number }}
+            type=sha,prefix=staging-
+
+      - name: Build and push BE
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=hub-be-staging
+          cache-to: type=gha,mode=max,scope=hub-be-staging
+          platforms: linux/amd64
+
+  build-fe:
+    name: Build & Push FE Image
+    runs-on: ubuntu-latest
+    needs: [test-fe]
+    if: github.ref == 'refs/heads/staging' && github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker metadata - FE
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.FE_IMAGE }}
+          tags: |
+            type=raw,value=staging
+            type=raw,value=staging-${{ github.run_number }}
+            type=sha,prefix=staging-
+
+      # No VITE_* build args: config is written into env.js at container
+      # start, so this image is environment-agnostic.
+      - name: Build and push FE
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=hub-fe-staging
+          cache-to: type=gha,mode=max,scope=hub-fe-staging
+          platforms: linux/amd64
+
   deploy:
     name: Deploy to Komodo (Staging)
     runs-on: ubuntu-latest
-    needs: [test-be, test-fe]
+    needs: [build-be, build-fe]
     if: success() && github.ref == 'refs/heads/staging' && github.event_name == 'push'
     steps:
       - name: Trigger Komodo - mws-hub stack
@@ -89,5 +173,6 @@ jobs:
       - name: Deployment summary
         run: |
           echo "## MWS Hub deployed to Staging" >> $GITHUB_STEP_SUMMARY
-          echo "- **Build:** Komodo builds from source" >> $GITHUB_STEP_SUMMARY
+          echo "- **BE image:** \`ghcr.io/${{ env.BE_IMAGE }}:staging-${{ github.run_number }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **FE image:** \`ghcr.io/${{ env.FE_IMAGE }}:staging-${{ github.run_number }}\`" >> $GITHUB_STEP_SUMMARY
           echo "- **Komodo stack:** \`mws-hub\`" >> $GITHUB_STEP_SUMMARY

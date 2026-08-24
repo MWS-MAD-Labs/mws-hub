@@ -1,6 +1,8 @@
 # mws-hub STAGING - Komodo stack
-# Same deployment concept as mws-central-database-user: GitHub Actions runs
-# quality gates and triggers the webhook; Komodo builds and deploys from source.
+# Same deployment concept as mws-daily-checkin and mws-mtss-system: GitHub
+# Actions builds and pushes images to GHCR, then triggers the webhook. Komodo
+# only pulls and runs - it never builds, which is what keeps a deploy measured
+# in seconds instead of a full Vite build on the server.
 #
 # Production lives in deploy/production.compose.yml.
 #
@@ -11,9 +13,7 @@
 
 services:
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: ghcr.io/mws-mad-labs/mws-hub-be:staging
     container_name: mws-hub-be
     restart: unless-stopped
     environment:
@@ -44,9 +44,7 @@ services:
         max-file: "3"
 
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
+    image: ghcr.io/mws-mad-labs/mws-hub-fe:staging
     container_name: mws-hub-fe
     restart: unless-stopped
     environment:
