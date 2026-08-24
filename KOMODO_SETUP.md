@@ -1,18 +1,18 @@
 # MWS Hub - Komodo Deployment
 
-Same shape as `mws-daily-checkin` and `mws-mtss-system`: GitHub Actions builds
-and pushes images to GHCR, then calls the stack webhook. Komodo does not build.
+Staging follows `mws-central-database-user`: GitHub Actions runs quality gates,
+then calls the stack webhook, and Komodo builds from source. Production can keep
+the image-based flow in `deploy/production.compose.yml`.
 
-| Environment | Branch | Image tag | Compose | Gateway network | Komodo stack |
+| Environment | Branch | Build source | Compose | Gateway network | Komodo stack |
 |---|---|---|---|---|---|
-| Staging | `staging` | `staging` | `docker-compose.yml` | `mws-unified` | `mws-hub` |
-| Production | `master` | `production` | `deploy/production.compose.yml` | `mws-unified-prod` | `mws-hub-production` |
+| Staging | `staging` | Komodo builds from source | `docker-compose.yml` | `mws-unified` | `mws-hub` |
+| Production | `master` | GHCR image | `deploy/production.compose.yml` | `mws-unified-prod` | `mws-hub-production` |
 
 Hub's default branch is `master`, not `main` as in the satellites - the
 production workflow triggers accordingly.
 
-`docker-compose.local.yml` is neither: it builds from source so the images can
-be smoke-tested the way CI will build them.
+`docker-compose.local.yml` is for local smoke tests.
 
 ### GitHub Actions secrets
 
@@ -39,11 +39,11 @@ That is deliberate, and it is not just tidiness:
 The practical consequence: `/auth`, `/apps` and `/.well-known` are reserved
 prefixes. The SPA router must never claim them.
 
-## Images and containers
+## Builds and containers
 
-| Environment | Images | Containers |
+| Environment | Build/Image | Containers |
 |---|---|---|
-| Staging | `ghcr.io/mws-mad-labs/mws-hub-{be,fe}:staging` | `mws-hub-be`, `mws-hub-fe` |
+| Staging | Komodo `build:` from `./backend` and `./frontend` | `mws-hub-be`, `mws-hub-fe` |
 | Production | `ghcr.io/mws-mad-labs/mws-hub-{be,fe}:production` | `hub-be-prod`, `hub-fe-prod` |
 
 ## Komodo stack
@@ -60,7 +60,7 @@ frontend container - it is the only one on the gateway network.
 
 Komodo supplies these to the stack. The frontend needs almost nothing, because
 its config is written into `env.js` when the container starts rather than baked
-into the bundle - which is why one image works in staging and production.
+into the bundle.
 
 ### Backend (`.env` on the stack)
 
@@ -68,7 +68,7 @@ into the bundle - which is why one image works in staging and production.
 NODE_ENV=production
 PORT=4001
 
-FRONTEND_ORIGIN=https://hub-stg.mws.web.id   # production: https://hub.millenniaws.sch.id
+FRONTEND_ORIGIN=<temporary Komodo app URL>   # later: https://hub-stg.mws.web.id
 
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
@@ -96,12 +96,11 @@ MTSS_API_URL=https://app.millenniaws.sch.id/mtss
 HUB_API_BASE_URL=          # empty: same origin
 GOOGLE_CLIENT_ID=          # same client as the backend
 SUPPORT_EMAIL=admin@millennia21.id
-HUB_PUBLIC_URL=https://hub-stg.mws.web.id     # production: hub.millenniaws.sch.id
+HUB_PUBLIC_URL=                              # later: https://hub-stg.mws.web.id
 ```
 
-`HUB_PUBLIC_URL` also sets nginx's `server_name`. Anything arriving on a host
-that does not match is dropped with a 444, so a raw IP or a stray scan never
-gets served the app.
+`HUB_PUBLIC_URL` sets nginx's `server_name`. Leave it empty while using
+Komodo's temporary host; set it once staging DNS exists.
 
 ## Before the first deploy
 

@@ -1,6 +1,6 @@
-# mws-hub STAGING - Komodo manual compose
-# Image-based, no build step. Komodo does not build; GitHub Actions pushes
-# images to GHCR and then calls this stack's webhook.
+# mws-hub STAGING - Komodo stack
+# Same deployment concept as mws-central-database-user: GitHub Actions runs
+# quality gates and triggers the webhook; Komodo builds and deploys from source.
 #
 # Production lives in deploy/production.compose.yml.
 #
@@ -11,24 +11,32 @@
 
 services:
   backend:
-    image: ghcr.io/mws-mad-labs/mws-hub-be:staging
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     container_name: mws-hub-be
     restart: unless-stopped
-    env_file:
-      - ${ENV_FILE:-.env}
     environment:
-      NODE_ENV: production
-      PORT: 4001
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: ${PORT:-4001}
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-postmessage}
+      ALLOWED_DOMAIN: ${ALLOWED_DOMAIN:-millennia21.id}
+      CENTRAL_API_BASE_URL: ${CENTRAL_API_BASE_URL}
+      CENTRAL_API_TOKEN: ${CENTRAL_API_TOKEN}
+      JWT_SECRET: ${JWT_SECRET}
+      SESSION_COOKIE_NAME: ${SESSION_COOKIE_NAME:-hub_session}
+      HUB_SSO_PRIVATE_KEY: ${HUB_SSO_PRIVATE_KEY}
+      HUB_SSO_KEY_ID: ${HUB_SSO_KEY_ID:-mws-hub-sso-stg}
+      HUB_SSO_PUBLIC_KEY: ${HUB_SSO_PUBLIC_KEY}
+      DAILY_CHECKIN_API_URL: ${DAILY_CHECKIN_API_URL}
+      MTSS_API_URL: ${MTSS_API_URL}
     expose:
       - "4001"
     networks:
       - internal
-    healthcheck:
-      test: ["CMD-SHELL", "bun -e 'await fetch(\"http://127.0.0.1:4001/health\")' || exit 1"]
-      interval: 30s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
     logging:
       driver: json-file
       options:
@@ -36,7 +44,9 @@ services:
         max-file: "3"
 
   frontend:
-    image: ghcr.io/mws-mad-labs/mws-hub-fe:staging
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
     container_name: mws-hub-fe
     restart: unless-stopped
     environment:
@@ -44,19 +54,14 @@ services:
       HUB_API_BASE_URL: ""
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       SUPPORT_EMAIL: ${SUPPORT_EMAIL:-admin@millennia21.id}
-      HUB_PUBLIC_URL: ${HUB_PUBLIC_URL:-https://hub-stg.mws.web.id}
+      # Leave empty before a real staging domain exists. The frontend nginx
+      # entrypoint will then accept Komodo's temporary host.
+      HUB_PUBLIC_URL: ${HUB_PUBLIC_URL:-}
     depends_on:
-      backend:
-        condition: service_healthy
+      - backend
     networks:
       - internal
       - mws-unified
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/ >/dev/null 2>&1 || exit 1"]
-      interval: 30s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
     logging:
       driver: json-file
       options:
