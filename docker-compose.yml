@@ -9,14 +9,20 @@ services:
       dockerfile: Dockerfile
     container_name: mws-hub-be
     restart: unless-stopped
-    env_file:
-      - path: ./backend/.env
-        required: true
+
     environment:
       NODE_ENV: production
       PORT: 4001
+      JWT_SECRET: ${JWT_SECRET}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI}
+      ALLOWED_DOMAIN: ${ALLOWED_DOMAIN}
+      HUB_PUBLIC_URL: ${HUB_PUBLIC_URL}
+
     expose:
       - "4001"
+
     networks:
       - internal
     healthcheck:
@@ -41,17 +47,17 @@ services:
       dockerfile: Dockerfile
     container_name: mws-hub-fe
     restart: unless-stopped
+
     ports:
       - "${FRONTEND_PORT:-5175}:80"
-    env_file:
-      - path: ./backend/.env
-        required: true
+
     environment:
-      # Empty on purpose - same origin, nginx proxies the API next door.
       HUB_API_BASE_URL: ""
       HUB_PUBLIC_URL: ${HUB_PUBLIC_URL:-}
+
     depends_on:
       - backend
+
     networks:
       - internal
       - mws-unified
