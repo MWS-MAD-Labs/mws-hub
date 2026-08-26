@@ -9,6 +9,14 @@ export class GoogleAuth {
     process.env.GOOGLE_REDIRECT_URI,
   );
 
+  static authUrl(state: string): string {
+    return this.client.generateAuthUrl({
+      scope: ["openid", "email", "profile"],
+      state,
+      prompt: "select_account",
+    });
+  }
+
   static async verifyCode(code: string): Promise<GooglePayload | null> {
     try {
       const { tokens } = await this.client.getToken(code);

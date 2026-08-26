@@ -1,23 +1,13 @@
+import { useState } from "react";
 import { LoaderCircle, LogIn } from "lucide-react";
-import { toast } from "sonner";
 import { env } from "@/config/env";
-import { requestGoogleCode } from "@/lib/googleIdentity";
-import { useAuth } from "../hooks/useAuth";
-import { ApiError } from "@/lib/api";
 
 export function GoogleLoginButton() {
-  const { loginWithGoogle, isLoggingIn } = useAuth();
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  async function handleLogin() {
-    try {
-      const code = await requestGoogleCode({
-        clientId: env.googleClientId,
-      });
-      await loginWithGoogle(code);
-    } catch (error) {
-      const message = error instanceof ApiError ? error.message : "Google login failed";
-      toast.error(message);
-    }
+  function handleLogin() {
+    setIsLoggingIn(true);
+    window.location.assign(`${env.hubApiBaseUrl}/auth/google/start`);
   }
 
   return (

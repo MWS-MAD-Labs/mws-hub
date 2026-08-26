@@ -5,6 +5,8 @@ import type { SessionVariables } from "../type/hono-context";
 
 export const authRoute = new Hono<{ Variables: SessionVariables }>();
 
+authRoute.get("/google/start", AuthController.startGoogleLogin);
+authRoute.get("/google/callback", AuthController.googleCallback);
 authRoute.post("/google", AuthController.loginWithGoogle);
 authRoute.post("/logout", AuthController.logout);
 

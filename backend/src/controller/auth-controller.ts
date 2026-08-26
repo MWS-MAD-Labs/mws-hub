@@ -1,9 +1,12 @@
 import type { Context } from "hono";
-import { setCookie, deleteCookie } from "hono/cookie";
+import { getCookie, setCookie, deleteCookie } from "hono/cookie";
 import { AuthService } from "../service/auth-service";
+import { GoogleAuth } from "../lib/google-auth";
 import { resolveLogoutRedirect } from "../lib/logout-redirect";
 import { frontendOrigin } from "../lib/frontend-origin";
 import type { SessionVariables } from "../type/hono-context";
+
+const OAUTH_STATE_COOKIE = "hub_google_oauth_state";
 
 function cookieOptions() {
   return {
@@ -14,7 +17,27 @@ function cookieOptions() {
   };
 }
 
+function oauthStateCookieOptions() {
+  return {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "Lax" as const,
+    path: "/auth/google",
+  };
+}
+
 export class AuthController {
+  static async startGoogleLogin(c: Context) {
+    const state = crypto.randomUUID();
+
+    setCookie(c, OAUTH_STATE_COOKIE, state, {
+      ...oauthStateCookieOptions(),
+      maxAge: 60 * 10,
+    });
+
+    return c.redirect(GoogleAuth.authUrl(state), 302);
+  }
+
   static async loginWithGoogle(c: Context) {
     const { code } = await c.req.json<{ code: string }>();
 
@@ -27,6 +50,28 @@ export class AuthController {
     });
 
     return c.json({ data: user });
+  }
+
+  static async googleCallback(c: Context) {
+    const code = c.req.query("code");
+    const state = c.req.query("state");
+    const expectedState = getCookie(c, OAUTH_STATE_COOKIE);
+
+    deleteCookie(c, OAUTH_STATE_COOKIE, oauthStateCookieOptions());
+
+    if (!code || !state || !expectedState || state !== expectedState) {
+      return c.redirect(`${frontendOrigin()}/login?error=google_state`, 302);
+    }
+
+    const { token } = await AuthService.loginWithGoogle(code);
+    const cookieName = process.env.SESSION_COOKIE_NAME || "hub_session";
+
+    setCookie(c, cookieName, token, {
+      ...cookieOptions(),
+      maxAge: 60 * 60 * 8,
+    });
+
+    return c.redirect(`${frontendOrigin()}/support-hub`, 302);
   }
 
   static async me(c: Context<{ Variables: SessionVariables }>) {
