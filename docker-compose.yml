@@ -1,6 +1,6 @@
 # mws-hub staging compose for Komodo.
 # The frontend is the single browser entry point and proxies /auth, /apps and
-# /.well-known to the backend over Docker's internal network.
+# /.well-known to the backend over Docker's internal network
 
 services:
   backend:
@@ -20,7 +20,11 @@ services:
     networks:
       - internal
     healthcheck:
-      test: ["CMD-SHELL", "bun -e 'const r = await fetch(\"http://127.0.0.1:4001/health\"); if (!r.ok) process.exit(1)'"]
+      test:
+        [
+          "CMD-SHELL",
+          'bun -e ''const r = await fetch("http://127.0.0.1:4001/health"); if (!r.ok) process.exit(1)''',
+        ]
       interval: 10s
       timeout: 3s
       retries: 6
