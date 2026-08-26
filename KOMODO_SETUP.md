@@ -1,13 +1,12 @@
 # MWS Hub - Komodo Deployment
 
-Staging follows `mws-central-database-user`: GitHub Actions runs quality gates,
-then calls the stack webhook, and Komodo builds from source. Production can keep
-the image-based flow in `deploy/production.compose.yml`.
+Staging and production follow `mws-central-database-user`: GitHub Actions runs
+quality gates, then calls the stack webhook, and Komodo builds from source.
 
 | Environment | Branch | Build source | Compose | Gateway network | Komodo stack |
 |---|---|---|---|---|---|
 | Staging | `staging` | Komodo builds from source | `docker-compose.yml` | `mws-unified` | `mws-hub` |
-| Production | `master` | GHCR image | `deploy/production.compose.yml` | `mws-unified-prod` | `mws-hub-production` |
+| Production | `master` | Komodo builds from source | `deploy/production.compose.yml` | `mws-unified-prod` | `mws-hub-production` |
 
 Hub's default branch is `master`, not `main` as in the satellites - the
 production workflow triggers accordingly.
@@ -44,7 +43,7 @@ prefixes. The SPA router must never claim them.
 | Environment | Build/Image | Containers |
 |---|---|---|
 | Staging | Komodo `build:` from `./backend` and `./frontend` | `mws-hub-be`, `mws-hub-fe` |
-| Production | `ghcr.io/mws-mad-labs/mws-hub-{be,fe}:production` | `hub-be-prod`, `hub-fe-prod` |
+| Production | Komodo `build:` from `../backend` and `../frontend` | `hub-be-prod`, `hub-fe-prod` |
 
 ## Komodo stack
 

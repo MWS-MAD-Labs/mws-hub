@@ -1,6 +1,7 @@
-# mws-hub production - Komodo manual compose
-# Image-based, no build step. The production gateway reaches this stack
-# through the external mws-unified-prod network as hub-fe-prod.
+# mws-hub production - Komodo compose
+# GitHub Actions triggers the webhook; Komodo builds and deploys from source.
+# The production gateway reaches this stack through the external
+# mws-unified-prod network as hub-fe-prod.
 #
 # Only the frontend joins that network: it is the single entry point, and it
 # proxies /auth, /apps and /.well-known to the backend over the internal
@@ -9,11 +10,14 @@
 
 services:
   backend:
-    image: ghcr.io/mws-mad-labs/mws-hub-be:production
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
     container_name: hub-be-prod
     restart: unless-stopped
     env_file:
-      - ${ENV_FILE:-.env}
+      - path: ../backend/.env
+        required: false
     environment:
       NODE_ENV: production
       PORT: 4001
@@ -21,12 +25,6 @@ services:
       - "4001"
     networks:
       - internal
-    healthcheck:
-      test: ["CMD-SHELL", "bun -e 'await fetch(\"http://127.0.0.1:4001/health\")' || exit 1"]
-      interval: 30s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
     logging:
       driver: json-file
       options:
@@ -34,27 +32,23 @@ services:
         max-file: "3"
 
   frontend:
-    image: ghcr.io/mws-mad-labs/mws-hub-fe:production
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
     container_name: hub-fe-prod
     restart: unless-stopped
+    env_file:
+      - path: ../backend/.env
+        required: false
     environment:
       # Empty on purpose - same-origin, nginx proxies the API next door.
       HUB_API_BASE_URL: ""
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
-      SUPPORT_EMAIL: ${SUPPORT_EMAIL:-admin@millennia21.id}
       HUB_PUBLIC_URL: ${HUB_PUBLIC_URL:-https://hub.millenniaws.sch.id}
     depends_on:
-      backend:
-        condition: service_healthy
+      - backend
     networks:
       - internal
       - mws-unified-prod
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/ >/dev/null 2>&1 || exit 1"]
-      interval: 30s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
     logging:
       driver: json-file
       options:
