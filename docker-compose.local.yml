@@ -1,41 +1,10 @@
-# Local build stack. Neither staging nor production uses this - both pull
-# prebuilt images from GHCR. This one exists to build and smoke-test the
-# images the same way CI will:
-#
-#   docker compose -f docker-compose.local.yml up --build
 services:
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    env_file:
-      - path: ./backend/.env
-        required: false
-    environment:
-      NODE_ENV: ${NODE_ENV:-production}
-      PORT: 4001
-    expose:
-      - "4001"
-    healthcheck:
-      test: ["CMD-SHELL", "bun -e 'await fetch(\"http://127.0.0.1:4001/health\")' || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
-    restart: unless-stopped
-
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    environment:
-      HUB_API_BASE_URL: ""
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
-      SUPPORT_EMAIL: ${SUPPORT_EMAIL:-admin@millennia21.id}
-      HUB_PUBLIC_URL: ${HUB_PUBLIC_URL:-http://localhost:5175}
     ports:
-      - "${HUB_HTTP_PORT:-5175}:80"
-    depends_on:
-      backend:
-        condition: service_healthy
-    restart: unless-stopped
+      - "${FRONTEND_PORT:-18080}:80"
+    networks:
+      - internal
+
+networks:
+  mws-unified:
+    external: false

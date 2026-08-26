@@ -1,4 +1,4 @@
-# mws-hub local/staging compose.
+# mws-hub staging compose for Komodo.
 # The frontend is the single browser entry point and proxies /auth, /apps and
 # /.well-known to the backend over Docker's internal network.
 
@@ -11,15 +11,20 @@ services:
     restart: unless-stopped
     env_file:
       - path: ./backend/.env
-        required: false
+        required: true
     environment:
       NODE_ENV: production
       PORT: 4001
-      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:5175}
     expose:
       - "4001"
     networks:
-      - hub
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "bun -e 'const r = await fetch(\"http://127.0.0.1:4001/health\"); if (!r.ok) process.exit(1)'"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 10s
     logging:
       driver: json-file
       options:
@@ -34,17 +39,22 @@ services:
     restart: unless-stopped
     env_file:
       - path: ./backend/.env
-        required: false
+        required: true
     environment:
       # Empty on purpose - same origin, nginx proxies the API next door.
       HUB_API_BASE_URL: ""
       HUB_PUBLIC_URL: ${HUB_PUBLIC_URL:-}
     depends_on:
       - backend
-    ports:
-      - "${FRONTEND_PORT:-18080}:80"
     networks:
-      - hub
+      - internal
+      - mws-unified
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/ >/dev/null"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 10s
     logging:
       driver: json-file
       options:
@@ -52,5 +62,8 @@ services:
         max-file: "3"
 
 networks:
-  hub:
+  internal:
     driver: bridge
+  mws-unified:
+    external: true
+    name: mws-unified
