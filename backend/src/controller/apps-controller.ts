@@ -4,6 +4,7 @@ import { mintRelayToken } from "../lib/sso-relay";
 import { resolveCentralIdentity } from "../lib/central-client";
 import { ResponseError } from "../error/response-error";
 import { logger } from "../lib/logger";
+import { frontendOrigin } from "../lib/frontend-origin";
 import type { HubUser } from "../type/central-type";
 import type { SessionVariables } from "../type/hono-context";
 
@@ -12,7 +13,7 @@ import type { SessionVariables } from "../type/hono-context";
 // their own SSO failures: back to the hub with a code, never a raw JSON body
 // in a fresh tab.
 function launchFailure(c: Context, code: string, appName?: string) {
-  const origin = process.env.FRONTEND_ORIGIN || "http://localhost:5175";
+  const origin = frontendOrigin();
   const params = new URLSearchParams({ error: code });
   // Naming the app turns "something went wrong" into "Exima is under
   // maintenance", which is the difference between a notice and a shrug.

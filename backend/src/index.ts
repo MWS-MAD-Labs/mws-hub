@@ -5,6 +5,7 @@ import { authRoute } from "./route/auth-route";
 import { appsRoute } from "./route/apps-route";
 import { ResponseError } from "./error/response-error";
 import { logger } from "./lib/logger";
+import { frontendOrigin } from "./lib/frontend-origin";
 import { hubSsoJwks } from "./lib/sso-relay";
 
 const app = new Hono();
@@ -12,7 +13,7 @@ const app = new Hono();
 app.use(
   "*",
   cors({
-    origin: process.env.FRONTEND_ORIGIN || "http://localhost:5175",
+    origin: frontendOrigin(),
     credentials: true,
   }),
 );

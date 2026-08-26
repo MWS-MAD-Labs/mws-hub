@@ -1,12 +1,40 @@
-import { Navigate } from "react-router-dom";
+import { useEffect } from "react";
+import { Navigate, useSearchParams } from "react-router-dom";
+import { toast } from "sonner";
 import Logo from "@/assets/logo.webp";
 import { GoogleLoginButton } from "@/features/auth/components/GoogleLoginButton";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 
 const HOME_PATH = "/support-hub";
+const LOGIN_ERRORS: Record<string, { title: string; description: string }> = {
+  session_expired: {
+    title: "Session ended",
+    description: "Please sign in again before opening an app.",
+  },
+};
 
 export default function LoginPage() {
   const { isAuthenticated, isSessionLoading } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    const code = searchParams.get("error");
+    if (!code) return;
+
+    const notice = LOGIN_ERRORS[code];
+    if (notice) {
+      toast.error(notice.title, { description: notice.description });
+    }
+
+    setSearchParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        next.delete("error");
+        return next;
+      },
+      { replace: true },
+    );
+  }, [searchParams, setSearchParams]);
 
   if (isAuthenticated) {
     return <Navigate to={HOME_PATH} replace />;
