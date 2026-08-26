@@ -10,7 +10,7 @@ services:
     container_name: mws-hub-be
     restart: unless-stopped
     env_file:
-      - path: ./backend/.env
+      - path: ./.env
         required: true
     environment:
       NODE_ENV: production
@@ -38,7 +38,7 @@ services:
     container_name: mws-hub-fe
     restart: unless-stopped
     env_file:
-      - path: ./backend/.env
+      - path: ./.env
         required: true
     environment:
       # Empty on purpose - same origin, nginx proxies the API next door.

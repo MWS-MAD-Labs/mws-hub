@@ -16,7 +16,7 @@ services:
     container_name: hub-be-prod
     restart: unless-stopped
     env_file:
-      - path: ../backend/.env
+      - path: ../.env
         required: false
     environment:
       NODE_ENV: production
@@ -38,7 +38,7 @@ services:
     container_name: hub-fe-prod
     restart: unless-stopped
     env_file:
-      - path: ../backend/.env
+      - path: ../.env
         required: false
     environment:
       # Empty on purpose - same-origin, nginx proxies the API next door.
