@@ -32,11 +32,15 @@ jobs:
       - name: Install BE deps
         run: bun install --frozen-lockfile
 
-      # Hub has no test suite yet. Typecheck is the gate that actually holds
-      # here: the catalog, the access policy and the token claims are all
-      # typed, so a shape mistake fails the build rather than production.
+      # The catalog, the access policy and the token claims are all typed,
+      # so a shape mistake fails the build rather than production.
       - name: Typecheck BE
         run: bun run typecheck
+
+      # No database in this stack - every test here is hermetic (mocked
+      # fetch/env), so it needs no service containers.
+      - name: Test BE
+        run: bun test
 
   test-fe:
     name: Frontend Validation (Vite)
