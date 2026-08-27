@@ -34,30 +34,30 @@ export const HUB_CATALOG: HubCatalogEntry[] = [
   {
     id: "report-assistant", name: "Report Assistant", icon: "FileEdit",
     description: "Generate individualised student reports.",
-    category: "reporting", audience: "Teachers", keywords: ["narrative", "slides", "student report"],
+    category: "reporting", audience: "Public", keywords: ["narrative", "slides", "student report"],
     href: "https://mws.web.id/report-assistant", external: true,
-    status: "active", discoverable: true, allowedSources: TEACHERS,
+    status: "active", discoverable: true, allowedSources: PUBLIC,
   },
   {
     id: "report-progress-tracker", name: "Report Progress Tracker", icon: "GaugeCircle",
     description: "Track student report progress.",
-    category: "reporting", audience: "Teachers", keywords: ["progress", "status", "student report"],
+    category: "reporting", audience: "Public", keywords: ["progress", "status", "student report"],
     href: "https://mws.web.id/progress-tracker", external: true,
-    status: "active", discoverable: true, allowedSources: TEACHERS,
+    status: "active", discoverable: true, allowedSources: PUBLIC,
   },
   {
     id: "report-auditor", name: "Report Auditor", icon: "FileCheck2",
     description: "Find pronoun and student-name mistakes.",
-    category: "reporting", audience: "Teachers", keywords: ["audit", "proofread", "pronouns", "slide"],
+    category: "reporting", audience: "Public", keywords: ["audit", "proofread", "pronouns", "slide"],
     href: "https://mws.web.id/slide-auditor", external: true,
-    status: "active", discoverable: true, allowedSources: TEACHERS,
+    status: "active", discoverable: true, allowedSources: PUBLIC,
   },
   {
     id: "slides-generator", name: "Slides Generator", icon: "LayoutTemplate",
     description: "Generate student slide report templates.",
-    category: "reporting", audience: "Admin", keywords: ["template", "slide", "generate"],
+    category: "reporting", audience: "Public", keywords: ["template", "slide", "generate"],
     href: "https://mws.web.id/slide-generator", external: true,
-    status: "active", discoverable: true, allowedSources: ADMIN,
+    status: "active", discoverable: true, allowedSources: PUBLIC,
   },
   {
     id: "slides-to-pdf", name: "Slides to PDF", icon: "FileDown",
@@ -75,37 +75,40 @@ export const HUB_CATALOG: HubCatalogEntry[] = [
   },
 
   // ── Teaching & Students ──────────────────────────────────────────────
+  // Teachers, Principals, Director
   {
     id: "mtss", name: "MTSS Dashboard", icon: "Brain",
     description: "MTSS management dashboard.",
-    category: "students", audience: "Teachers, Principals, Director", keywords: ["intervention", "tier", "support"],
+    category: "students", audience: "Public", keywords: ["intervention", "tier", "support"],
     href: "https://app.millenniaws.sch.id/mtss", external: true,
-    status: "active", discoverable: true, allowedSources: TEACHERS_PRINCIPALS_DIRECTOR,
-    sso: { appId: "mtss", entryUrl: `${process.env.MTSS_API_URL}/auth/sso` },
+    status: "active", discoverable: true, allowedSources: PUBLIC,
+    sso: { appId: "mtss", entryUrl: `${process.env.MTSS_API_URL}/auth/sso` }, 
   },
+  // STUDENTS_TEACHERS_STAFF_PRINCIPALS_DIRECTOR
   {
     id: "emotional-checkin", name: "Daily Emotional Check-in", icon: "HeartHandshake",
     description: "Daily emotional check-in and analytics.",
-    category: "students", audience: "Student, Teachers, Staff, Principals, Director", keywords: ["mood", "wellbeing", "checkin", "analytics"],
+    category: "students", audience: "Public", keywords: ["mood", "wellbeing", "checkin", "analytics"],
     href: "https://app.millenniaws.sch.id/select-role", external: true,
-    status: "active", discoverable: true, allowedSources: STUDENTS_TEACHERS_STAFF_PRINCIPALS_DIRECTOR,
+    status: "active", discoverable: true, allowedSources: PUBLIC,
     sso: { appId: "daily-checkin", entryUrl: `${process.env.DAILY_CHECKIN_API_URL}/auth/sso` },
   },
+  // Tacher and Staff
   {
     id: "reading-buddy", name: "Reading Buddy", icon: "BookOpenText",
     description: "MWS e-library platform.",
-    category: "students", audience: "Teachers, Staff", keywords: ["library", "books", "reading", "e-library"],
+    category: "students", audience: "Public", keywords: ["library", "books", "reading", "e-library"],
     href: "https://reads.mws.web.id/", external: true,
-    status: "active", discoverable: true, allowedSources: TEACHERS_AND_STAFF,
+    status: "active", discoverable: true, allowedSources: PUBLIC,
   },
 
   // ── Workplace ────────────────────────────────────────────────────────
   {
     id: "proofpoint", name: "ProofPoint", icon: "ClipboardCheck",
     description: "Performance appraisal and observation platform.",
-    category: "workplace", audience: "Teachers, Staff, Principals, Director", keywords: ["appraisal", "observation", "performance"],
+    category: "workplace", audience: "Public", keywords: ["appraisal", "observation", "performance"],
     href: "https://proof.mws.web.id/", external: true,
-    status: "active", discoverable: true, allowedSources: EMPLOYEE_PERFORMANCE,
+    status: "active", discoverable: true, allowedSources: PUBLIC,
   },
   {
     id: "idp-dashboard", name: "Self Report IDP Dashboard", icon: "TrendingUp",
@@ -156,16 +159,16 @@ export const HUB_CATALOG: HubCatalogEntry[] = [
   {
     id: "gpt-code", name: "ChatGPT Login Code Generator", icon: "KeyRound",
     description: "Generate login verification codes automatically.",
-    category: "utilities", audience: "Staff", keywords: ["chatgpt", "otp", "verification", "login", "code"],
+    category: "utilities", audience: "Public", keywords: ["chatgpt", "otp", "verification", "login", "code"],
     href: "https://mws.web.id/gpt-code", external: true,
-    status: "active", discoverable: true, allowedSources: STAFF,
+    status: "active", discoverable: true, allowedSources: PUBLIC,
   },
   {
     id: "dupnshare", name: "Drive File Duplicator & Sharer", icon: "CopyPlus",
     description: "Create and share named file duplicates.",
-    category: "utilities", audience: "Staff", keywords: ["drive", "duplicate", "share", "copy", "bulk"],
+    category: "utilities", audience: "Public", keywords: ["drive", "duplicate", "share", "copy", "bulk"],
     href: "https://mws.web.id/dupnshare", external: true,
-    status: "active", discoverable: true, allowedSources: STAFF,
+    status: "active", discoverable: true, allowedSources: PUBLIC,
   },
   {
     id: "tech-scans", name: "Tech-Scans Dashboard", icon: "ScanLine",

@@ -32,7 +32,7 @@ const HubHeader = memo(({ user }: HubHeaderProps) => (
         <span className="text-sm font-semibold tracking-tight text-foreground">MWS Hub</span>
       </Link>
 
-      <div className="ml-auto flex items-center gap-1.5">
+      <div className="ml-auto hidden items-center gap-1.5 sm:flex">
         <ThemeToggle />
         <Link
           to="/profile"

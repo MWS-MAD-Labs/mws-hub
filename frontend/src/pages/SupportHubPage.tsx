@@ -164,6 +164,7 @@ const SupportHubPage = memo(() => {
               <MobileAppLauncher
                 apps={visibleApplications}
                 query={query}
+                user={user ? toHubUser(user) : undefined}
                 onQueryChange={setQuery}
                 onRequestAccess={handleRequestAccess}
               />
