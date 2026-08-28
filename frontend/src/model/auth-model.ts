@@ -9,6 +9,8 @@ export type EmployeeIdentity = {
   email: string;
   photo_url: string | null;
   unit: string | null;
+  unit_id?: string | null;
+  unitId?: string | null;
   job_position: string | null;
   job_level: string | null;
   status: string;
@@ -26,6 +28,8 @@ export type StudentIdentity = {
   status: string;
   current_grade: string | null;
   current_class: string | null;
+  unit_id?: string | null;
+  unitId?: string | null;
 };
 
 // What the backend's /auth/google and /auth/me hand back - a Central DB

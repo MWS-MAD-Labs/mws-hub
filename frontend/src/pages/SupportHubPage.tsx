@@ -14,6 +14,7 @@ import useHubCatalog from "@/hooks/useHubCatalog";
 import type { HubApplication } from "@/model/hub-model";
 import { toHubUser } from "@/model/auth-model";
 import { useAuth } from "@/features/auth/hooks/useAuth";
+import { isMadLabsUser } from "@/lib/admin-access";
 
 const SUPPORT_EMAIL = import.meta.env.VITE_SUPPORT_EMAIL || "admin@millennia21.id";
 
@@ -104,10 +105,11 @@ const SupportHubPage = memo(() => {
   const isSettled = !isLoading && !hasError;
   const showNoResults = isSettled && hasCatalog && visibleApplications.length === 0;
   const showEmptyCatalog = isSettled && !hasCatalog;
+  const isAdmin = isMadLabsUser(user);
 
   return (
     <div className="h-screen overflow-hidden bg-background text-foreground sm:h-auto sm:min-h-screen sm:overflow-visible">
-      <HubHeader user={user ? toHubUser(user) : undefined} />
+      <HubHeader user={user ? toHubUser(user) : undefined} isAdmin={isAdmin} />
 
       <main className="mx-auto flex h-[calc(100svh-3.5rem)] max-w-[1600px] flex-col overflow-hidden px-4 pb-0 pt-4 sm:block sm:h-auto sm:overflow-visible sm:px-6 sm:py-9">
         <div className="hidden sm:block">

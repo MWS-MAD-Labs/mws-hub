@@ -1,16 +1,25 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- Runtime config, rewritten by the container on every start. Sits in
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Runtime config, rewritten by the container on every start. Sits in
          <head> ahead of the bundle so the order is explicit rather than
          relying on module scripts being implicitly deferred. -->
-    <script src="/env.js"></script>
-    <title>MWS Hub</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+  <script src="/env.js"></script>
+  <meta name="theme-color" content="#101827" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="MWS Hub" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="icon" type="image/svg+xml" href="/pwa-icon.svg" />
+  <title>MWS Hub | App Launcher</title>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+
 </html>

@@ -1,4 +1,4 @@
-import { describe, it, expect } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import { AppsService, canAccess, isVisibleTo } from "../service/apps-service";
 import type { HubCatalogEntry } from "../type/catalog-type";
 import type { HubUser } from "../type/central-type";
@@ -175,38 +175,38 @@ describe("isVisibleTo", () => {
 });
 
 describe("AppsService.findByLaunchId", () => {
-  it("finds an entry by its catalog id", () => {
-    expect(AppsService.findByLaunchId("exima")?.id).toBe("exima");
+  it("finds an entry by its catalog id", async () => {
+    expect((await AppsService.findByLaunchId("exima"))?.id).toBe("exima");
   });
 
-  it("finds an entry by its sso appId when it differs from the catalog id", () => {
-    const found = AppsService.findByLaunchId("daily-checkin");
+  it("finds an entry by its sso appId when it differs from the catalog id", async () => {
+    const found = await AppsService.findByLaunchId("daily-checkin");
     expect(found?.id).toBe("emotional-checkin");
   });
 
-  it("returns null for an id nothing in the catalog matches", () => {
-    expect(AppsService.findByLaunchId("does-not-exist")).toBeNull();
+  it("returns null for an id nothing in the catalog matches", async () => {
+    expect(await AppsService.findByLaunchId("does-not-exist")).toBeNull();
   });
 });
 
 describe("AppsService.listFor against the real catalog", () => {
-  it("hides an admin-only app from a plain employee with no elevated role", () => {
-    const listing = AppsService.listFor(employee());
+  it("hides an admin-only app from a plain employee with no elevated role", async () => {
+    const listing = await AppsService.listFor(employee());
     expect(listing.some((app) => app.id === "slides-generator")).toBe(false);
   });
 
-  it("includes an app explicitly scoped to students for a student user", () => {
-    const listing = AppsService.listFor(student());
+  it("includes an app explicitly scoped to students for a student user", async () => {
+    const listing = await AppsService.listFor(student());
     expect(listing.some((app) => app.id === "emotional-checkin")).toBe(true);
   });
 
-  it("excludes an employee-only app from a student's listing", () => {
-    const listing = AppsService.listFor(student());
+  it("excludes an employee-only app from a student's listing", async () => {
+    const listing = await AppsService.listFor(student());
     expect(listing.some((app) => app.id === "report-assistant")).toBe(false);
   });
 
-  it("never leaks allowedSources or the raw sso config to the response shape", () => {
-    const listing = AppsService.listFor(employee({ role: "Teacher" }));
+  it("never leaks allowedSources or the raw sso config to the response shape", async () => {
+    const listing = await AppsService.listFor(employee({ role: "Teacher" }));
     for (const app of listing) {
       expect((app as unknown as { allowedSources?: unknown }).allowedSources).toBeUndefined();
       expect((app as unknown as { sso?: unknown }).sso).toBeUndefined();

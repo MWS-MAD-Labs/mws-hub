@@ -1,5 +1,5 @@
-import { HUB_CATALOG } from "../data/hub-catalog";
 import { applyStatusOverrides } from "../lib/status-overrides";
+import { HUB_CATALOG } from "../data/hub-catalog";
 import type { CentralClaim, HubUser } from "../type/central-type";
 import type { HubAppResponse, HubCatalogEntry } from "../type/catalog-type";
 
@@ -138,6 +138,12 @@ function addKnownSource(
   }
 }
 
+function userUnitName(user: HubUser): string | null {
+  if (user.source !== "employee") return null;
+  if (typeof user.unit === "string") return user.unit;
+  return user.unit?.name || null;
+}
+
 function getUserAccessSources(user: HubUser): Set<HubCatalogEntry["allowedSources"][number]> {
   const sources = new Set<HubCatalogEntry["allowedSources"][number]>([
     "public",
@@ -165,7 +171,7 @@ function getUserAccessSources(user: HubUser): Set<HubCatalogEntry["allowedSource
     [
       user.job_position,
       user.job_level,
-      user.unit,
+      userUnitName(user),
       user.employment_type,
     ].forEach((value) => addKnownSource(sources, value));
   }
@@ -234,19 +240,20 @@ function toResponse(entry: HubCatalogEntry): HubAppResponse {
   };
 }
 
-// The catalog as this deployment actually sees it: the code-declared entries
-// with any HUB_APP_STATUS_OVERRIDES applied. Everything below reads this, so
-// the listing and the launch gate can never disagree about an app's status.
-const EFFECTIVE_CATALOG = applyStatusOverrides(HUB_CATALOG);
+async function effectiveCatalog(): Promise<HubCatalogEntry[]> {
+  return applyStatusOverrides(HUB_CATALOG);
+}
 
 export class AppsService {
-  static listFor(user: HubUser): HubAppResponse[] {
-    return EFFECTIVE_CATALOG.filter((entry) => isVisibleTo(entry, user)).map(toResponse);
+  static async listFor(user: HubUser): Promise<HubAppResponse[]> {
+    const catalog = await effectiveCatalog();
+    return catalog.filter((entry) => isVisibleTo(entry, user)).map(toResponse);
   }
 
-  static findByLaunchId(appId: string): HubCatalogEntry | null {
+  static async findByLaunchId(appId: string): Promise<HubCatalogEntry | null> {
+    const catalog = await effectiveCatalog();
     return (
-      EFFECTIVE_CATALOG.find((entry) => entry.id === appId || entry.sso?.appId === appId) ?? null
+      catalog.find((entry) => entry.id === appId || entry.sso?.appId === appId) ?? null
     );
   }
 }

@@ -4,6 +4,7 @@ import { AuthService } from "../service/auth-service";
 import { GoogleAuth } from "../lib/google-auth";
 import { resolveLogoutRedirect } from "../lib/logout-redirect";
 import { frontendOrigin } from "../lib/frontend-origin";
+import { getUserUnitId } from "../lib/admin-access";
 import type { SessionVariables } from "../type/hono-context";
 
 const OAUTH_STATE_COOKIE = "hub_google_oauth_state";
@@ -75,7 +76,14 @@ export class AuthController {
   }
 
   static async me(c: Context<{ Variables: SessionVariables }>) {
-    return c.json({ data: c.var.user });
+    const user = c.var.user;
+    return c.json({
+      data: {
+        ...user,
+        unitId: getUserUnitId(user),
+        unit_id: getUserUnitId(user),
+      },
+    });
   }
 
   // Hub's own sign-out button, called as an XHR from the Hub UI.

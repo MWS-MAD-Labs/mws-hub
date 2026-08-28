@@ -29,12 +29,12 @@ export class AppsController {
   // show; only launch below re-checks with Central, because only launch
   // hands out a credential.
   static async list(c: Context<{ Variables: SessionVariables }>) {
-    return c.json({ data: AppsService.listFor(c.var.user) });
+    return c.json({ data: await AppsService.listFor(c.var.user) });
   }
 
   static async launch(c: Context<{ Variables: SessionVariables }>) {
     const appId = c.req.param("appId");
-    const entry = appId ? AppsService.findByLaunchId(appId) : null;
+    const entry = appId ? await AppsService.findByLaunchId(appId) : null;
     if (!entry) {
       throw new ResponseError(404, `Unknown app: ${appId}`);
     }

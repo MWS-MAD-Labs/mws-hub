@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import HubHeader from "@/features/fragments/HubHeader";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { toHubUser } from "@/model/auth-model";
+import { isMadLabsUser } from "@/lib/admin-access";
 
 export default function ProfilePage() {
   const { user, logout } = useAuth();
@@ -29,9 +30,11 @@ export default function ProfilePage() {
     }
   }
 
+  const isAdmin = isMadLabsUser(user);
+
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <HubHeader user={hubUser} />
+      <HubHeader user={hubUser} isAdmin={isAdmin} />
 
       <main className="mx-auto max-w-md px-4 py-10 sm:px-6">
         <div className="rounded-2xl border border-border/60 bg-card p-6">

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="MWS Hub">
+  <rect width="512" height="512" rx="112" fill="#101827"/>
+  <path d="M104 158 256 84l152 74v130c0 70-52 132-152 176-100-44-152-106-152-176V158Z" fill="#f8fafc"/>
+  <path d="M142 183 256 128l114 55v93c0 52-38 100-114 136-76-36-114-84-114-136v-93Z" fill="#1d4ed8"/>
+  <path d="M171 217h45l40 87 40-87h45v128h-34v-72l-35 72h-32l-35-72v72h-34V217Z" fill="#f8fafc"/>
+  <path d="M182 377h148v34H182z" fill="#f59e0b"/>
+</svg>

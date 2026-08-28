@@ -1,4 +1,4 @@
-import { describe, it, expect, spyOn, afterEach, beforeAll } from "bun:test";
+import { describe, it, expect, spyOn, afterEach, beforeAll, mock } from "bun:test";
 import { AuthService } from "../service/auth-service";
 import { GoogleAuth } from "../lib/google-auth";
 import * as centralClient from "../lib/central-client";
@@ -32,6 +32,7 @@ beforeAll(() => {
 });
 
 afterEach(() => {
+  mock.restore();
   process.env.ALLOWED_DOMAIN = "millennia21.id";
 });
 
