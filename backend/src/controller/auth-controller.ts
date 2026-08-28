@@ -2,6 +2,7 @@ import type { Context } from "hono";
 import { getCookie, setCookie, deleteCookie } from "hono/cookie";
 import { AuthService } from "../service/auth-service";
 import { GoogleAuth } from "../lib/google-auth";
+import { ResponseError } from "../error/response-error";
 import { resolveLogoutRedirect } from "../lib/logout-redirect";
 import { frontendOrigin } from "../lib/frontend-origin";
 import { getUserUnitId } from "../lib/admin-access";
@@ -64,7 +65,18 @@ export class AuthController {
       return c.redirect(`${frontendOrigin()}/login?error=google_state`, 302);
     }
 
-    const { token } = await AuthService.loginWithGoogle(code);
+    let token: string;
+    try {
+      ({ token } = await AuthService.loginWithGoogle(code));
+    } catch (error) {
+      if (error instanceof ResponseError && error.status === 404) {
+        return c.redirect(
+          `${frontendOrigin()}/login?error=account_not_registered`,
+          302,
+        );
+      }
+      throw error;
+    }
     const cookieName = process.env.SESSION_COOKIE_NAME || "hub_session";
 
     setCookie(c, cookieName, token, {

@@ -15,8 +15,10 @@ import type { HubApplication } from "@/model/hub-model";
 import { toHubUser } from "@/model/auth-model";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { isMadLabsUser } from "@/lib/admin-access";
+import { apiRequest } from "@/lib/api";
 
-const SUPPORT_EMAIL = import.meta.env.VITE_SUPPORT_EMAIL || "admin@millennia21.id";
+const SUPPORT_EMAIL =
+  import.meta.env.VITE_SUPPORT_EMAIL || "admin@millennia21.id";
 
 // Why a launch bounced back here instead of opening the app. The backend's
 // /apps/:appId/launch redirects with one of these codes rather than showing
@@ -25,18 +27,24 @@ const SUPPORT_EMAIL = import.meta.env.VITE_SUPPORT_EMAIL || "admin@millennia21.i
 // /apps/:appId/launch redirects with one of these codes rather than showing
 // a raw error body in the tab it just opened, and passes the app name so the
 // notice can say which one.
-const LAUNCH_ERRORS: Record<string, (app: string) => { title: string; description: string }> = {
+const LAUNCH_ERRORS: Record<
+  string,
+  (app: string) => { title: string; description: string }
+> = {
   app_access_denied: (app) => ({
     title: `You don't have access to ${app}`,
-    description: "Your MWS account isn't admitted to this application yet. Ask MAD Labs if you need it.",
+    description:
+      "Your MWS account isn't admitted to this application yet. Ask MAD Labs if you need it.",
   }),
   app_maintenance: (app) => ({
     title: `${app} is under maintenance`,
-    description: "It's temporarily switched off while MAD Labs works on it. Try again later.",
+    description:
+      "It's temporarily switched off while MAD Labs works on it. Try again later.",
   }),
   app_coming_soon: (app) => ({
     title: `${app} isn't released yet`,
-    description: "It's listed here early. You'll be able to open it once it goes live.",
+    description:
+      "It's listed here early. You'll be able to open it once it goes live.",
   }),
   app_no_link: (app) => ({
     title: `${app} has no link yet`,
@@ -48,7 +56,8 @@ const LAUNCH_ERRORS: Record<string, (app: string) => { title: string; descriptio
   }),
   central_unavailable: () => ({
     title: "Couldn't check your access",
-    description: "The Central database didn't answer just now. Try opening the app again in a moment.",
+    description:
+      "The Central database didn't answer just now. Try opening the app again in a moment.",
   }),
 };
 const SupportHubPage = memo(() => {
@@ -94,16 +103,43 @@ const SupportHubPage = memo(() => {
     );
   }, [searchParams, setSearchParams]);
 
-  // Placeholder until the access-request flow exists - the affordance must
-  // do something visible now so the locked state can actually be reviewed.
   const handleRequestAccess = useCallback((app: HubApplication) => {
-    toast("Access request noted", {
-      description: `Requesting access to ${app.name}. This is a mock action, no request has been sent yet.`,
-    });
+    const reason = window.prompt(`Why do you need access to ${app.name}?`);
+    if (reason === null) return;
+    void apiRequest(`/apps/${encodeURIComponent(app.id)}/request-access`, {
+      method: "POST",
+      body: { reason },
+    })
+      .then(() => toast.success("Access request sent"))
+      .catch((error: unknown) =>
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "Failed to send access request.",
+        ),
+      );
+  }, []);
+
+  const handleReportProblem = useCallback((app: HubApplication) => {
+    const message = window.prompt(`Describe the problem with ${app.name}:`);
+    if (message === null) return;
+    void apiRequest(`/apps/${encodeURIComponent(app.id)}/report`, {
+      method: "POST",
+      body: { message },
+    })
+      .then(() => toast.success("Problem report sent"))
+      .catch((error: unknown) =>
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "Failed to send problem report.",
+        ),
+      );
   }, []);
 
   const isSettled = !isLoading && !hasError;
-  const showNoResults = isSettled && hasCatalog && visibleApplications.length === 0;
+  const showNoResults =
+    isSettled && hasCatalog && visibleApplications.length === 0;
   const showEmptyCatalog = isSettled && !hasCatalog;
   const isAdmin = isMadLabsUser(user);
 
@@ -141,7 +177,9 @@ const SupportHubPage = memo(() => {
               {isFiltering ? "Results" : "All applications"}
             </h2>
             {isSettled && (
-              <p className="text-xs text-muted-foreground">{visibleApplications.length}</p>
+              <p className="text-xs text-muted-foreground">
+                {visibleApplications.length}
+              </p>
             )}
           </div>
 
@@ -157,7 +195,11 @@ const SupportHubPage = memo(() => {
 
           {showNoResults && (
             <div className="hidden sm:block">
-              <HubEmptyState variant="no-results" query={query} onAction={clearFilters} />
+              <HubEmptyState
+                variant="no-results"
+                query={query}
+                onAction={clearFilters}
+              />
             </div>
           )}
 
@@ -173,7 +215,12 @@ const SupportHubPage = memo(() => {
 
               <div className={HUB_GRID_CLASS}>
                 {visibleApplications.map((app) => (
-                  <AppCard key={app.id} app={app} onRequestAccess={handleRequestAccess} />
+                  <AppCard
+                    key={app.id}
+                    app={app}
+                    onRequestAccess={handleRequestAccess}
+                    onReportProblem={handleReportProblem}
+                  />
                 ))}
               </div>
             </>

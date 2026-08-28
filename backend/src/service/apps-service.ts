@@ -1,9 +1,9 @@
 import { applyStatusOverrides } from "../lib/status-overrides";
-import { HUB_CATALOG } from "../data/hub-catalog";
+import { ApplicationService } from "./application-service";
 import type { CentralClaim, HubUser } from "../type/central-type";
 import type { HubAppResponse, HubCatalogEntry } from "../type/catalog-type";
 
-const KNOWN_ACCESS_SOURCES = new Set<HubCatalogEntry["allowedSources"][number]>([
+export const KNOWN_ACCESS_SOURCES = new Set<HubCatalogEntry["allowedSources"][number]>([
   "public",
   "employee",
   "student",
@@ -240,8 +240,12 @@ function toResponse(entry: HubCatalogEntry): HubAppResponse {
   };
 }
 
+// The catalog comes from Hub's database now, not from a code file, which is
+// what makes the admin screen able to add and hide apps without a release.
+// HUB_APP_STATUS_OVERRIDES still applies on top as an emergency lever that
+// works without touching the database.
 async function effectiveCatalog(): Promise<HubCatalogEntry[]> {
-  return applyStatusOverrides(HUB_CATALOG);
+  return applyStatusOverrides(await ApplicationService.listActive());
 }
 
 export class AppsService {

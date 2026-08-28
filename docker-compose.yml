@@ -3,6 +3,30 @@
 # /.well-known to the backend over Docker's internal network
 
 services:
+  db:
+    image: postgres:16-alpine
+    container_name: mws-hub-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: hub
+      POSTGRES_PASSWORD: postgress123Abc
+      POSTGRES_DB: mws-hub
+    volumes:
+      - hubdata:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-5435}:5432"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-hub} -d ${POSTGRES_DB:-mws-hub}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal
+
   backend:
     build:
       context: ./backend
@@ -13,6 +37,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 4001
+      DATABASE_URL: ${DATABASE_URL}
       JWT_SECRET: ${JWT_SECRET}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
@@ -27,6 +52,9 @@ services:
       HUB_SSO_PUBLIC_KEY: ${HUB_SSO_PUBLIC_KEY}
       FRONTEND_ORIGIN: ${FRONTEND_ORIGIN}
 
+    depends_on:
+      db:
+        condition: service_healthy
     expose:
       - "4001"
 
@@ -86,3 +114,6 @@ networks:
   mws-unified:
     external: true
     name: mws-unified
+
+volumes:
+  hubdata:

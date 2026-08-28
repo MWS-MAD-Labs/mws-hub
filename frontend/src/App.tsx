@@ -7,6 +7,8 @@ import SupportHubPage from "@/pages/SupportHubPage";
 import ProfilePage from "@/pages/ProfilePage";
 import LoginPage from "@/pages/LoginPage";
 import Dashboard from "@/admin/pages/Dashboard";
+import ApplicationsPage from "@/admin/pages/ApplicationsPage";
+import FeedbackPage from "@/admin/pages/FeedbackPage";
 
 export default function App() {
   return (
@@ -36,6 +38,22 @@ export default function App() {
             element={
               <RequireAdmin>
                 <Dashboard />
+              </RequireAdmin>
+            }
+          />
+          <Route
+            path="/admin/applications"
+            element={
+              <RequireAdmin>
+                <ApplicationsPage />
+              </RequireAdmin>
+            }
+          />
+          <Route
+            path="/admin/feedback"
+            element={
+              <RequireAdmin>
+                <FeedbackPage />
               </RequireAdmin>
             }
           />

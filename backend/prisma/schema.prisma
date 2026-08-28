@@ -1,0 +1,154 @@
+// Hub owns this database, and it owns only Hub's own data.
+//
+// Identity is NOT here and never will be. Who someone is - employee or
+// student, their unit, job level and roles - is always asked of Central on
+// every sign-in and every launch. Central is the source of truth for people;
+// this database is the source of truth for the launcher: which apps exist,
+// who may see them, and what users have reported or requested.
+//
+// That split is also why Hub connects to its own Postgres rather than
+// Central's: Hub holds an API token scoped to employees:read and
+// students:read, so a compromise of Hub cannot reach health records, consent
+// files or employee PII. Giving Hub database credentials to Central would
+// throw that away.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Mirrors the union in src/type/catalog-type.ts. Kept as a database enum so
+// an invalid status cannot be written by an admin screen or a bad migration.
+enum ApplicationStatus {
+  ACTIVE
+  MAINTENANCE
+  COMING_SOON
+  NEW
+}
+
+enum ReportStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+}
+
+enum AccessRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Application {
+  // The catalog id, written by hand rather than generated: it appears in
+  // launch URLs (/apps/:id/launch) and in status overrides, so it has to
+  // stay stable and readable.
+  id String @id
+
+  name        String
+  icon        String  @default("AppWindow")
+  description String
+  // Display copy only - who the app is for, in the school's own words.
+  // allowed_sources below is what actually decides access.
+  audience    String
+  category    String
+
+  // Invisible search fodder, so one app is findable from several angles
+  // without belonging to two categories.
+  keywords String[] @default([])
+
+  // Null means the app is registered but has no URL yet. The card shows
+  // "no link registered" instead of pretending it can be opened.
+  href     String?
+  external Boolean @default(true)
+
+  status       ApplicationStatus @default(ACTIVE)
+  // Display lever: false drops the app from the grid for everyone. Distinct
+  // from allowed_sources, which is the access lever.
+  discoverable Boolean           @default(true)
+
+  // Deny by default. An empty list admits nobody, which is how an app with
+  // no workable policy yet stays out of everyone's way. Values are
+  // Central-backed access keys: identity source, role keys, or "public".
+  allowed_sources String[] @default([])
+
+  // Set only for apps with their own /auth/sso exchange endpoint. Moving
+  // the entry URL here is what removes the per-app <APP>_API_URL env var
+  // that previously had to be deployed alongside a catalog edit.
+  sso_app_id    String? @unique
+  sso_entry_url String?
+
+  sort_order Int @default(0)
+
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  // Soft delete, same convention as Central: an app removed from the
+  // catalog keeps its reports and requests readable.
+  deleted_at DateTime?
+
+  reports         AppReport[]
+  access_requests AccessRequest[]
+
+  @@index([category])
+  @@index([status])
+  @@index([discoverable])
+  @@index([sort_order])
+  @@map("applications")
+}
+
+// Requirement 9: a quick button on app cards so users can tell MAD Labs a
+// tool is not loading.
+model AppReport {
+  id String @id @default(cuid())
+
+  application_id String
+  application    Application @relation(fields: [application_id], references: [id])
+
+  // Email only, never a user id: Hub does not own user records, so there is
+  // nothing here to join against. Central resolves the person when needed.
+  reporter_email String
+  message        String
+
+  status      ReportStatus @default(OPEN)
+  resolved_at DateTime?
+  resolved_by String?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@index([application_id])
+  @@index([status])
+  @@index([created_at])
+  @@map("app_reports")
+}
+
+// Requirement 10: a prompt for users to ask for the role permissions they
+// are missing. Approving one is still a change in Central - this table only
+// records that the request was made and what was decided.
+model AccessRequest {
+  id String @id @default(cuid())
+
+  application_id String
+  application    Application @relation(fields: [application_id], references: [id])
+
+  requester_email String
+  reason          String?
+
+  status     AccessRequestStatus @default(PENDING)
+  decided_at DateTime?
+  decided_by String?
+  decision_note String?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  // One open request per person per app - a second click should not create
+  // a duplicate for MAD Labs to triage.
+  @@unique([application_id, requester_email, status])
+  @@index([status])
+  @@index([created_at])
+  @@map("access_requests")
+}

@@ -1,42 +1,85 @@
-Bikin MVP sederhana untuk **Admin Dashboard access** di MWS Hub.
+Rangkuman Lanjutan — Menuntaskan #7, #8, #9, #10
 
-### Central DB Reference
+  Kondisi sekarang
 
-Gunakan project/source **Central Database User** sebagai referensi untuk mengambil struktur dan data user/unit:
+  Sudah jalan dan teruji:
+  - Database Hub sendiri (Postgres), 3 tabel: applications, app_reports, access_requests
+  - 17 app ter-seed; MTSS + Daily Check-in sengaja kosong (bentuknya ada di komentar seed-applications.ts)
+  - 4 endpoint CRUD di /admin/applications (GET/POST/PATCH/DELETE), sudah divalidasi
+  - Katalog dan gate launch sudah baca dari DB
+  - Gate admin: RequireAdmin (frontend) + adminAuthMiddleware → isMadLabsUser (unit MAD Labs)
+  - Dashboard.tsx (49 baris) sudah ada, tapi baru memanggil dashboard-data
+  
+  Yang kurang: UI-nya saja untuk #7/#8, dan seluruh jalur #9/#10.
 
-`~/Downloads/mws-central-database-user`
+  ---
 
-Jangan membuat struktur user/unit baru kalau data tersebut sudah tersedia di Central DB.
+  Langkah 1 — Sambungkan Dashboard ke CRUD → tuntaskan #7 dan #8
 
-### Access Rule
+  Backend: tidak ada pekerjaan. Semua endpoint sudah siap.
 
-User yang boleh melihat dan mengakses Admin Dashboard hanya user dari unit **MAD Labs**.
+  Frontend:
+  1. admin/api/adminApi.ts — tambah listApplications, createApplication, updateApplication, deleteApplication
+  2. admin/pages/ApplicationsPage.tsx — tabel + tombol Add/Edit/Hide/Delete
+  3. admin/components/ApplicationForm.tsx — form dengan field:
 
-Gunakan `unitId` dari data user di Central sebagai source of truth:
+  ┌─────────────────────────────────────────────┬──────────────────────────────────────────────────────────────┐
+  │                    Field                    │                           Catatan                            │
+  ├─────────────────────────────────────────────┼──────────────────────────────────────────────────────────────┤
+  │ name, description, audience, category, icon │ teks biasa                                                   │
+  ├─────────────────────────────────────────────┼──────────────────────────────────────────────────────────────┤
+  │ keywords                                    │ multi-input                                                  │
+  ├─────────────────────────────────────────────┼──────────────────────────────────────────────────────────────┤
+  │ href                                        │ boleh kosong                                                 │
+  ├─────────────────────────────────────────────┼──────────────────────────────────────────────────────────────┤
+  │ status                                      │ dropdown 4 nilai → ini yang menuntaskan #8                   │
+  ├─────────────────────────────────────────────┼──────────────────────────────────────────────────────────────┤
+  │ discoverable                                │ toggle "sembunyikan dari grid"                               │
+  ├─────────────────────────────────────────────┼──────────────────────────────────────────────────────────────┤
+  │ allowedSources                              │ multi-select 11 key → ini #3, jangan dikosongkan tanpa sadar │
+  ├─────────────────────────────────────────────┼──────────────────────────────────────────────────────────────┤
+  │ ssoAppId + ssoEntryUrl                      │ keduanya atau tidak sama sekali (backend menolak 400)        │
+  ├─────────────────────────────────────────────┼──────────────────────────────────────────────────────────────┤
+  │ sortOrder                                   │ angka                                                        │
+  └─────────────────────────────────────────────┴──────────────────────────────────────────────────────────────┘
 
-`cmsh7trcj000a40lsm0w7tl4h`
+  4. Tambah route /admin/applications di App.tsx
 
-### Flow
+  Uji tuntas: daftarkan MTSS + Daily Check-in lewat form, lalu klik launch. Kalau berhasil, #7 terbukti dan dua env <APP>_API_URL bisa dihapus.
 
-* Tetap gunakan **1 login / Google Workspace SSO** yang sudah ada.
-* Setelah login, ambil data user beserta `unitId` dari Central.
-* Jika `unitId === "cmsh7trcj000a40lsm0w7tl4h"`, tampilkan tombol **Admin Dashboard**.
-* Jika bukan MAD Labs, tombol tersebut **jangan ditampilkan**.
-* Tombol mengarah ke `/admin` atau `/admin/dashboard`.
-* Buat halaman Admin Dashboard sederhana terlebih dahulu.
-* Backend juga wajib melakukan authorization check berdasarkan `unitId`, supaya user non-MAD Labs tidak bisa bypass dengan membuka URL `/admin` secara langsung.
-* Jangan membuat login kedua. Admin tetap menggunakan login yang sama.
+  ---
 
-### Scope
+  Langkah 2 — #9 Report Broken Tool
 
-Untuk tahap ini cukup:
+  Tabel app_reports sudah ada.
 
-1. Login → ambil user dari Central.
-2. Check `unitId`.
-3. Conditional display tombol Admin Dashboard.
-4. Protected admin route/backend.
-5. Simple Admin Dashboard.
+  - Backend: POST /apps/:id/report (user), GET /admin/reports + PATCH /admin/reports/:id (status)
+  - Frontend: tombol kecil di AppCard → dialog isi pesan
+  - Admin: daftar laporan + ubah status
 
-**Jangan dulu implement Catalog CRUD, App Status Toggle, Report Broken Tool, atau Request Access.**
+  Catatan: reporter_email diambil dari sesi, jangan dari input — jangan percaya klien soal identitas.
 
-Fokus pertama: pastikan **login → Central user → unitId → MAD Labs authorization → Admin Dashboard** berjalan end-to-end.
+  ---
+
+  Langkah 3 — #10 Request Access
+
+  Tabel access_requests sudah ada, dengan unique (application_id, requester_email, status) supaya klik dua kali tidak bikin dua permintaan.
+
+  - Backend: POST /apps/:id/request-access, GET /admin/access-requests, PATCH /admin/access-requests/:id
+  - Frontend: ganti mock toast di SupportHubPage.tsx:101 dengan panggilan asli
+
+  Satu keputusan yang belum diambil: sekarang app yang tidak bisa diakses disembunyikan, jadi kartunya tidak pernah muncul dan tombol Request Access tidak terjangkau. Pilihannya:
+  - (a) Sediakan halaman "app lain yang tersedia" khusus untuk minta akses
+  - (b) Munculkan app terkunci di hasil search saja, tidak di grid
+
+  Tanpa salah satunya, #10 tidak akan pernah terpakai meskipun kodenya jadi.
+
+  ---
+
+  Urutan yang disarankan
+
+  1. Langkah 1 — hasil paling besar, backend sudah nol pekerjaan, langsung menutup #7 dan #8
+  2. Langkah 3 — perlu keputusan (a)/(b) dulu
+  3. Langkah 2 — paling mandiri, bisa kapan saja
+
+  Setelah Langkah 1: 8 dari 10 requirement selesai.

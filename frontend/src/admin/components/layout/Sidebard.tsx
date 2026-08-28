@@ -3,7 +3,6 @@ import {
   BarChart3,
   ClipboardList,
   Home,
-  KeyRound,
   LifeBuoy,
   X,
 } from "lucide-react";
@@ -19,14 +18,22 @@ type SidebarProps = {
 
 const menuItems = [
   { label: "Dashboard", href: "/admin", icon: Home, enabled: true },
-  { label: "Application Catalog", href: "#", icon: AppWindow, enabled: false },
+  {
+    label: "Application Catalog",
+    href: "/admin/applications",
+    icon: AppWindow,
+    enabled: true,
+  },
   { label: "Status Toggles", href: "#", icon: BarChart3, enabled: false },
-  { label: "Access Requests", href: "#", icon: KeyRound, enabled: false },
-  { label: "Broken Reports", href: "#", icon: LifeBuoy, enabled: false },
+  { label: "Feedback", href: "/admin/feedback", icon: LifeBuoy, enabled: true },
   { label: "Audit Notes", href: "#", icon: ClipboardList, enabled: false },
 ];
 
-export default function Sidebar({ isOpen, isMobileOpen, onCloseMobile }: SidebarProps) {
+export default function Sidebar({
+  isOpen,
+  isMobileOpen,
+  onCloseMobile,
+}: SidebarProps) {
   return (
     <>
       <div
@@ -72,7 +79,9 @@ export default function Sidebar({ isOpen, isMobileOpen, onCloseMobile }: Sidebar
                   title={item.label}
                 >
                   <Icon className="h-4 w-4 shrink-0" />
-                  <span className={cn("truncate", !isOpen && "lg:hidden")}>{item.label}</span>
+                  <span className={cn("truncate", !isOpen && "lg:hidden")}>
+                    {item.label}
+                  </span>
                 </div>
               );
             }
@@ -94,7 +103,9 @@ export default function Sidebar({ isOpen, isMobileOpen, onCloseMobile }: Sidebar
                 title={item.label}
               >
                 <Icon className="h-4 w-4 shrink-0" />
-                <span className={cn("truncate", !isOpen && "lg:hidden")}>{item.label}</span>
+                <span className={cn("truncate", !isOpen && "lg:hidden")}>
+                  {item.label}
+                </span>
               </NavLink>
             );
           })}
