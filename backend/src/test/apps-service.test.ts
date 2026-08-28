@@ -1,7 +1,15 @@
-import { describe, expect, it } from "bun:test";
-import { AppsService, canAccess, isVisibleTo } from "../service/apps-service";
+import { describe, expect, it, mock } from "bun:test";
+import { HUB_CATALOG } from "../data/hub-catalog";
 import type { HubCatalogEntry } from "../type/catalog-type";
 import type { HubUser } from "../type/central-type";
+
+mock.module("../service/application-service", () => ({
+  ApplicationService: {
+    listActive: async () => HUB_CATALOG,
+  },
+}));
+
+const { AppsService, canAccess, isVisibleTo } = await import("../service/apps-service");
 
 function employee(overrides: Partial<HubUser & { source: "employee" }> = {}): HubUser {
   return {
