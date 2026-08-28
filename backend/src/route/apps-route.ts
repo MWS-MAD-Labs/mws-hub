@@ -16,7 +16,10 @@ async function launchSessionAuthMiddleware(
     await sessionAuthMiddleware(c, next);
   } catch (error) {
     if (error instanceof ResponseError && error.status === 401) {
-      const params = new URLSearchParams({ error: "session_expired" });
+      const params = new URLSearchParams({
+        error: "session_expired",
+        redirect: c.req.path,
+      });
       return c.redirect(`${frontendOrigin()}/login?${params}`, 302);
     }
     throw error;

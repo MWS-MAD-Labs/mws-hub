@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Navigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import Logo from "@/assets/logo.webp";
@@ -11,15 +11,37 @@ const LOGIN_ERRORS: Record<string, { title: string; description: string }> = {
     title: "Session ended",
     description: "Please sign in again before opening an app.",
   },
+  google_state: {
+    title: "Sign-in expired",
+    description: "That sign-in link timed out. Please try again.",
+  },
+  google_auth_failed: {
+    title: "Google sign-in failed",
+    description: "We couldn't verify your Google account. Please try again.",
+  },
+  domain_not_allowed: {
+    title: "Account not allowed",
+    description: "Only MWS Google accounts can sign in to Hub.",
+  },
+  not_registered: {
+    title: "Account not found",
+    description: "This account isn't registered yet. Contact an admin for access.",
+  },
+  login_failed: {
+    title: "Couldn't sign you in",
+    description: "Something went wrong on our end. Please try again in a moment.",
+  },
 };
 
 export default function LoginPage() {
   const { isAuthenticated, isSessionLoading } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
+  const shownErrorRef = useRef<string | null>(null);
 
   useEffect(() => {
     const code = searchParams.get("error");
-    if (!code) return;
+    if (!code || shownErrorRef.current === code) return;
+    shownErrorRef.current = code;
 
     const notice = LOGIN_ERRORS[code];
     if (notice) {

@@ -25,4 +25,12 @@ export const authApi = {
   async logout(): Promise<void> {
     await apiRequest("/auth/logout", { method: "POST" });
   },
+
+  // Each URL is a satellite app's own no-UI page that clears its local
+  // session on load - the caller loads them in hidden iframes to fan out
+  // Hub's logout to every app the person opened.
+  async logoutTargets(): Promise<string[]> {
+    const response = await apiRequest<{ data: string[] }>("/auth/logout-targets");
+    return response?.data ?? [];
+  },
 };

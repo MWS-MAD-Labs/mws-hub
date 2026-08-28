@@ -81,10 +81,11 @@ describe("hubSsoJwks / mintRelayToken with a valid key", () => {
   });
 
   it("mints a relay token whose claims match the audience and subject it was asked for", async () => {
-    const token = await mintRelayToken("someone@millennia21.id", {
-      appId: "daily-checkin",
-      entryUrl: "https://app.millenniaws.sch.id/auth/sso",
-    });
+    const token = await mintRelayToken(
+      "someone@millennia21.id",
+      { appId: "daily-checkin", entryUrl: "https://app.millenniaws.sch.id/auth/sso" },
+      { source: "employee", tags: ["public", "employee", "staff", "teacher"] },
+    );
 
     const [headerPart, payloadPart] = token.split(".");
     const header = JSON.parse(base64UrlDecode(headerPart!).toString("utf8"));
@@ -96,13 +97,16 @@ describe("hubSsoJwks / mintRelayToken with a valid key", () => {
     expect(payload.aud).toBe("daily-checkin");
     expect(payload.sub).toBe("someone@millennia21.id");
     expect(payload.exp - payload.iat).toBe(30);
+    expect(payload.source).toBe("employee");
+    expect(payload.tags).toEqual(["public", "employee", "staff", "teacher"]);
   });
 
   it("produces a signature the published public key actually verifies", async () => {
-    const token = await mintRelayToken("someone@millennia21.id", {
-      appId: "daily-checkin",
-      entryUrl: "https://app.millenniaws.sch.id/auth/sso",
-    });
+    const token = await mintRelayToken(
+      "someone@millennia21.id",
+      { appId: "daily-checkin", entryUrl: "https://app.millenniaws.sch.id/auth/sso" },
+      { source: "employee", tags: ["public", "employee", "staff"] },
+    );
     const [headerPart, payloadPart, signaturePart] = token.split(".");
     const signingInput = `${headerPart}.${payloadPart}`;
 

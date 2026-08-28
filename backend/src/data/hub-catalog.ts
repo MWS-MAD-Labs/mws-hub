@@ -81,7 +81,11 @@ export const HUB_CATALOG: HubCatalogEntry[] = [
     category: "students", audience: "Teachers, Principals, Director", keywords: ["intervention", "tier", "support"],
     href: "https://app.millenniaws.sch.id/mtss", external: true,
     status: "active", discoverable: true, allowedSources: TEACHERS_PRINCIPALS_DIRECTOR,
-    sso: { appId: "mtss", entryUrl: `${process.env.MTSS_API_URL}/auth/sso` },
+    sso: {
+      appId: "mtss",
+      entryUrl: `${process.env.MTSS_API_URL}/auth/sso`,
+      logoutUrl: `${process.env.MTSS_API_URL}/auth/logout-silent`,
+    },
   },
   {
     id: "emotional-checkin", name: "Daily Emotional Check-in", icon: "HeartHandshake",
@@ -89,7 +93,11 @@ export const HUB_CATALOG: HubCatalogEntry[] = [
     category: "students", audience: "Student, Teachers, Staff, Principals, Director", keywords: ["mood", "wellbeing", "checkin", "analytics"],
     href: "https://app.millenniaws.sch.id/select-role", external: true,
     status: "active", discoverable: true, allowedSources: STUDENTS_TEACHERS_STAFF_PRINCIPALS_DIRECTOR,
-    sso: { appId: "daily-checkin", entryUrl: `${process.env.DAILY_CHECKIN_API_URL}/auth/sso` },
+    sso: {
+      appId: "daily-checkin",
+      entryUrl: `${process.env.DAILY_CHECKIN_API_URL}/auth/sso`,
+      logoutUrl: `${process.env.DAILY_CHECKIN_API_URL}/auth/logout-silent`,
+    },
   },
   {
     id: "reading-buddy", name: "Reading Buddy", icon: "BookOpenText",

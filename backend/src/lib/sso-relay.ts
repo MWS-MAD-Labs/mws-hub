@@ -1,5 +1,5 @@
 import { createPublicKey } from "node:crypto";
-import type { HubAppSso } from "../type/catalog-type";
+import type { HubAccessSource, HubAppSso, IdentitySource } from "../type/catalog-type";
 
 const ISSUER = "mws-hub";
 const RELAY_TTL_SECONDS = 30;
@@ -112,10 +112,17 @@ export function hubSsoJwks(): { keys: HubSsoJwk[] } {
   return jwksCache;
 }
 
-// Deliberately minimal claims - the receiving app re-derives every profile
-// field from Central itself rather than trusting anything carried through
-// a redirect URL. This token only asserts "Hub just authenticated this
-// email for this audience," nothing else.
+// Beyond the email assertion, the token also carries the same access tags
+// Hub itself just used to decide this person could open the app (see
+// AppsService.accessTagsFor) - the identical interpretation of Central's
+// free-text job_position/job_level/unit that gates Hub's own catalog. A
+// receiving app still re-derives its own profile fields (name, unit, ...)
+// from Central directly rather than trusting anything else carried through
+// a redirect URL; only the access-tag verdict is meant to be shared, so
+// every app that authorizes off Central data agrees on what it means -
+// hard-coding a second, drifting interpretation is how mws-mtss-system's
+// old job_level dictionary silently downgraded people Hub already knew how
+// to place correctly.
 //
 // Takes a resolved sso config rather than an appId, so it cannot be called
 // for an app that was never looked up, and authorization always happens at
@@ -123,6 +130,7 @@ export function hubSsoJwks(): { keys: HubSsoJwk[] } {
 export async function mintRelayToken(
   email: string,
   sso: HubAppSso,
+  identity: { source: IdentitySource; tags: HubAccessSource[] },
 ): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
   const header = {
@@ -134,6 +142,8 @@ export async function mintRelayToken(
     iss: ISSUER,
     aud: sso.appId,
     sub: email,
+    source: identity.source,
+    tags: identity.tags,
     jti: crypto.randomUUID(),
     iat: now,
     exp: now + RELAY_TTL_SECONDS,

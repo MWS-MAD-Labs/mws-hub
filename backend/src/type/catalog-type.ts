@@ -25,6 +25,13 @@ export type HubAppSso = {
   // distinction nothing uses is just another thing to keep in sync.
   appId: string;
   entryUrl: string;
+  // A satellite app's own session is a self-contained token on its own
+  // origin (Hub's cookie clearing never reaches it) - if the app exposes a
+  // no-UI page that clears its local session on load, Hub loads it in a
+  // hidden iframe on logout so signing out of Hub actually signs out of
+  // every app the person opened, not just Hub itself. Optional: an app
+  // without one just doesn't get included in the logout fan-out.
+  logoutUrl?: string;
 };
 
 export type HubCatalogEntry = {

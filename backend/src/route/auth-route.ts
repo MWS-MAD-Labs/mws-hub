@@ -13,4 +13,5 @@ authRoute.post("/logout", AuthController.logout);
 // Front-channel logout. A satellite redirects the browser here after clearing
 // its own session; Hub clears the cookie and sends the browser back.
 authRoute.get("/logout", AuthController.logoutFromApp);
+authRoute.get("/logout-targets", AuthController.logoutTargets);
 authRoute.get("/me", sessionAuthMiddleware, AuthController.me);

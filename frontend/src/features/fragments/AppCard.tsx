@@ -7,9 +7,11 @@ import {
   Unlink,
   type LucideIcon,
 } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getAppIcon, getCategoryTone } from "@/data/hubCategories";
 import { env } from "@/config/env";
+import { loadHiddenIframe } from "@/lib/hiddenIframe";
 import type { HubApplication } from "@/model/hub-model";
 
 type BlockedKey =
@@ -76,6 +78,76 @@ const AppCard = memo(
     const launchHref = `${env.hubApiBaseUrl}/apps/${encodeURIComponent(
       launchId,
     )}/launch`;
+    const launchWindowName = `mws-launch-${launchId}`;
+
+    // Modifier/middle clicks (open in background tab, etc.) are left alone
+    // and fall through to the anchor's own target/rel below - those always
+    // open a new tab anyway, regardless of what this handler does.
+    const handleLaunchClick = (
+      event: React.MouseEvent<HTMLAnchorElement>,
+    ) => {
+      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+        return;
+      }
+      event.preventDefault();
+
+      // window.open with an empty URL is the standard "find-or-create a
+      // named window without navigating it" trick: it hands back the SAME
+      // window if one with this name is already open anywhere in this
+      // tab's browsing-context group, or a fresh blank one otherwise -
+      // and it does this by asking the browser's own name registry, which
+      // outlives a reload of THIS page (unlike a plain JS variable, which
+      // a previous version of this relied on and which a Hub reload wipes
+      // clean, silently falling back to the old flicker-y behavior).
+      const target = window.open("", launchWindowName);
+      if (!target) return; // popup blocked
+
+      if (target === window) {
+        // This tab's own window.name still carries a stale claim to
+        // launchWindowName from an earlier life - e.g. it WAS the MTSS
+        // tab, but then navigated in-place back to Hub itself (its own
+        // "Sign in" button does a same-tab redirect, not a new tab), and
+        // window.name survives an in-place navigation, even cross-origin.
+        // Reusing "ourselves" as the reuse target would silently hijack
+        // the tab the person is currently looking at Hub in - release the
+        // stale name so it stops squatting on it, then open a genuinely
+        // new tab like a first launch.
+        window.name = "";
+        window.open(launchHref, launchWindowName);
+        return;
+      }
+
+      let isFreshWindow = true;
+      try {
+        // A window we just created is still about:blank and still
+        // same-origin, so reading its location succeeds. One that already
+        // navigated to the satellite app's origin throws instead on that
+        // same read - that's the signal it's an existing, already-launched
+        // tab rather than a blank new one.
+        isFreshWindow =
+          target.location.href === "about:blank" || target.location.href === "";
+      } catch {
+        isFreshWindow = false;
+      }
+
+      if (isFreshWindow) {
+        target.location.href = launchHref;
+        return;
+      }
+
+      // Existing tab: replay the handshake in a hidden iframe instead of
+      // navigating this one, so there's no visible redirect chain. The
+      // satellite app's own auth callback writes the fresh token to its
+      // own localStorage regardless of visibility; the visible tab picks
+      // it up live via the browser's `storage` event (see
+      // mws-mtss-system's useCrossTabAuthSync) instead of ever reloading.
+      loadHiddenIframe(launchHref, 8000).then(() => {
+        target.focus();
+      });
+      toast.info(`${app.name} sudah terbuka di tab lain`, {
+        description: "Beralih ke tab tersebut untuk melanjutkan.",
+      });
+    };
 
     return (
       <article
@@ -289,8 +361,16 @@ const AppCard = memo(
         {isOpenable && launchHref && (
           <a
             href={launchHref}
-            target="_blank"
+            // Named per-app, not "_blank": re-launching an app that's
+            // already open in another tab reuses that tab instead of
+            // stacking a fresh one that replays the whole SSO redirect
+            // chain from a blank page every click. Reuse only actually
+            // happens through handleLaunchClick below - this target/rel
+            // pair is the fallback for modifier/middle clicks, which
+            // always open a new tab regardless.
+            target={launchWindowName}
             rel="noopener noreferrer"
+            onClick={handleLaunchClick}
             className="
               absolute
               inset-0

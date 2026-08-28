@@ -80,7 +80,10 @@ export class AppsController {
     }
 
     if (entry.sso) {
-      const token = await mintRelayToken(user.email, entry.sso);
+      const token = await mintRelayToken(user.email, entry.sso, {
+        source: user.source,
+        tags: AppsService.accessTagsFor(user),
+      });
 
       return c.redirect(
         `${entry.sso.entryUrl}?token=${encodeURIComponent(token)}`,

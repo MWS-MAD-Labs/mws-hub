@@ -1,7 +1,7 @@
 import { HUB_CATALOG } from "../data/hub-catalog";
 import { applyStatusOverrides } from "../lib/status-overrides";
 import type { CentralClaim, HubUser } from "../type/central-type";
-import type { HubAppResponse, HubCatalogEntry } from "../type/catalog-type";
+import type { HubAccessSource, HubAppResponse, HubCatalogEntry } from "../type/catalog-type";
 
 const KNOWN_ACCESS_SOURCES = new Set<HubCatalogEntry["allowedSources"][number]>([
   "public",
@@ -133,7 +133,10 @@ function addKnownSource(
     sources.add("head-unit");
   }
 
-  if ((tokens.has("mad") && tokens.has("labs")) || normalized.includes("mad-labs")) {
+  if (
+    (tokens.has("mad") && (tokens.has("lab") || tokens.has("labs"))) ||
+    normalized.includes("mad-lab")
+  ) {
     sources.add("mad-labs");
   }
 }
@@ -247,6 +250,28 @@ export class AppsService {
   static findByLaunchId(appId: string): HubCatalogEntry | null {
     return (
       EFFECTIVE_CATALOG.find((entry) => entry.id === appId || entry.sso?.appId === appId) ?? null
+    );
+  }
+
+  // The same interpretation of Central's job_position/job_level/unit that
+  // decides what this person can open in Hub, handed to a satellite app so
+  // it can reach the same conclusion instead of re-deriving its own from
+  // scratch. Central has no fixed role vocabulary - job_level is free-text,
+  // admin-editable master data - so every app that interprets it separately
+  // is a place that can silently disagree with Hub about the same person.
+  static accessTagsFor(user: HubUser): HubAccessSource[] {
+    return Array.from(getUserAccessSources(user));
+  }
+
+  // Every satellite app's own no-UI "clear my local session" page, for
+  // fanning out on Hub logout. Not filtered by who's asking or by catalog
+  // visibility/access - a person's own session on an app they can no longer
+  // see (revoked access, app hidden) still needs clearing, and loading this
+  // page for an app the browser never actually opened is harmless (there's
+  // nothing there to clear).
+  static logoutTargets(): string[] {
+    return EFFECTIVE_CATALOG.map((entry) => entry.sso?.logoutUrl).filter(
+      (url): url is string => Boolean(url),
     );
   }
 }

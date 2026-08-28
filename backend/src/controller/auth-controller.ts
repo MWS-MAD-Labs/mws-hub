@@ -4,9 +4,42 @@ import { AuthService } from "../service/auth-service";
 import { GoogleAuth } from "../lib/google-auth";
 import { resolveLogoutRedirect } from "../lib/logout-redirect";
 import { frontendOrigin } from "../lib/frontend-origin";
+import { ResponseError } from "../error/response-error";
+import { logger } from "../lib/logger";
+import { AppsService } from "../service/apps-service";
 import type { SessionVariables } from "../type/hono-context";
 
 const OAUTH_STATE_COOKIE = "hub_google_oauth_state";
+
+// Codes the frontend's LOGIN_ERRORS map (frontend/src/pages/LoginPage.tsx)
+// knows how to render. Anything else falls back to "login_failed".
+const RESPONSE_ERROR_CODES: Record<number, string> = {
+  401: "google_auth_failed",
+  403: "domain_not_allowed",
+  404: "not_registered",
+};
+
+// Only ever an app-launch bounce-back (see apps-route.ts), never an arbitrary
+// URL - this is what stands between "resume the app you came from" and an
+// open redirect, so keep it narrow rather than accepting any relative path.
+const APP_LAUNCH_REDIRECT = /^\/apps\/[a-z0-9_-]+\/launch$/;
+
+function sanitizeLaunchRedirect(raw: string | undefined | null): string | null {
+  return raw && APP_LAUNCH_REDIRECT.test(raw) ? raw : null;
+}
+
+// crypto.randomUUID() never contains ':', so packing "nonce:redirect" into
+// the one state cookie/param is unambiguous to split back apart - no need
+// for a second cookie just to carry the redirect through Google's round trip.
+function packState(redirect: string | null): string {
+  const nonce = crypto.randomUUID();
+  return redirect ? `${nonce}:${redirect}` : nonce;
+}
+
+function redirectFromState(state: string): string | null {
+  const separator = state.indexOf(":");
+  return separator === -1 ? null : sanitizeLaunchRedirect(state.slice(separator + 1));
+}
 
 function cookieOptions() {
   return {
@@ -28,7 +61,8 @@ function oauthStateCookieOptions() {
 
 export class AuthController {
   static async startGoogleLogin(c: Context) {
-    const state = crypto.randomUUID();
+    const redirect = sanitizeLaunchRedirect(c.req.query("redirect"));
+    const state = packState(redirect);
 
     setCookie(c, OAUTH_STATE_COOKIE, state, {
       ...oauthStateCookieOptions(),
@@ -63,7 +97,21 @@ export class AuthController {
       return c.redirect(`${frontendOrigin()}/login?error=google_state`, 302);
     }
 
-    const { token } = await AuthService.loginWithGoogle(code);
+    const redirect = redirectFromState(state);
+
+    let token: string;
+    try {
+      ({ token } = await AuthService.loginWithGoogle(code));
+    } catch (err) {
+      logger.error("Google callback failed:", err);
+      const errorCode =
+        err instanceof ResponseError ? RESPONSE_ERROR_CODES[err.status] : undefined;
+      return c.redirect(
+        `${frontendOrigin()}/login?error=${errorCode ?? "login_failed"}`,
+        302,
+      );
+    }
+
     const cookieName = process.env.SESSION_COOKIE_NAME || "hub_session";
 
     setCookie(c, cookieName, token, {
@@ -71,7 +119,7 @@ export class AuthController {
       maxAge: 60 * 60 * 8,
     });
 
-    return c.redirect(`${frontendOrigin()}/support-hub`, 302);
+    return c.redirect(`${frontendOrigin()}${redirect ?? "/support-hub"}`, 302);
   }
 
   static async me(c: Context<{ Variables: SessionVariables }>) {
@@ -83,6 +131,15 @@ export class AuthController {
     const cookieName = process.env.SESSION_COOKIE_NAME || "hub_session";
     deleteCookie(c, cookieName, cookieOptions());
     return c.json({ data: "Logged out successfully" });
+  }
+
+  // Every satellite app's own local session is out of Hub's reach - a
+  // different origin's cookie/localStorage that Hub's page can never touch
+  // directly. The frontend loads each of these in a hidden iframe on logout
+  // so signing out of Hub actually signs out of everything the person
+  // opened, not just Hub itself. Static catalog data, no session required.
+  static async logoutTargets(c: Context) {
+    return c.json({ data: AppsService.logoutTargets() });
   }
 
   // Sign-out that starts inside a satellite app. The app clears its own
