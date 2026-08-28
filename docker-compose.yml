@@ -1,11 +1,7 @@
-# mws-hub staging compose for Komodo.
-# The frontend is the single browser entry point and proxies /auth, /apps and
-# /.well-known to the backend over Docker's internal network
 
 services:
   db:
     image: postgres:16-alpine
-    container_name: mws-hub-db
     restart: unless-stopped
     environment:
       POSTGRES_USER: hub
@@ -14,7 +10,7 @@ services:
     volumes:
       - hubdata:/var/lib/postgresql/data
     ports:
-      - "${POSTGRES_PORT:-5435}:5432"
+      - "${POSTGRES_PORT:-5436}:5432"
     healthcheck:
       test:
         [
@@ -31,7 +27,6 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: mws-hub-be
     restart: unless-stopped
 
     environment:
@@ -80,7 +75,6 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: mws-hub-fe
     restart: unless-stopped
 
     ports:
