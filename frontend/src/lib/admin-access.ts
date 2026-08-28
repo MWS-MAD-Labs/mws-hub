@@ -1,6 +1,6 @@
 import type { AuthUser } from "@/model/auth-model";
 
-export const MAD_LABS_UNIT_ID = "cmsr1gmkh000akz7bzjgdv6dq";
+export const MAD_LABS_UNIT_ID = "cmsh7trcj000a40lsm0w7tl4h";
 
 const MAD_LABS_UNIT_NAMES = new Set(["mad-lab", "mad-labs"]);
 
