@@ -4,13 +4,13 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: hub
-      POSTGRES_PASSWORD: postgress123Abc
-      POSTGRES_DB: mws-hub
+      POSTGRES_USER: ${POSTGRES_USER:-hub}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgress123Abc}
+      POSTGRES_DB: ${POSTGRES_DB:-mws-hub}
     volumes:
       - hubdata:/var/lib/postgresql/data
-    ports:
-      - "${POSTGRES_PORT:-5436}:5432"
+    expose:
+      - "5432"
     healthcheck:
       test:
         [
@@ -32,7 +32,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 4001
-      DATABASE_URL: ${DATABASE_URL}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-hub}:${POSTGRES_PASSWORD:-postgress123Abc}@db:5432/${POSTGRES_DB:-mws-hub}?schema=public
       JWT_SECRET: ${JWT_SECRET}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
