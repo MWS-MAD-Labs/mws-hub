@@ -78,8 +78,11 @@ model Application {
   // Set only for apps with their own /auth/sso exchange endpoint. Moving
   // the entry URL here is what removes the per-app <APP>_API_URL env var
   // that previously had to be deployed alongside a catalog edit.
-  sso_app_id    String? @unique
-  sso_entry_url String?
+  sso_app_id     String? @unique
+  sso_entry_url  String?
+  // Optional: an app without a local session to clear just doesn't get
+  // included in Hub's logout fan-out (loaded in a hidden iframe on sign-out).
+  sso_logout_url String?
 
   sort_order Int @default(0)
 

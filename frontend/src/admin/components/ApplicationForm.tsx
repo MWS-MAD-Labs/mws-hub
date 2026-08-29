@@ -69,6 +69,7 @@ const emptyForm: AdminApplicationInput = {
   allowedSources: [],
   ssoAppId: "",
   ssoEntryUrl: "",
+  ssoLogoutUrl: "",
   sortOrder: 0,
 };
 
@@ -91,6 +92,7 @@ function formFromApplication(
     allowedSources: application.allowed_sources,
     ssoAppId: application.sso_app_id ?? "",
     ssoEntryUrl: application.sso_entry_url ?? "",
+    ssoLogoutUrl: application.sso_logout_url ?? "",
     sortOrder: application.sort_order,
   };
 }
@@ -111,6 +113,14 @@ function slugify(value: string): string {
 function ssoEntryFromBase(base: string): string {
   const trimmed = base.trim().replace(/\/+$/, "");
   return trimmed ? `${trimmed}/auth/sso` : "";
+}
+
+// Same base as the entry point: an app that runs its own no-UI "clear my
+// local session" page for Hub's logout fan-out exposes it at this fixed
+// path, so there is nothing extra to ask for here either.
+function ssoLogoutFromBase(base: string): string {
+  const trimmed = base.trim().replace(/\/+$/, "");
+  return trimmed ? `${trimmed}/auth/logout-silent` : "";
 }
 
 function baseFromSsoEntry(entry: string): string {
@@ -248,6 +258,7 @@ export default function ApplicationForm({
       href: form.href?.trim() || null,
       ssoAppId: usesSso ? appId : null,
       ssoEntryUrl: usesSso ? ssoEntryFromBase(ssoBase) : null,
+      ssoLogoutUrl: usesSso ? ssoLogoutFromBase(ssoBase) || null : null,
       sortOrder: Number(form.sortOrder) || 0,
     });
   }
@@ -574,6 +585,15 @@ export default function ApplicationForm({
                 <code className="rounded bg-muted px-1">
                   {ssoEntryFromBase(ssoBase) || "-"}
                 </code>
+              </p>
+              <p className="mt-1">
+                Logout:{" "}
+                <code className="rounded bg-muted px-1">
+                  {ssoLogoutFromBase(ssoBase) || "-"}
+                </code>{" "}
+                <span className="text-muted-foreground/80">
+                  (opsional, dipakai saat sign-out dari Hub)
+                </span>
               </p>
               <p className="mt-2">
                 Developer aplikasi tujuan perlu memasang{" "}

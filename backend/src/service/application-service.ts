@@ -56,7 +56,13 @@ export function toCatalogEntry(row: Application): HubCatalogEntry {
     discoverable: row.discoverable,
     allowedSources: row.allowed_sources as HubAccessSource[],
     ...(row.sso_app_id && row.sso_entry_url
-      ? { sso: { appId: row.sso_app_id, entryUrl: row.sso_entry_url } }
+      ? {
+          sso: {
+            appId: row.sso_app_id,
+            entryUrl: row.sso_entry_url,
+            ...(row.sso_logout_url ? { logoutUrl: row.sso_logout_url } : {}),
+          },
+        }
       : {}),
   };
 }
@@ -76,6 +82,7 @@ export type ApplicationInput = {
   allowedSources?: HubAccessSource[];
   ssoAppId?: string | null;
   ssoEntryUrl?: string | null;
+  ssoLogoutUrl?: string | null;
   sortOrder?: number;
 };
 
@@ -164,6 +171,7 @@ function toRow(input: ApplicationInput) {
     allowed_sources: input.allowedSources ?? [],
     sso_app_id: input.ssoAppId ?? null,
     sso_entry_url: input.ssoEntryUrl ?? null,
+    sso_logout_url: input.ssoLogoutUrl ?? null,
     sort_order: input.sortOrder ?? 0,
   };
 }

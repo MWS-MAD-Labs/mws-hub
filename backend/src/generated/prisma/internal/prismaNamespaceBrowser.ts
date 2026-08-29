@@ -87,6 +87,7 @@ export const ApplicationScalarFieldEnum = {
   allowed_sources: 'allowed_sources',
   sso_app_id: 'sso_app_id',
   sso_entry_url: 'sso_entry_url',
+  sso_logout_url: 'sso_logout_url',
   sort_order: 'sort_order',
   created_at: 'created_at',
   updated_at: 'updated_at',

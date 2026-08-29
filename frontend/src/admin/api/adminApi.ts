@@ -31,6 +31,7 @@ export type AdminApplication = {
   allowed_sources: AdminAccessSource[];
   sso_app_id: string | null;
   sso_entry_url: string | null;
+  sso_logout_url: string | null;
   sort_order: number;
 };
 
@@ -49,6 +50,7 @@ export type AdminApplicationInput = {
   allowedSources?: AdminAccessSource[];
   ssoAppId?: string | null;
   ssoEntryUrl?: string | null;
+  ssoLogoutUrl?: string | null;
   sortOrder?: number;
 };
 
