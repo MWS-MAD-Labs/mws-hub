@@ -3,18 +3,23 @@ import type { HubApplicationStatus } from "@/model/hub-model";
 
 export type AdminApplicationStatus = Uppercase<HubApplicationStatus>;
 
-export type AdminAccessSource =
-  | "employee"
-  | "student"
-  | "public"
-  | "teacher"
-  | "staff"
-  | "principal"
-  | "director"
-  | "admin"
-  | "resource"
-  | "head-unit"
-  | "mad-labs";
+export type AdminAccessSource = string;
+
+export type AdminAccessRuleOption = {
+  value: string;
+  label: string;
+  hint: string;
+};
+
+export type AdminAccessOptions = {
+  base: AdminAccessRuleOption[];
+  central: {
+    units: AdminAccessRuleOption[];
+    jobPositions: AdminAccessRuleOption[];
+    jobLevels: AdminAccessRuleOption[];
+  };
+  centralRulePrefixes: AdminAccessRuleOption[];
+};
 
 export type AdminApplication = {
   id: string;
@@ -86,16 +91,23 @@ export const adminApi = {
 
   async listApplications(): Promise<AdminApplication[]> {
     const response = await apiRequest<{ data: AdminApplication[] }>(
-      "/admin/applications",
+      "/admin/api/catalog",
     );
     return response?.data ?? [];
+  },
+
+  async getApplication(id: string): Promise<AdminApplication> {
+    const response = await apiRequest<{ data: AdminApplication }>(
+      `/admin/api/catalog/${encodeURIComponent(id)}`,
+    );
+    return response!.data;
   },
 
   async createApplication(
     input: AdminApplicationInput,
   ): Promise<AdminApplication> {
     const response = await apiRequest<{ data: AdminApplication }>(
-      "/admin/applications",
+      "/admin/api/catalog",
       {
         method: "POST",
         body: input,
@@ -109,41 +121,48 @@ export const adminApi = {
     input: AdminApplicationInput,
   ): Promise<AdminApplication> {
     const response = await apiRequest<{ data: AdminApplication }>(
-      `/admin/applications/${encodeURIComponent(id)}`,
+      `/admin/api/catalog/${encodeURIComponent(id)}`,
       { method: "PATCH", body: input },
     );
     return response!.data;
   },
 
   async deleteApplication(id: string): Promise<void> {
-    await apiRequest(`/admin/applications/${encodeURIComponent(id)}`, {
+    await apiRequest(`/admin/api/catalog/${encodeURIComponent(id)}`, {
       method: "DELETE",
     });
   },
 
+  async accessOptions(): Promise<AdminAccessOptions> {
+    const response = await apiRequest<{ data: AdminAccessOptions }>(
+      "/admin/api/access-options",
+    );
+    return response!.data;
+  },
+
   async listReports() {
     const response = await apiRequest<{ data: AdminReport[] }>(
-      "/admin/reports",
+      "/admin/api/reports",
     );
     return response?.data ?? [];
   },
 
   async listAccessRequests() {
     const response = await apiRequest<{ data: AdminAccessRequest[] }>(
-      "/admin/access-requests",
+      "/admin/api/access-requests",
     );
     return response?.data ?? [];
   },
 
   async updateReport(id: string, status: AdminReport["status"]) {
-    await apiRequest(`/admin/reports/${encodeURIComponent(id)}`, {
+    await apiRequest(`/admin/api/reports/${encodeURIComponent(id)}`, {
       method: "PATCH",
       body: { status },
     });
   },
 
   async updateAccessRequest(id: string, status: AdminAccessRequest["status"]) {
-    await apiRequest(`/admin/access-requests/${encodeURIComponent(id)}`, {
+    await apiRequest(`/admin/api/access-requests/${encodeURIComponent(id)}`, {
       method: "PATCH",
       body: { status },
     });

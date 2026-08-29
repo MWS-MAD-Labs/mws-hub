@@ -1,5 +1,5 @@
 import { describe, expect, it, mock } from "bun:test";
-import { HUB_CATALOG } from "../data/hub-catalog";
+import { HUB_CATALOG } from "../../seed/default-catalog";
 import type { HubCatalogEntry } from "../type/catalog-type";
 import type { HubUser } from "../type/central-type";
 
@@ -86,9 +86,9 @@ describe("canAccess - source-based access", () => {
     expect(canAccess(app, student())).toBe(false);
   });
 
-  it("admits any active employee to a staff-scoped app, even with no role data", () => {
+  it("admits a staff-scoped app from Central job level data", () => {
     const app = entry({ allowedSources: ["staff"] });
-    expect(canAccess(app, employee())).toBe(true);
+    expect(canAccess(app, employee({ job_level: "Staff" }))).toBe(true);
   });
 
   it("resolves a teacher audience from Central's role field", () => {
@@ -96,14 +96,14 @@ describe("canAccess - source-based access", () => {
     expect(canAccess(app, employee({ role: "Teacher" }))).toBe(true);
   });
 
-  it("resolves a teacher audience through an Indonesian alias (guru)", () => {
+  it("does not translate a Central role into a different Hub audience key", () => {
     const app = entry({ allowedSources: ["teacher"] });
-    expect(canAccess(app, employee({ role: "Guru" }))).toBe(true);
+    expect(canAccess(app, employee({ role: "Guru" }))).toBe(false);
   });
 
-  it("resolves a principal audience through an Indonesian alias (kepala sekolah)", () => {
+  it("matches Central labels by normalized token, not by a manual alias table", () => {
     const app = entry({ allowedSources: ["principal"] });
-    expect(canAccess(app, employee({ role: "Kepala Sekolah" }))).toBe(true);
+    expect(canAccess(app, employee({ role: "Principal" }))).toBe(true);
   });
 
   it("reads roles from the `roles` array, not just the singular `role` field", () => {
@@ -116,14 +116,14 @@ describe("canAccess - source-based access", () => {
     expect(canAccess(app, employee({ roles: [{ name: "Super Admin" }] }))).toBe(true);
   });
 
-  it("falls back to job metadata only when Central sent no role/permission claims at all", () => {
+  it("can match a legacy bare rule against Central job metadata", () => {
     const app = entry({ allowedSources: ["teacher"] });
-    expect(canAccess(app, employee({ job_position: "Teacher" }))).toBe(true);
+    expect(canAccess(app, employee({ job_position: "Homeroom Teacher" }))).toBe(true);
   });
 
-  it("does not fall back to job metadata once any explicit claim is present, even an unrelated one", () => {
+  it("does not infer translated labels from Central job metadata", () => {
     const app = entry({ allowedSources: ["teacher"] });
-    const user = employee({ role: "Something Unrelated", job_position: "Teacher" });
+    const user = employee({ job_position: "Guru Kelas" });
     expect(canAccess(app, user)).toBe(false);
   });
 
@@ -155,6 +155,38 @@ describe("canAccess - explicit permission override", () => {
     const app = entry({ id: "proofpoint", allowedSources: ["admin"] });
     const user = employee({ permissions: ["hub:apps:exima:launch"] });
     expect(canAccess(app, user)).toBe(false);
+  });
+
+  it("admits a user by Central unit id", () => {
+    const app = entry({ allowedSources: ["unit:unit-1"] });
+    expect(canAccess(app, employee({ unit_id: "unit-1" }))).toBe(true);
+    expect(canAccess(app, employee({ unit_id: "unit-2" }))).toBe(false);
+  });
+
+  it("admits a user by Central job position id", () => {
+    const app = entry({ allowedSources: ["job-position:position-1"] });
+    expect(
+      canAccess(app, employee({ job_position_id: "position-1" })),
+    ).toBe(true);
+    expect(
+      canAccess(app, employee({ job_position_id: "position-2" })),
+    ).toBe(false);
+  });
+
+  it("admits a user by Central job position label when Central has not exposed its id", () => {
+    const app = entry({ allowedSources: ["job-position-label:Homeroom Teacher"] });
+    expect(
+      canAccess(app, employee({ job_position: "Homeroom Teacher" })),
+    ).toBe(true);
+    expect(
+      canAccess(app, employee({ job_position: "Subject Teacher" })),
+    ).toBe(false);
+  });
+
+  it("admits a user by Central job level label when Central has not exposed its id", () => {
+    const app = entry({ allowedSources: ["job-level-label:Teacher"] });
+    expect(canAccess(app, employee({ job_level: "Teacher" }))).toBe(true);
+    expect(canAccess(app, employee({ job_level: "Staff" }))).toBe(false);
   });
 
   it("lets an explicit permission reach a student, bypassing the student-only source guard", () => {

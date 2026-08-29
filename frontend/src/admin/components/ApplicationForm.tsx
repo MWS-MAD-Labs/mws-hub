@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type {
   AdminAccessSource,
+  AdminAccessOptions,
   AdminApplication,
   AdminApplicationInput,
   AdminApplicationStatus,
@@ -9,6 +10,7 @@ import { HUB_CATEGORIES, HUB_ICONS, getAppIcon } from "@/data/hubCategories";
 
 type ApplicationFormProps = {
   application?: AdminApplication | null;
+  accessOptions: AdminAccessOptions;
   isSaving: boolean;
   onCancel: () => void;
   onSubmit: (input: AdminApplicationInput) => Promise<void>;
@@ -33,26 +35,6 @@ const STATUSES: Array<{
     label: "Maintenance",
     hint: "Link dimatikan. Kartu tetap tampil dengan tulisan sedang diperbaiki.",
   },
-];
-
-// Ordered so the broadest audience comes first - most apps only need one of
-// the top two, and the specific roles are for the exceptions.
-const ACCESS_GROUPS: Array<{
-  value: AdminAccessSource;
-  label: string;
-  hint: string;
-}> = [
-  { value: "public", label: "Semua orang", hint: "Karyawan dan siswa" },
-  { value: "employee", label: "Semua karyawan", hint: "Semua staf, bukan siswa" },
-  { value: "student", label: "Siswa", hint: "" },
-  { value: "teacher", label: "Guru", hint: "" },
-  { value: "staff", label: "Staf", hint: "Karyawan non-guru" },
-  { value: "principal", label: "Kepala Sekolah", hint: "" },
-  { value: "head-unit", label: "Kepala Unit", hint: "" },
-  { value: "director", label: "Direktur", hint: "" },
-  { value: "admin", label: "Admin sistem", hint: "Terdaftar sebagai AdminUser" },
-  { value: "resource", label: "Tim Resource", hint: "" },
-  { value: "mad-labs", label: "MAD Labs", hint: "" },
 ];
 
 const emptyForm: AdminApplicationInput = {
@@ -146,6 +128,7 @@ function SectionHeading({
 
 export default function ApplicationForm({
   application,
+  accessOptions,
   isSaving,
   onCancel,
   onSubmit,
@@ -155,6 +138,7 @@ export default function ApplicationForm({
   );
   const [formError, setFormError] = useState("");
   const [iconQuery, setIconQuery] = useState("");
+  const [customRule, setCustomRule] = useState("");
   const [usesSso, setUsesSso] = useState(Boolean(application?.sso_app_id));
   const [ssoBase, setSsoBase] = useState(
     baseFromSsoEntry(application?.sso_entry_url ?? ""),
@@ -184,19 +168,45 @@ export default function ApplicationForm({
     );
   }
 
+  function addCustomRule() {
+    const rule = customRule.trim();
+    if (!rule) return;
+    const current = form.allowedSources ?? [];
+    if (!current.includes(rule)) {
+      update("allowedSources", [...current, rule]);
+    }
+    setCustomRule("");
+  }
+
+  function removeSource(source: AdminAccessSource) {
+    update(
+      "allowedSources",
+      (form.allowedSources ?? []).filter((item) => item !== source),
+    );
+  }
+
   const appId = application?.id || slugify(form.name);
 
   // Written from the access groups rather than typed separately. The two
   // fields always said the same thing, and keeping them in sync by hand is
   // how a card ends up claiming one audience while admitting another.
   const derivedAudience = useMemo(() => {
-    const chosen = ACCESS_GROUPS.filter((group) =>
+    const allOptions = [
+      ...accessOptions.base,
+      ...accessOptions.central.units,
+      ...accessOptions.central.jobPositions,
+      ...accessOptions.central.jobLevels,
+    ];
+    const chosen = allOptions.filter((group) =>
       form.allowedSources?.includes(group.value),
     );
-    if (chosen.length === 0) return "";
     if (chosen.some((group) => group.value === "public")) return "Everyone";
-    return chosen.map((group) => group.label).join(", ");
-  }, [form.allowedSources]);
+    const knownLabels = chosen.map((group) => group.label);
+    const customLabels = (form.allowedSources ?? []).filter(
+      (source) => !allOptions.some((group) => group.value === source),
+    );
+    return [...knownLabels, ...customLabels].join(", ");
+  }, [accessOptions, form.allowedSources]);
 
   const visibleIcons = useMemo(() => {
     const query = iconQuery.trim().toLowerCase();
@@ -206,6 +216,11 @@ export default function ApplicationForm({
   }, [iconQuery]);
 
   const PreviewIcon = getAppIcon(form.icon || "AppWindow");
+  const centralAccessGroups = [
+    { title: "Unit", options: accessOptions.central.units },
+    { title: "Job Position", options: accessOptions.central.jobPositions },
+    { title: "Job Level", options: accessOptions.central.jobLevels },
+  ].filter((group) => group.options.length > 0);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -224,8 +239,8 @@ export default function ApplicationForm({
       );
       return;
     }
-    if (form.status !== "maintenance" && !form.href?.trim()) {
-      setFormError("Alamat aplikasi wajib diisi kecuali statusnya Maintenance.");
+    if (!form.href?.trim()) {
+      setFormError("Alamat aplikasi wajib diisi.");
       return;
     }
     if (usesSso && !ssoBase.trim()) {
@@ -407,10 +422,10 @@ export default function ApplicationForm({
         <SectionHeading
           step={2}
           title="Siapa yang boleh memakai"
-          subtitle="Ini yang menentukan aplikasi terlihat oleh siapa. Wajib pilih minimal satu."
+          subtitle="Pakai identity dan ID master data dari Central. Wajib pilih minimal satu."
         />
         <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-3">
-          {ACCESS_GROUPS.map((group) => (
+          {accessOptions.base.map((group) => (
             <label
               key={group.value}
               className="flex items-start gap-2 rounded-md border border-border/60 p-2"
@@ -432,10 +447,99 @@ export default function ApplicationForm({
             </label>
           ))}
         </div>
-        <p className="mt-3 text-xs text-muted-foreground">
-          Teks "Terlihat oleh" pada kartu ditulis otomatis dari pilihan ini,
-          jadi keduanya tidak akan pernah berbeda.
-        </p>
+
+        {centralAccessGroups.length > 0 ? (
+          <div className="mt-4 space-y-4">
+            {centralAccessGroups.map((group) => (
+              <div key={group.title}>
+                <p className="text-sm font-semibold">{group.title}</p>
+                <div className="mt-2 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
+                  {group.options.map((option) => (
+                    <label
+                      key={option.value}
+                      className="flex items-start gap-2 rounded-md border border-border/60 p-2"
+                    >
+                      <input
+                        type="checkbox"
+                        className="mt-1"
+                        checked={
+                          form.allowedSources?.includes(option.value) ?? false
+                        }
+                        onChange={() => toggleSource(option.value)}
+                      />
+                      <span>
+                        <span className="font-medium">{option.label}</span>
+                        <span className="block text-xs text-muted-foreground">
+                          {option.hint}
+                        </span>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-4 rounded-md bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300">
+            Data Unit/Job dari Central belum tersedia. Cek CENTRAL_API_TOKEN dan
+            endpoint /api/internal/employees.
+          </p>
+        )}
+
+        <div className="mt-4 rounded-md border border-border/60 p-3">
+          <label className="text-sm font-medium">
+            Tambah rule dari Central
+            <span className="block text-xs font-normal text-muted-foreground">
+              Gunakan ID atau claim yang berasal dari Central, bukan daftar
+              manual di Hub.
+            </span>
+          </label>
+          <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+            <input
+              className={`${inputClass} mt-0`}
+              placeholder="unit:cmsh7trcj000a40lsm0w7tl4h"
+              value={customRule}
+              onChange={(event) => setCustomRule(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  addCustomRule();
+                }
+              }}
+            />
+            <button
+              type="button"
+              onClick={addCustomRule}
+              className="rounded-md border border-border/70 px-3 py-2 text-sm font-semibold hover:bg-muted"
+            >
+              Tambah
+            </button>
+          </div>
+          <div className="mt-3 grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
+            {accessOptions.centralRulePrefixes.map((prefix) => (
+              <p key={prefix.value}>
+                <code className="rounded bg-muted px-1">{prefix.value}</code>{" "}
+                {prefix.hint}
+              </p>
+            ))}
+          </div>
+        </div>
+
+        {(form.allowedSources ?? []).length > 0 ? (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {(form.allowedSources ?? []).map((source) => (
+              <button
+                key={source}
+                type="button"
+                onClick={() => removeSource(source)}
+                className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground hover:text-foreground"
+                title="Klik untuk hapus rule"
+              >
+                {source} x
+              </button>
+            ))}
+          </div>
+        ) : null}
       </section>
 
       <section className={sectionClass}>

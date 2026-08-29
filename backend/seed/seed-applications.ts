@@ -1,7 +1,7 @@
 // Usage:
 //   bun run seed:applications
 //
-// Moves the catalog that used to live in src/data/hub-catalog.ts into Hub's
+// Moves the default catalog into Hub's
 // database, so MAD Labs can add and edit apps from the admin screen instead
 // of editing code and shipping a release.
 //
@@ -9,7 +9,7 @@
 // leaves nothing out, so re-seeding restores an entry that was edited by
 // hand. It does NOT delete rows created through the admin screen.
 import { prisma } from "../src/lib/prisma";
-import { HUB_CATALOG } from "../src/data/hub-catalog";
+import { HUB_CATALOG } from "./default-catalog";
 import type { HubCatalogEntry } from "../src/type/catalog-type";
 import { ApplicationStatus } from "../src/generated/prisma/enums";
 

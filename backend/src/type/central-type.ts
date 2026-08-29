@@ -20,6 +20,11 @@ export type CentralUnitRef = {
   name?: string | null;
 };
 
+export type CentralNamedRef = {
+  id?: string | null;
+  name?: string | null;
+};
+
 export type EmployeeLookupResponse = {
   id: string;
   employee_id: string;
@@ -30,8 +35,12 @@ export type EmployeeLookupResponse = {
   unit: string | CentralUnitRef | null;
   unit_id?: string | null;
   unitId?: string | null;
-  job_position: string | null;
-  job_level: string | null;
+  job_position: string | CentralNamedRef | null;
+  job_position_id?: string | null;
+  jobPositionId?: string | null;
+  job_level: string | CentralNamedRef | null;
+  job_level_id?: string | null;
+  jobLevelId?: string | null;
   status: string;
   employment_type: string | null;
 } & CentralAccessClaims;

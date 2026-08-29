@@ -4,17 +4,7 @@ import type { HubUser } from "./central-type";
 // permission claims. Hub only states which Central-backed access keys may
 // launch an app.
 export type IdentitySource = HubUser["source"];
-export type HubAccessSource =
-  | IdentitySource
-  | "public"
-  | "teacher"
-  | "staff"
-  | "principal"
-  | "director"
-  | "admin"
-  | "resource"
-  | "head-unit"
-  | "mad-labs";
+export type HubAccessSource = string;
 
 export type HubAppStatus = "active" | "maintenance" | "coming_soon" | "new";
 

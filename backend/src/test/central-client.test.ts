@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from "bun:test";
-import { resolveCentralIdentity } from "../lib/central-client";
+import { listActiveEmployees, resolveCentralIdentity } from "../lib/central-client";
 
 const originalFetch = global.fetch;
 
@@ -41,6 +41,25 @@ describe("resolveCentralIdentity", () => {
     expect(user?.unit_id).toBe("unit-1");
     expect(user?.unitId).toBe("unit-1");
     expect(user?.unit).toBe("MAD Lab");
+  });
+
+  it("does not invent a unitId from the Central unit display name", async () => {
+    global.fetch = (async () =>
+      jsonResponse(200, {
+        data: {
+          id: "emp-1",
+          email: "a@millennia21.id",
+          unit: "MAD Lab",
+          unit_id: null,
+        },
+      })) as unknown as typeof fetch;
+
+    const user = await resolveCentralIdentity("a@millennia21.id");
+    expect(user?.source).toBe("employee");
+    if (user?.source !== "employee") throw new Error("Expected employee user");
+    expect(user.unit).toBe("MAD Lab");
+    expect(user.unit_id).toBeNull();
+    expect(user.unitId).toBeNull();
   });
 
   it("falls through to the student lookup when the employee isn't found", async () => {
@@ -86,5 +105,38 @@ describe("resolveCentralIdentity", () => {
     await expect(resolveCentralIdentity("anyone@millennia21.id")).rejects.toThrow(
       "Central lookup failed with status 500",
     );
+  });
+
+  it("lists active employees from Central and preserves unit ids", async () => {
+    const calls: string[] = [];
+    global.fetch = (async (input: string | URL | Request) => {
+      const url = String(input);
+      calls.push(url);
+      return jsonResponse(200, {
+        success: true,
+        data: [
+          {
+            id: "emp-1",
+            employee_id: "22.22.222",
+            full_name: "Dummy Staff",
+            nick_name: "Staff",
+            email: "dummystaff@millennia21.id",
+            photo_url: null,
+            unit: "Junior High",
+            unit_id: "unit-junior-high",
+            job_position: "Homeroom Teacher",
+            job_level: "Teacher",
+            status: "ACTIVE",
+            employment_type: "CONTRACT",
+          },
+        ],
+        paging: { current_page: 1, total_page: 1 },
+      });
+    }) as unknown as typeof fetch;
+
+    const employees = await listActiveEmployees();
+    expect(calls[0]).toContain("/employees?page=1&size=100&status=ACTIVE");
+    expect(employees[0]?.unit).toBe("Junior High");
+    expect(employees[0]?.unit_id).toBe("unit-junior-high");
   });
 });

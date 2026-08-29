@@ -1,6 +1,12 @@
-import { describe, expect, it } from "bun:test";
-import { isMadLabsUser, MAD_LABS_UNIT_ID } from "../lib/admin-access";
+import { beforeAll, describe, expect, it } from "bun:test";
+import { isMadLabsUser, madLabsUnitId } from "../lib/admin-access";
 import type { HubUser } from "../type/central-type";
+
+const TEST_MAD_LABS_UNIT_ID = "cmsh7trcj000a40lsm0w7tl4h";
+
+beforeAll(() => {
+  process.env.MAD_LABS_UNIT_ID = TEST_MAD_LABS_UNIT_ID;
+});
 
 function employee(overrides: Partial<Extract<HubUser, { source: "employee" }>> = {}): HubUser {
   return {
@@ -22,15 +28,16 @@ function employee(overrides: Partial<Extract<HubUser, { source: "employee" }>> =
 
 describe("isMadLabsUser", () => {
   it("admits an employee whose Central unit_id matches MAD Labs", () => {
-    expect(isMadLabsUser(employee({ unit_id: MAD_LABS_UNIT_ID }))).toBe(true);
+    expect(madLabsUnitId()).toBe(TEST_MAD_LABS_UNIT_ID);
+    expect(isMadLabsUser(employee({ unit_id: TEST_MAD_LABS_UNIT_ID }))).toBe(true);
   });
 
   it("admits an employee whose Central unitId matches MAD Labs", () => {
-    expect(isMadLabsUser(employee({ unitId: MAD_LABS_UNIT_ID }))).toBe(true);
+    expect(isMadLabsUser(employee({ unitId: TEST_MAD_LABS_UNIT_ID }))).toBe(true);
   });
 
-  it("temporarily admits MAD Lab by unit name when Central has not returned unit_id yet", () => {
-    expect(isMadLabsUser(employee({ unit: "MAD Lab", unit_id: null, unitId: null }))).toBe(true);
+  it("does not infer MAD Labs access from the display unit name", () => {
+    expect(isMadLabsUser(employee({ unit: "MAD Lab", unit_id: null, unitId: null }))).toBe(false);
   });
 
   it("refuses non-MAD Labs employees and students", () => {

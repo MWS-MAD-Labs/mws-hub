@@ -17,6 +17,10 @@ export class ApplicationController {
     return c.json({ data: await ApplicationService.listForAdmin() });
   }
 
+  static async get(c: Context<{ Variables: SessionVariables }>) {
+    return c.json({ data: await ApplicationService.getForAdmin(requireId(c)) });
+  }
+
   static async create(c: Context<{ Variables: SessionVariables }>) {
     const body = await c.req.json<ApplicationInput>();
     return c.json({ data: await ApplicationService.create(body) }, 201);

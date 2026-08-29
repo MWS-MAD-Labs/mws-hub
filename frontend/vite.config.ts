@@ -38,15 +38,21 @@ export default defineConfig({
           /^\/auth/,
           /^\/apps/,
           /^\/admin\/dashboard-data$/,
+          /^\/admin\/api/,
           /^\/\.well-known/,
           /^\/env\.js$/,
         ],
         runtimeCaching: [
           {
             urlPattern: ({ url }) =>
-              ["/auth", "/apps", "/admin/dashboard-data", "/.well-known", "/env.js"].some((prefix) =>
-                url.pathname.startsWith(prefix),
-              ),
+              [
+                "/auth",
+                "/apps",
+                "/admin/dashboard-data",
+                "/admin/api",
+                "/.well-known",
+                "/env.js",
+              ].some((prefix) => url.pathname.startsWith(prefix)),
             handler: "NetworkOnly",
             method: "GET",
           },
@@ -69,6 +75,7 @@ export default defineConfig({
       "/auth": { target: "http://localhost:4001", changeOrigin: true },
       "/apps": { target: "http://localhost:4001", changeOrigin: true },
       "/admin/dashboard-data": { target: "http://localhost:4001", changeOrigin: true },
+      "/admin/api": { target: "http://localhost:4001", changeOrigin: true },
       "/.well-known": { target: "http://localhost:4001", changeOrigin: true },
     },
   },

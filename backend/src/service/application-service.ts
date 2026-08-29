@@ -1,5 +1,5 @@
 import { prisma } from "../lib/prisma";
-import { KNOWN_ACCESS_SOURCES } from "./apps-service";
+import { isValidAccessRule } from "../lib/access-rules";
 import { ResponseError } from "../error/response-error";
 import type {
   HubAccessSource,
@@ -137,12 +137,12 @@ function assertApplicationInput(input: ApplicationInput) {
   // the app saves cleanly and then silently never appears for anybody. Fail
   // here instead, naming the offending value.
   const unknownSources = input.allowedSources.filter(
-    (source) => !KNOWN_ACCESS_SOURCES.has(source),
+    (source) => !isValidAccessRule(source),
   );
   if (unknownSources.length > 0) {
     throw new ResponseError(
       400,
-      `Unknown access group(s): ${unknownSources.join(", ")}. Allowed: ${[...KNOWN_ACCESS_SOURCES].join(", ")}.`,
+      `Unknown access rule(s): ${unknownSources.join(", ")}.`,
     );
   }
 }
@@ -185,6 +185,17 @@ export class ApplicationService {
       where: { deleted_at: null },
       orderBy: [{ sort_order: "asc" }, { name: "asc" }],
     });
+  }
+
+  static async getForAdmin(id: string): Promise<Application> {
+    const application = await prisma.application.findFirst({
+      where: { id, deleted_at: null },
+    });
+    if (!application) {
+      throw new ResponseError(404, `Unknown application: ${id}`);
+    }
+
+    return application;
   }
 
   static async create(input: ApplicationInput): Promise<Application> {

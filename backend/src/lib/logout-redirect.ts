@@ -1,4 +1,4 @@
-import { HUB_CATALOG } from "../data/hub-catalog";
+import { ApplicationService } from "../service/application-service";
 import { frontendOrigin } from "./frontend-origin";
 
 // Where a satellite is allowed to send the browser after Hub has cleared its
@@ -19,13 +19,14 @@ function originOf(url: string | null | undefined): string | null {
   }
 }
 
-function allowedOrigins(): Set<string> {
+async function allowedOrigins(): Promise<Set<string>> {
   const origins = new Set<string>();
 
   const own = originOf(frontendOrigin());
   if (own) origins.add(own);
 
-  for (const entry of HUB_CATALOG) {
+  const catalog = await ApplicationService.listActive();
+  for (const entry of catalog) {
     const href = originOf(entry.href);
     if (href) origins.add(href);
 
@@ -40,11 +41,13 @@ function allowedOrigins(): Set<string> {
 // fall back to Hub's own front page. Anything unparseable, relative, or from
 // an origin Hub does not know is rejected rather than sanitised - a partial
 // match is exactly how open redirects slip through.
-export function resolveLogoutRedirect(raw: string | undefined): string | null {
+export async function resolveLogoutRedirect(
+  raw: string | undefined,
+): Promise<string | null> {
   if (!raw) return null;
 
   const origin = originOf(raw);
   if (!origin) return null;
 
-  return allowedOrigins().has(origin) ? raw : null;
+  return (await allowedOrigins()).has(origin) ? raw : null;
 }

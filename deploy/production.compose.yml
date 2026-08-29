@@ -43,6 +43,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    command: sh -c "bun run db:migrate && bun run src/index.ts"
     expose:
       - "4001"
     networks:

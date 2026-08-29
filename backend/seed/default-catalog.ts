@@ -1,4 +1,4 @@
-import type { HubCatalogEntry } from "../type/catalog-type";
+import type { HubCatalogEntry } from "../src/type/catalog-type";
 
 const PUBLIC: HubCatalogEntry["allowedSources"] = ["public"];
 const TEACHERS: HubCatalogEntry["allowedSources"] = ["teacher"];

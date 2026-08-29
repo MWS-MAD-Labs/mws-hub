@@ -1,5 +1,4 @@
 import { logger } from "./logger";
-import { HUB_CATALOG } from "../data/hub-catalog";
 import type { HubAppStatus, HubCatalogEntry } from "../type/catalog-type";
 
 // Lets an app's status be changed without editing the catalog and shipping a
@@ -21,7 +20,7 @@ function isValidStatus(value: string): value is HubAppStatus {
 // silently ignored override looks exactly like a broken deploy.
 export function parseStatusOverrides(
   raw: string | undefined,
-  catalog: HubCatalogEntry[] = HUB_CATALOG,
+  catalog: HubCatalogEntry[],
 ): Map<string, HubAppStatus> {
   const overrides = new Map<string, HubAppStatus>();
   if (!raw?.trim()) return overrides;

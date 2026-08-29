@@ -5,7 +5,7 @@ import { GoogleAuth } from "../lib/google-auth";
 import { ResponseError } from "../error/response-error";
 import { resolveLogoutRedirect } from "../lib/logout-redirect";
 import { frontendOrigin } from "../lib/frontend-origin";
-import { getUserUnitId } from "../lib/admin-access";
+import { getUserUnitId, isMadLabsUser } from "../lib/admin-access";
 import type { SessionVariables } from "../type/hono-context";
 
 const OAUTH_STATE_COOKIE = "hub_google_oauth_state";
@@ -25,6 +25,15 @@ function oauthStateCookieOptions() {
     secure: process.env.NODE_ENV === "production",
     sameSite: "Lax" as const,
     path: "/auth/google",
+  };
+}
+
+function authUserResponse(user: SessionVariables["user"]) {
+  return {
+    ...user,
+    unitId: getUserUnitId(user),
+    unit_id: getUserUnitId(user),
+    isAdmin: isMadLabsUser(user),
   };
 }
 
@@ -51,7 +60,7 @@ export class AuthController {
       maxAge: 60 * 60 * 8,
     });
 
-    return c.json({ data: user });
+    return c.json({ data: authUserResponse(user) });
   }
 
   static async googleCallback(c: Context) {
@@ -89,13 +98,7 @@ export class AuthController {
 
   static async me(c: Context<{ Variables: SessionVariables }>) {
     const user = c.var.user;
-    return c.json({
-      data: {
-        ...user,
-        unitId: getUserUnitId(user),
-        unit_id: getUserUnitId(user),
-      },
-    });
+    return c.json({ data: authUserResponse(user) });
   }
 
   // Hub's own sign-out button, called as an XHR from the Hub UI.
@@ -119,7 +122,7 @@ export class AuthController {
     deleteCookie(c, cookieName, cookieOptions());
 
     const target =
-      resolveLogoutRedirect(c.req.query("redirect")) ||
+      (await resolveLogoutRedirect(c.req.query("redirect"))) ||
       `${frontendOrigin()}/login`;
 
     return c.redirect(target, 302);

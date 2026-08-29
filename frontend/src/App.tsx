@@ -8,6 +8,7 @@ import ProfilePage from "@/pages/ProfilePage";
 import LoginPage from "@/pages/LoginPage";
 import Dashboard from "@/admin/pages/Dashboard";
 import ApplicationsPage from "@/admin/pages/ApplicationsPage";
+import ApplicationEditorPage from "@/admin/pages/ApplicationEditorPage";
 import FeedbackPage from "@/admin/pages/FeedbackPage";
 
 export default function App() {
@@ -42,11 +43,33 @@ export default function App() {
             }
           />
           <Route
-            path="/admin/applications"
+            path="/admin/catalog"
             element={
               <RequireAdmin>
                 <ApplicationsPage />
               </RequireAdmin>
+            }
+          />
+          <Route
+            path="/admin/catalog/new"
+            element={
+              <RequireAdmin>
+                <ApplicationEditorPage />
+              </RequireAdmin>
+            }
+          />
+          <Route
+            path="/admin/catalog/:id/edit"
+            element={
+              <RequireAdmin>
+                <ApplicationEditorPage />
+              </RequireAdmin>
+            }
+          />
+          <Route
+            path="/admin/applications"
+            element={
+              <Navigate to="/admin/catalog" replace />
             }
           />
           <Route
