@@ -2,11 +2,12 @@ import type { Context } from "hono";
 import { getCookie, setCookie, deleteCookie } from "hono/cookie";
 import { AuthService } from "../service/auth-service";
 import { GoogleAuth } from "../lib/google-auth";
+import { ResponseError } from "../error/response-error";
 import { resolveLogoutRedirect } from "../lib/logout-redirect";
 import { frontendOrigin } from "../lib/frontend-origin";
-import { ResponseError } from "../error/response-error";
 import { logger } from "../lib/logger";
 import { AppsService } from "../service/apps-service";
+import { getUserUnitId } from "../lib/admin-access";
 import type { SessionVariables } from "../type/hono-context";
 
 const OAUTH_STATE_COOKIE = "hub_google_oauth_state";
@@ -123,7 +124,14 @@ export class AuthController {
   }
 
   static async me(c: Context<{ Variables: SessionVariables }>) {
-    return c.json({ data: c.var.user });
+    const user = c.var.user;
+    return c.json({
+      data: {
+        ...user,
+        unitId: getUserUnitId(user),
+        unit_id: getUserUnitId(user),
+      },
+    });
   }
 
   // Hub's own sign-out button, called as an XHR from the Hub UI.
@@ -139,7 +147,7 @@ export class AuthController {
   // so signing out of Hub actually signs out of everything the person
   // opened, not just Hub itself. Static catalog data, no session required.
   static async logoutTargets(c: Context) {
-    return c.json({ data: AppsService.logoutTargets() });
+    return c.json({ data: await AppsService.logoutTargets() });
   }
 
   // Sign-out that starts inside a satellite app. The app clears its own

@@ -7,11 +7,8 @@ import type { HubAppStatus, HubCatalogEntry } from "../type/catalog-type";
 //
 //   HUB_APP_STATUS_OVERRIDES=exima:maintenance,woko:new
 //
-// This is a bridge, not the destination. The catalog belongs in Central as an
-// Application model with an admin screen behind it, and when that lands this
-// module and its env var should be deleted rather than kept alongside it -
-// two places to set the same field is exactly the sort of split this codebase
-// already had once, with SSO_APPS and the frontend catalog disagreeing.
+// Admin-managed catalog status in Hub is the normal path. This env var is only
+// for emergency overrides when opening the admin screen is not practical.
 
 const VALID_STATUSES: HubAppStatus[] = ["active", "maintenance", "coming_soon", "new"];
 
@@ -22,11 +19,14 @@ function isValidStatus(value: string): value is HubAppStatus {
 // A malformed entry is skipped rather than thrown, because one typo in an env
 // var must not take the whole hub down - but it is logged loudly, since a
 // silently ignored override looks exactly like a broken deploy.
-export function parseStatusOverrides(raw: string | undefined): Map<string, HubAppStatus> {
+export function parseStatusOverrides(
+  raw: string | undefined,
+  catalog: HubCatalogEntry[] = HUB_CATALOG,
+): Map<string, HubAppStatus> {
   const overrides = new Map<string, HubAppStatus>();
   if (!raw?.trim()) return overrides;
 
-  const knownIds = new Set(HUB_CATALOG.map((entry) => entry.id));
+  const knownIds = new Set(catalog.map((entry) => entry.id));
 
   for (const pair of raw.split(",")) {
     const trimmed = pair.trim();
@@ -65,7 +65,7 @@ export function parseStatusOverrides(raw: string | undefined): Map<string, HubAp
 // only is how an app ends up hidden but still launchable, or shown but
 // refused on click.
 export function applyStatusOverrides(catalog: HubCatalogEntry[]): HubCatalogEntry[] {
-  const overrides = parseStatusOverrides(process.env.HUB_APP_STATUS_OVERRIDES);
+  const overrides = parseStatusOverrides(process.env.HUB_APP_STATUS_OVERRIDES, catalog);
   if (overrides.size === 0) return catalog;
 
   logger.info(

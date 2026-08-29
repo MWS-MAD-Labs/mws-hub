@@ -25,6 +25,24 @@ describe("resolveCentralIdentity", () => {
     expect(user?.source).toBe("employee");
   });
 
+  it("normalizes Central's unit_id and nested unit object into unitId plus unit name", async () => {
+    global.fetch = (async () =>
+      jsonResponse(200, {
+        data: {
+          id: "emp-1",
+          email: "a@millennia21.id",
+          unit: { id: "unit-1", name: "MAD Lab" },
+        },
+      })) as unknown as typeof fetch;
+
+    const user = await resolveCentralIdentity("a@millennia21.id");
+    expect(user?.source).toBe("employee");
+    if (user?.source !== "employee") throw new Error("Expected employee user");
+    expect(user?.unit_id).toBe("unit-1");
+    expect(user?.unitId).toBe("unit-1");
+    expect(user?.unit).toBe("MAD Lab");
+  });
+
   it("falls through to the student lookup when the employee isn't found", async () => {
     const calls: string[] = [];
     global.fetch = (async (input: string | URL | Request) => {

@@ -15,6 +15,11 @@ export type CentralAccessClaims = {
   permissions?: CentralClaim[] | null;
 };
 
+export type CentralUnitRef = {
+  id?: string | null;
+  name?: string | null;
+};
+
 export type EmployeeLookupResponse = {
   id: string;
   employee_id: string;
@@ -22,7 +27,9 @@ export type EmployeeLookupResponse = {
   nick_name: string | null;
   email: string;
   photo_url: string | null;
-  unit: string | null;
+  unit: string | CentralUnitRef | null;
+  unit_id?: string | null;
+  unitId?: string | null;
   job_position: string | null;
   job_level: string | null;
   status: string;
@@ -39,6 +46,8 @@ export type StudentLookupResponse = {
   status: string;
   current_grade: string | null;
   current_class: string | null;
+  unit_id?: string | null;
+  unitId?: string | null;
 } & CentralAccessClaims;
 
 export type HubUser =

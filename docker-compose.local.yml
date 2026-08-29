@@ -1,0 +1,12 @@
+# Optional local-only override. Komodo staging should use docker-compose.yml
+# without this file so Postgres stays internal and cannot collide with another
+# stack's host port.
+
+services:
+  db:
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5436}:5432"
+
+  backend:
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-hub}:${POSTGRES_PASSWORD:-postgress123Abc}@db:5432/${POSTGRES_DB:-mws-hub}?schema=public

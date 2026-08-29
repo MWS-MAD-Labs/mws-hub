@@ -1,9 +1,9 @@
-import { HUB_CATALOG } from "../data/hub-catalog";
 import { applyStatusOverrides } from "../lib/status-overrides";
+import { ApplicationService } from "./application-service";
 import type { CentralClaim, HubUser } from "../type/central-type";
 import type { HubAccessSource, HubAppResponse, HubCatalogEntry } from "../type/catalog-type";
 
-const KNOWN_ACCESS_SOURCES = new Set<HubCatalogEntry["allowedSources"][number]>([
+export const KNOWN_ACCESS_SOURCES = new Set<HubCatalogEntry["allowedSources"][number]>([
   "public",
   "employee",
   "student",
@@ -141,6 +141,12 @@ function addKnownSource(
   }
 }
 
+function userUnitName(user: HubUser): string | null {
+  if (user.source !== "employee") return null;
+  if (typeof user.unit === "string") return user.unit;
+  return user.unit?.name || null;
+}
+
 function getUserAccessSources(user: HubUser): Set<HubCatalogEntry["allowedSources"][number]> {
   const sources = new Set<HubCatalogEntry["allowedSources"][number]>([
     "public",
@@ -168,7 +174,7 @@ function getUserAccessSources(user: HubUser): Set<HubCatalogEntry["allowedSource
     [
       user.job_position,
       user.job_level,
-      user.unit,
+      userUnitName(user),
       user.employment_type,
     ].forEach((value) => addKnownSource(sources, value));
   }
@@ -237,19 +243,24 @@ function toResponse(entry: HubCatalogEntry): HubAppResponse {
   };
 }
 
-// The catalog as this deployment actually sees it: the code-declared entries
-// with any HUB_APP_STATUS_OVERRIDES applied. Everything below reads this, so
-// the listing and the launch gate can never disagree about an app's status.
-const EFFECTIVE_CATALOG = applyStatusOverrides(HUB_CATALOG);
+// The catalog comes from Hub's database now, not from a code file, which is
+// what makes the admin screen able to add and hide apps without a release.
+// HUB_APP_STATUS_OVERRIDES still applies on top as an emergency lever that
+// works without touching the database.
+async function effectiveCatalog(): Promise<HubCatalogEntry[]> {
+  return applyStatusOverrides(await ApplicationService.listActive());
+}
 
 export class AppsService {
-  static listFor(user: HubUser): HubAppResponse[] {
-    return EFFECTIVE_CATALOG.filter((entry) => isVisibleTo(entry, user)).map(toResponse);
+  static async listFor(user: HubUser): Promise<HubAppResponse[]> {
+    const catalog = await effectiveCatalog();
+    return catalog.filter((entry) => isVisibleTo(entry, user)).map(toResponse);
   }
 
-  static findByLaunchId(appId: string): HubCatalogEntry | null {
+  static async findByLaunchId(appId: string): Promise<HubCatalogEntry | null> {
+    const catalog = await effectiveCatalog();
     return (
-      EFFECTIVE_CATALOG.find((entry) => entry.id === appId || entry.sso?.appId === appId) ?? null
+      catalog.find((entry) => entry.id === appId || entry.sso?.appId === appId) ?? null
     );
   }
 
@@ -269,8 +280,9 @@ export class AppsService {
   // see (revoked access, app hidden) still needs clearing, and loading this
   // page for an app the browser never actually opened is harmless (there's
   // nothing there to clear).
-  static logoutTargets(): string[] {
-    return EFFECTIVE_CATALOG.map((entry) => entry.sso?.logoutUrl).filter(
+  static async logoutTargets(): Promise<string[]> {
+    const catalog = await effectiveCatalog();
+    return catalog.map((entry) => entry.sso?.logoutUrl).filter(
       (url): url is string => Boolean(url),
     );
   }

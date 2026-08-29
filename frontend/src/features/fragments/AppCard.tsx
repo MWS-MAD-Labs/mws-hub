@@ -14,11 +14,7 @@ import { env } from "@/config/env";
 import { loadHiddenIframe } from "@/lib/hiddenIframe";
 import type { HubApplication } from "@/model/hub-model";
 
-type BlockedKey =
-  | "locked"
-  | "maintenance"
-  | "coming_soon"
-  | "no_link";
+type BlockedKey = "locked" | "maintenance" | "coming_soon" | "no_link";
 
 type BlockedConfig = {
   icon: LucideIcon;
@@ -44,9 +40,7 @@ const BLOCKED: Record<BlockedKey, BlockedConfig> = {
   },
 };
 
-const blockedKeyOf = (
-  app: HubApplication,
-): BlockedKey | null => {
+const blockedKeyOf = (app: HubApplication): BlockedKey | null => {
   if (app.access === "locked") return "locked";
   if (app.status === "maintenance") return "maintenance";
   if (app.status === "coming_soon") return "coming_soon";
@@ -58,18 +52,17 @@ const blockedKeyOf = (
 type AppCardProps = {
   app: HubApplication;
   onRequestAccess?: (app: HubApplication) => void;
+  onReportProblem?: (app: HubApplication) => void;
 };
 
 const AppCard = memo(
-  ({ app, onRequestAccess }: AppCardProps) => {
+  ({ app, onRequestAccess, onReportProblem }: AppCardProps) => {
     const Icon = getAppIcon(app.icon);
 
     const blockedKey = blockedKeyOf(app);
     const isOpenable = !blockedKey;
 
-    const blocked = blockedKey
-      ? BLOCKED[blockedKey]
-      : null;
+    const blocked = blockedKey ? BLOCKED[blockedKey] : null;
 
     const BlockedIcon = blocked?.icon;
 
@@ -160,9 +153,7 @@ const AppCard = memo(
           "text-center",
           "transition-transform duration-150",
 
-          isOpenable
-            ? "active:scale-[0.94]"
-            : "opacity-50",
+          isOpenable ? "active:scale-[0.94]" : "opacity-50",
 
           // ============================================================
           // DESKTOP
@@ -261,9 +252,7 @@ const AppCard = memo(
                 sm:leading-normal
               "
             >
-              <span className="line-clamp-2">
-                {app.name}
-              </span>
+              <span className="line-clamp-2">{app.name}</span>
             </h3>
 
             {/* New — desktop only */}
@@ -319,21 +308,14 @@ const AppCard = memo(
                 sm:flex
               "
             >
-              <BlockedIcon
-                className="h-3 w-3 shrink-0"
-                aria-hidden="true"
-              />
+              <BlockedIcon className="h-3 w-3 shrink-0" aria-hidden="true" />
 
-              <span className="truncate">
-                {blocked.text(app)}
-              </span>
+              <span className="truncate">{blocked.text(app)}</span>
 
               {blockedKey === "locked" && (
                 <button
                   type="button"
-                  onClick={() =>
-                    onRequestAccess?.(app)
-                  }
+                  onClick={() => onRequestAccess?.(app)}
                   className="
                     relative
                     z-10
@@ -352,6 +334,15 @@ const AppCard = memo(
                 </button>
               )}
             </p>
+          )}
+          {isOpenable && onReportProblem && (
+            <button
+              type="button"
+              onClick={() => onReportProblem(app)}
+              className="relative z-10 mt-2 hidden text-[11px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline sm:block"
+            >
+              Report a problem
+            </button>
           )}
         </div>
 
@@ -382,9 +373,7 @@ const AppCard = memo(
               sm:rounded-xl
             "
           >
-            <span className="sr-only">
-              {`Open ${app.name} in a new tab`}
-            </span>
+            <span className="sr-only">{`Open ${app.name} in a new tab`}</span>
           </a>
         )}
       </article>

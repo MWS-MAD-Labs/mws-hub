@@ -7,6 +7,11 @@ import { useAuth } from "@/features/auth/hooks/useAuth";
 
 const HOME_PATH = "/support-hub";
 const LOGIN_ERRORS: Record<string, { title: string; description: string }> = {
+  account_not_registered: {
+    title: "Account not registered",
+    description:
+      "Your Google account has not been registered in the Central database yet.",
+  },
   session_expired: {
     title: "Session ended",
     description: "Please sign in again before opening an app.",
@@ -69,14 +74,25 @@ export default function LoginPage() {
           <img src={Logo} alt="" className="h-8 w-8 object-contain" />
           <div>
             <p className="text-sm font-semibold">MWS Hub</p>
-            <p className="text-xs text-muted-foreground">Sign in with your MWS Google account</p>
+            <p className="text-xs text-muted-foreground">
+              Sign in with your MWS Google account
+            </p>
           </div>
         </div>
 
         <GoogleLoginButton />
 
+        {searchParams.get("error") === "account_not_registered" && (
+          <p className="mt-4 rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs leading-relaxed text-destructive">
+            Your account is not registered in the Central database yet. Please
+            contact the administrator.
+          </p>
+        )}
+
         {isSessionLoading && (
-          <p className="mt-4 text-xs text-muted-foreground">Checking session...</p>
+          <p className="mt-4 text-xs text-muted-foreground">
+            Checking session...
+          </p>
         )}
       </div>
     </main>

@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import type { Context, Next } from "hono";
 import { AppsController } from "../controller/apps-controller";
+import { FeedbackController } from "../controller/feedback-controller";
 import { ResponseError } from "../error/response-error";
 import { frontendOrigin } from "../lib/frontend-origin";
 import { sessionAuthMiddleware } from "../middleware/session-auth-middleware";
@@ -27,4 +28,18 @@ async function launchSessionAuthMiddleware(
 }
 
 appsRoute.get("/", sessionAuthMiddleware, AppsController.list);
-appsRoute.get("/:appId/launch", launchSessionAuthMiddleware, AppsController.launch);
+appsRoute.post(
+  "/:appId/report",
+  sessionAuthMiddleware,
+  FeedbackController.report,
+);
+appsRoute.post(
+  "/:appId/request-access",
+  sessionAuthMiddleware,
+  FeedbackController.requestAccess,
+);
+appsRoute.get(
+  "/:appId/launch",
+  launchSessionAuthMiddleware,
+  AppsController.launch,
+);
