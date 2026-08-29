@@ -28,24 +28,16 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     restart: unless-stopped
+    env_file:
+      - path: ./backend/.env
+        required: false
 
     environment:
       NODE_ENV: production
       PORT: 4001
       DATABASE_URL: postgresql://${POSTGRES_USER:-hub}:${POSTGRES_PASSWORD:-postgress123Abc}@db:5432/${POSTGRES_DB:-mws-hub}?schema=public
-      JWT_SECRET: ${JWT_SECRET}
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
-      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
-      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI}
-      ALLOWED_DOMAIN: ${ALLOWED_DOMAIN}
-      HUB_PUBLIC_URL: ${HUB_PUBLIC_URL}
-      CENTRAL_API_BASE_URL: ${CENTRAL_API_BASE_URL}
-      CENTRAL_API_TOKEN: ${CENTRAL_API_TOKEN}
       SESSION_COOKIE_NAME: ${SESSION_COOKIE_NAME:-hub_session}
-      HUB_SSO_PRIVATE_KEY: ${HUB_SSO_PRIVATE_KEY}
-      HUB_SSO_KEY_ID: ${HUB_SSO_KEY_ID}
-      HUB_SSO_PUBLIC_KEY: ${HUB_SSO_PUBLIC_KEY}
-      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN}
+    command: sh -c "bun run db:migrate && bun run src/index.ts"
 
     depends_on:
       db:
@@ -82,7 +74,6 @@ services:
 
     environment:
       HUB_API_BASE_URL: ""
-      HUB_PUBLIC_URL: ${HUB_PUBLIC_URL:-}
 
     depends_on:
       - backend

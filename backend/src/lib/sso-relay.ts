@@ -15,11 +15,11 @@ type HubSsoJwk = {
 let signingKeyPromise: Promise<CryptoKey> | null = null;
 let jwksCache: { keys: HubSsoJwk[] } | null = null;
 
-// The app registry used to live here as SSO_APPS. It now sits in
-// data/hub-catalog.ts alongside every other app, so which apps exist, who
-// may see them and who may open them are one list instead of two that had
-// to be kept in step by hand. This module keeps the one job its name
-// promises: signing the handoff.
+// The app registry used to live here as SSO_APPS. It now sits in Hub's
+// database catalog alongside every other app, so which apps exist, who may
+// see them and who may open them are one list instead of two that had to be
+// kept in step by hand. This module keeps the one job its name promises:
+// signing the handoff.
 
 function base64UrlEncode(input: string | ArrayBuffer): string {
   const buffer = typeof input === "string" ? Buffer.from(input, "utf8") : Buffer.from(input);

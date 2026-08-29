@@ -1,37 +1,18 @@
 import type { HubUser } from "../type/central-type";
 
-export const MAD_LABS_UNIT_ID = "cmsh7trcj000a40lsm0w7tl4h";
-
-const MAD_LABS_UNIT_NAMES = new Set(["mad-lab", "mad-labs"]);
-
-function normalizeUnitName(value: string | null | undefined): string {
-  return String(value || "")
-    .toLowerCase()
-    .trim()
-    .replace(/&/g, " and ")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
 function unitNameOf(user: HubUser): string | null {
   if (user.source !== "employee") return null;
   if (typeof user.unit === "string") return user.unit;
   return user.unit?.name || null;
 }
 
-export function knownUnitIdForUnitName(
-  unitName: string | null | undefined,
-): string | null {
-  return MAD_LABS_UNIT_NAMES.has(normalizeUnitName(unitName))
-    ? MAD_LABS_UNIT_ID
-    : null;
+export function madLabsUnitId(): string | null {
+  return process.env.MAD_LABS_UNIT_ID?.trim() || null;
 }
 
 export function getUserUnitId(user: HubUser | null | undefined): string | null {
   if (!user || user.source !== "employee") return null;
-  return (
-    user.unitId || user.unit_id || knownUnitIdForUnitName(unitNameOf(user))
-  );
+  return user.unitId || user.unit_id || null;
 }
 
 export function getUserUnitName(
@@ -42,5 +23,6 @@ export function getUserUnitName(
 }
 
 export function isMadLabsUser(user: HubUser | null | undefined): boolean {
-  return getUserUnitId(user) === MAD_LABS_UNIT_ID;
+  const allowedUnitId = madLabsUnitId();
+  return Boolean(allowedUnitId && getUserUnitId(user) === allowedUnitId);
 }

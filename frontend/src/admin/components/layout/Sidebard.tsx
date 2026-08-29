@@ -20,7 +20,7 @@ const menuItems = [
   { label: "Dashboard", href: "/admin", icon: Home, enabled: true },
   {
     label: "Application Catalog",
-    href: "/admin/applications",
+    href: "/admin/catalog",
     icon: AppWindow,
     enabled: true,
   },

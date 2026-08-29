@@ -1,18 +1,18 @@
 import { describe, it, expect } from "bun:test";
 import { parseStatusOverrides, applyStatusOverrides } from "../lib/status-overrides";
-import { HUB_CATALOG } from "../data/hub-catalog";
+import { HUB_CATALOG } from "../../seed/default-catalog";
 import type { HubCatalogEntry } from "../type/catalog-type";
 
 const knownAppId = HUB_CATALOG[0]!.id;
 
 describe("parseStatusOverrides", () => {
   it("returns an empty map for undefined or blank input", () => {
-    expect(parseStatusOverrides(undefined).size).toBe(0);
-    expect(parseStatusOverrides("   ").size).toBe(0);
+    expect(parseStatusOverrides(undefined, HUB_CATALOG).size).toBe(0);
+    expect(parseStatusOverrides("   ", HUB_CATALOG).size).toBe(0);
   });
 
   it("parses a single valid <appId>:<status> pair", () => {
-    const overrides = parseStatusOverrides(`${knownAppId}:maintenance`);
+    const overrides = parseStatusOverrides(`${knownAppId}:maintenance`, HUB_CATALOG);
     expect(overrides.get(knownAppId)).toBe("maintenance");
   });
 
@@ -20,37 +20,38 @@ describe("parseStatusOverrides", () => {
     const secondAppId = HUB_CATALOG[1]!.id;
     const overrides = parseStatusOverrides(
       ` ${knownAppId}:maintenance , ${secondAppId}:new `,
+      HUB_CATALOG,
     );
     expect(overrides.get(knownAppId)).toBe("maintenance");
     expect(overrides.get(secondAppId)).toBe("new");
   });
 
   it("ignores a pair missing the ':' separator instead of throwing", () => {
-    const overrides = parseStatusOverrides(`${knownAppId}-maintenance`);
+    const overrides = parseStatusOverrides(`${knownAppId}-maintenance`, HUB_CATALOG);
     expect(overrides.size).toBe(0);
   });
 
   it("ignores a pair naming an app that isn't in the catalog", () => {
-    const overrides = parseStatusOverrides("not-a-real-app:maintenance");
+    const overrides = parseStatusOverrides("not-a-real-app:maintenance", HUB_CATALOG);
     expect(overrides.size).toBe(0);
   });
 
   it("ignores a pair with a status outside the known set", () => {
-    const overrides = parseStatusOverrides(`${knownAppId}:disabled`);
+    const overrides = parseStatusOverrides(`${knownAppId}:disabled`, HUB_CATALOG);
     expect(overrides.size).toBe(0);
   });
 
   it("keeps every valid pair even when one entry in the list is malformed", () => {
-    const overrides = parseStatusOverrides(`${knownAppId}:maintenance,garbage`);
+    const overrides = parseStatusOverrides(
+      `${knownAppId}:maintenance,garbage`,
+      HUB_CATALOG,
+    );
     expect(overrides.get(knownAppId)).toBe("maintenance");
     expect(overrides.size).toBe(1);
   });
 });
 
 describe("applyStatusOverrides", () => {
-  // parseStatusOverrides validates ids against the real HUB_CATALOG (not the
-  // catalog array passed in), so an override only takes effect if these ids
-  // actually exist there.
   const appAId = HUB_CATALOG[0]!.id;
   const appBId = HUB_CATALOG[1]!.id;
 

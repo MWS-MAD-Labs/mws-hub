@@ -12,9 +12,14 @@ export type EmployeeIdentity = {
   unit_id?: string | null;
   unitId?: string | null;
   job_position: string | null;
+  job_position_id?: string | null;
+  jobPositionId?: string | null;
   job_level: string | null;
+  job_level_id?: string | null;
+  jobLevelId?: string | null;
   status: string;
   employment_type: string | null;
+  isAdmin?: boolean;
 };
 
 export type StudentIdentity = {
@@ -30,6 +35,7 @@ export type StudentIdentity = {
   current_class: string | null;
   unit_id?: string | null;
   unitId?: string | null;
+  isAdmin?: boolean;
 };
 
 // What the backend's /auth/google and /auth/me hand back - a Central DB

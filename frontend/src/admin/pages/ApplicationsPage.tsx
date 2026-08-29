@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { Pencil, Plus, RefreshCw, Trash2, EyeOff, Eye, X } from "lucide-react";
+import { Eye, EyeOff, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import AppShell from "@/admin/components/layout/AppShell";
-import ApplicationForm from "@/admin/components/ApplicationForm";
 import {
   adminApi,
   type AdminApplication,
@@ -17,9 +17,6 @@ export default function ApplicationsPage() {
   const [applications, setApplications] = useState<AdminApplication[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
-  const [editing, setEditing] = useState<AdminApplication | null>(null);
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
 
   async function loadApplications() {
     setIsLoading(true);
@@ -40,39 +37,6 @@ export default function ApplicationsPage() {
   useEffect(() => {
     void loadApplications();
   }, []);
-
-  function openCreate() {
-    setEditing(null);
-    setIsFormOpen(true);
-  }
-
-  function openEdit(application: AdminApplication) {
-    setEditing(application);
-    setIsFormOpen(true);
-  }
-
-  async function saveApplication(input: AdminApplicationInput) {
-    setIsSaving(true);
-    try {
-      if (editing) {
-        await adminApi.updateApplication(editing.id, input);
-        toast.success("Application updated");
-      } else {
-        await adminApi.createApplication(input);
-        toast.success("Application created");
-      }
-      setIsFormOpen(false);
-      await loadApplications();
-    } catch (saveError) {
-      toast.error(
-        saveError instanceof Error
-          ? saveError.message
-          : "Failed to save application.",
-      );
-    } finally {
-      setIsSaving(false);
-    }
-  }
 
   async function removeApplication(application: AdminApplication) {
     if (!window.confirm(`Delete ${application.name}?`)) return;
@@ -145,64 +109,15 @@ export default function ApplicationsPage() {
               <RefreshCw className="h-4 w-4" />
               Refresh
             </button>
-            <button
-              type="button"
-              onClick={openCreate}
+            <Link
+              to="/admin/catalog/new"
               className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
             >
               <Plus className="h-4 w-4" />
               Add application
-            </button>
+            </Link>
           </div>
         </div>
-
-        {isFormOpen ? (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"
-            role="presentation"
-            onMouseDown={(event) => {
-              if (event.target === event.currentTarget) setIsFormOpen(false);
-            }}
-          >
-            <div
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="application-form-title"
-              className="max-h-[calc(100vh-2rem)] w-full max-w-3xl overflow-y-auto rounded-xl border border-border/60 bg-card shadow-2xl"
-            >
-              <div className="sticky top-0 z-10 flex items-start justify-between border-b border-border/60 bg-card px-5 py-4 sm:px-6">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Catalog management
-                  </p>
-                  <h2
-                    id="application-form-title"
-                    className="mt-1 text-lg font-semibold"
-                  >
-                    {editing ? `Edit ${editing.name}` : "Add application"}
-                  </h2>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsFormOpen(false)}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
-                  aria-label="Close application form"
-                  title="Close"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-              <div className="p-5 sm:p-6">
-                <ApplicationForm
-                  application={editing}
-                  isSaving={isSaving}
-                  onCancel={() => setIsFormOpen(false)}
-                  onSubmit={saveApplication}
-                />
-              </div>
-            </div>
-          </div>
-        ) : null}
 
         <div className="mt-6 overflow-hidden rounded-lg border border-border/60 bg-card">
           {isLoading ? (
@@ -264,15 +179,14 @@ export default function ApplicationsPage() {
                       </td>
                       <td className="px-4 py-4">
                         <div className="flex justify-end gap-1">
-                          <button
-                            type="button"
-                            onClick={() => openEdit(application)}
+                          <Link
+                            to={`/admin/catalog/${encodeURIComponent(application.id)}/edit`}
                             className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-muted"
                             title="Edit"
                             aria-label={`Edit ${application.name}`}
                           >
                             <Pencil className="h-4 w-4" />
-                          </button>
+                          </Link>
                           <button
                             type="button"
                             onClick={() => void toggleDiscoverable(application)}
