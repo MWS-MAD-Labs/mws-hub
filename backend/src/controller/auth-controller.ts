@@ -60,6 +60,22 @@ function oauthStateCookieOptions() {
   };
 }
 
+const POST_LOGOUT_REDIRECT_COOKIE = "hub_post_logout_redirect";
+
+// Not httpOnly: LogoutRelayPage reads this to know where to send the browser
+// once fan-out finishes. Safe to expose because only Hub's own server ever
+// writes it, and only after resolveLogoutRedirect has already vetted the
+// value - unlike a ?redirect= query param, nothing a phishing link can set
+// this cookie to reaches this far.
+function postLogoutRedirectCookieOptions() {
+  return {
+    httpOnly: false,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "Strict" as const,
+    path: "/",
+  };
+}
+
 export class AuthController {
   static async startGoogleLogin(c: Context) {
     const redirect = sanitizeLaunchRedirect(c.req.query("redirect"));
@@ -164,9 +180,18 @@ export class AuthController {
     deleteCookie(c, cookieName, cookieOptions());
 
     const target =
-      resolveLogoutRedirect(c.req.query("redirect")) ||
+      (await resolveLogoutRedirect(c.req.query("redirect"))) ||
       `${frontendOrigin()}/login`;
 
-    return c.redirect(target, 302);
+    // Hub's own cookie is gone, but every other satellite app the person had
+    // open still has its own separate session that only the browser can
+    // reach - route through a Hub page that fans logout out to those first
+    // (see LogoutRelayPage), then finishes the trip to `target`.
+    setCookie(c, POST_LOGOUT_REDIRECT_COOKIE, target, {
+      ...postLogoutRedirectCookieOptions(),
+      maxAge: 30,
+    });
+
+    return c.redirect(`${frontendOrigin()}/logout-relay`, 302);
   }
 }

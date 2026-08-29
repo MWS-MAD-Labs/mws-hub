@@ -6,6 +6,7 @@ import { RequireAdmin } from "@/features/auth/components/RequireAdmin";
 import SupportHubPage from "@/pages/SupportHubPage";
 import ProfilePage from "@/pages/ProfilePage";
 import LoginPage from "@/pages/LoginPage";
+import LogoutRelayPage from "@/pages/LogoutRelayPage";
 import Dashboard from "@/admin/pages/Dashboard";
 import ApplicationsPage from "@/admin/pages/ApplicationsPage";
 import FeedbackPage from "@/admin/pages/FeedbackPage";
@@ -17,6 +18,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Navigate to="/support-hub" replace />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/logout-relay" element={<LogoutRelayPage />} />
           <Route
             path="/support-hub"
             element={
