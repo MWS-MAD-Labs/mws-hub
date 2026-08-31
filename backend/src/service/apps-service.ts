@@ -3,6 +3,7 @@ import {
   normalizeAccessToken,
   userMatchesAccessRule,
 } from "../lib/access-rules";
+import { prisma } from "../lib/prisma";
 import { ApplicationService } from "./application-service";
 import type { CentralClaim, HubUser } from "../type/central-type";
 import type { HubAccessSource, HubAppResponse, HubCatalogEntry } from "../type/catalog-type";
@@ -20,13 +21,19 @@ function claimToStrings(claim: CentralClaim): string[] {
   ].filter((value): value is string => Boolean(value));
 }
 
-function addAccessTag(tags: Set<HubAccessSource>, rawValue: string | null | undefined) {
+function addAccessTag(
+  tags: Set<HubAccessSource>,
+  rawValue: string | null | undefined,
+  options: { splitTokens?: boolean } = { splitTokens: true },
+) {
   if (!rawValue) return;
 
   const normalized = normalizeAccessToken(rawValue);
   if (!normalized) return;
 
   tags.add(normalized);
+  if (options.splitTokens === false) return;
+
   normalized
     .split("-")
     .filter(Boolean)
@@ -53,12 +60,12 @@ function getUserAccessTags(user: HubUser): Set<HubAccessSource> {
   });
 
   if (user.source === "employee") {
-    [
-      namedValue(user.unit),
-      namedValue(user.job_position),
-      namedValue(user.job_level),
-      user.employment_type,
-    ].forEach((value) => addAccessTag(tags, value));
+  [
+    namedValue(user.unit),
+    namedValue(user.job_position),
+    namedValue(user.job_level),
+    user.employment_type,
+  ].forEach((value) => addAccessTag(tags, value, { splitTokens: false }));
   }
 
   return tags;
@@ -110,20 +117,57 @@ export function canAccess(entry: HubCatalogEntry, user: HubUser): boolean {
   return sourceAllowed || hasExplicitAppPermission(entry, user);
 }
 
-// Visibility adds the display lever on top. `discoverable: false` keeps an
-// app out of the grid without revoking access, which is the whole reason
-// the two flags are separate.
-export function isVisibleTo(entry: HubCatalogEntry, user: HubUser): boolean {
-  return entry.discoverable && canAccess(entry, user);
+async function approvedApplicationIdsFor(user: HubUser): Promise<Set<string>> {
+  const rows = await prisma.accessRequest.findMany({
+    where: {
+      requester_email: user.email,
+      status: "APPROVED",
+    },
+    select: { application_id: true },
+  });
+
+  return new Set(rows.map((row) => row.application_id));
 }
 
-function toResponse(entry: HubCatalogEntry): HubAppResponse {
+export async function canAccessWithApprovedRequest(
+  entry: HubCatalogEntry,
+  user: HubUser,
+): Promise<boolean> {
+  if (canAccess(entry, user)) return true;
+
+  const approvedRequestCount = await prisma.accessRequest.count({
+    where: {
+      application_id: entry.id,
+      requester_email: user.email,
+      status: "APPROVED",
+    },
+  });
+
+  return approvedRequestCount > 0;
+}
+
+// Visibility adds only the display lever. A discoverable app can still be
+// locked for a specific person; the browser needs that card to offer the
+// request-access path.
+export function isVisibleTo(entry: HubCatalogEntry, user: HubUser): boolean {
+  void user;
+  return entry.discoverable;
+}
+
+function toResponse(
+  entry: HubCatalogEntry,
+  user: HubUser,
+  approvedApplicationIds: Set<string>,
+): HubAppResponse {
   const { allowedSources, sso, ...rest } = entry;
   void allowedSources;
 
   return {
     ...rest,
-    access: "granted",
+    access:
+      canAccess(entry, user) || approvedApplicationIds.has(entry.id)
+        ? "granted"
+        : "locked",
     ...(sso ? { ssoAppId: sso.appId } : {}),
   };
 }
@@ -138,8 +182,13 @@ async function effectiveCatalog(): Promise<HubCatalogEntry[]> {
 
 export class AppsService {
   static async listFor(user: HubUser): Promise<HubAppResponse[]> {
-    const catalog = await effectiveCatalog();
-    return catalog.filter((entry) => isVisibleTo(entry, user)).map(toResponse);
+    const [catalog, approvedApplicationIds] = await Promise.all([
+      effectiveCatalog(),
+      approvedApplicationIdsFor(user),
+    ]);
+    return catalog
+      .filter((entry) => isVisibleTo(entry, user))
+      .map((entry) => toResponse(entry, user, approvedApplicationIds));
   }
 
   static async findByLaunchId(appId: string): Promise<HubCatalogEntry | null> {
@@ -157,6 +206,10 @@ export class AppsService {
   // is a place that can silently disagree with Hub about the same person.
   static accessTagsFor(user: HubUser): HubAccessSource[] {
     return Array.from(getUserAccessTags(user));
+  }
+
+  static canLaunch(entry: HubCatalogEntry, user: HubUser): Promise<boolean> {
+    return canAccessWithApprovedRequest(entry, user);
   }
 
   // Every satellite app's own no-UI "clear my local session" page, for

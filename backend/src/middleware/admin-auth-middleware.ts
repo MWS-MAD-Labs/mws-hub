@@ -23,7 +23,7 @@ export async function adminAuthMiddleware(
     throw new ResponseError(503, "Cannot verify Central identity right now.");
   }
 
-  if (!isMadLabsUser(user)) {
+  if (!(await isMadLabsUser(user))) {
     throw new ResponseError(
       403,
       "Access denied. Only MAD Labs members can access the Admin Dashboard.",

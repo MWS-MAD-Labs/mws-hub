@@ -1,5 +1,5 @@
 import type { Context } from "hono";
-import { AppsService, canAccess } from "../service/apps-service";
+import { AppsService } from "../service/apps-service";
 import { mintRelayToken } from "../lib/sso-relay";
 import { resolveCentralIdentity } from "../lib/central-client";
 import { ResponseError } from "../error/response-error";
@@ -18,6 +18,8 @@ function launchFailure(c: Context, code: string, appName?: string) {
   // Naming the app turns "something went wrong" into "Exima is under
   // maintenance", which is the difference between a notice and a shrug.
   if (appName) params.set("app", appName);
+
+  logger.info(`Launch redirected to support-hub: ${code}`);
 
   return c.redirect(`${origin}/support-hub?${params}`, 302);
 }
@@ -63,7 +65,7 @@ export class AppsController {
     // Same predicate the catalog filters on, so an app can never be openable
     // by someone it was hidden from, or hidden from someone who could open
     // it by pasting the URL.
-    if (!canAccess(entry, user)) {
+    if (!(await AppsService.canLaunch(entry, user))) {
       logger.info(
         `Launch refused, ${user.source} not admitted by ${entry.id}:`,
         user.email,
@@ -85,6 +87,7 @@ export class AppsController {
         tags: AppsService.accessTagsFor(user),
       });
 
+      logger.info(`Launch redirected to SSO: ${entry.id}`);
       return c.redirect(
         `${entry.sso.entryUrl}?token=${encodeURIComponent(token)}`,
         302,
@@ -95,6 +98,7 @@ export class AppsController {
       return launchFailure(c, "app_no_link", entry.name);
     }
 
+    logger.info(`Launch redirected to URL: ${entry.id}`);
     return c.redirect(entry.href, 302);
   }
 }

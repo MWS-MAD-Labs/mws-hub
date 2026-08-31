@@ -231,6 +231,18 @@ export class ApplicationService {
       );
     }
 
+    if (input.ssoAppId) {
+      const existingSsoApp = await prisma.application.findFirst({
+        where: { sso_app_id: input.ssoAppId },
+      });
+      if (existingSsoApp) {
+        throw new ResponseError(
+          409,
+          `SSO app id "${input.ssoAppId}" is already used by "${existingSsoApp.id}".`,
+        );
+      }
+    }
+
     const sortOrder =
       input.sortOrder ??
       ((await prisma.application.aggregate({ _max: { sort_order: true } }))._max
@@ -252,6 +264,21 @@ export class ApplicationService {
     });
     if (!existing) {
       throw new ResponseError(404, `Unknown application: ${id}`);
+    }
+
+    if (input.ssoAppId) {
+      const existingSsoApp = await prisma.application.findFirst({
+        where: {
+          sso_app_id: input.ssoAppId,
+          NOT: { id },
+        },
+      });
+      if (existingSsoApp) {
+        throw new ResponseError(
+          409,
+          `SSO app id "${input.ssoAppId}" is already used by "${existingSsoApp.id}".`,
+        );
+      }
     }
 
     return prisma.application.update({ where: { id }, data: toRow(input) });

@@ -47,12 +47,10 @@ export type HubCatalogEntry = {
   sso?: HubAppSso;
 };
 
-// What GET /apps hands the browser. Policy stays server-side: the client
-// never needs to know who else may see an app, only what it can open
-// itself. Everything returned is by construction accessible to the caller,
-// so `access` is always "granted" - the field survives because the card UI
-// still renders a locked state that role-aware filtering will bring back.
+// What GET /apps hands the browser. Policy details stay server-side: the
+// client never receives the raw allowedSources, only whether this person can
+// open the card or should see the request-access path.
 export type HubAppResponse = Omit<HubCatalogEntry, "allowedSources" | "sso"> & {
-  access: "granted";
+  access: "granted" | "locked";
   ssoAppId?: string;
 };

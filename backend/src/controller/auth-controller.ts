@@ -76,12 +76,12 @@ function postLogoutRedirectCookieOptions() {
   };
 }
 
-function authUserResponse(user: SessionVariables["user"]) {
+async function authUserResponse(user: SessionVariables["user"]) {
   return {
     ...user,
     unitId: getUserUnitId(user),
     unit_id: getUserUnitId(user),
-    isAdmin: isMadLabsUser(user),
+    isAdmin: await isMadLabsUser(user),
   };
 }
 
@@ -109,7 +109,7 @@ export class AuthController {
       maxAge: 60 * 60 * 8,
     });
 
-    return c.json({ data: authUserResponse(user) });
+    return c.json({ data: await authUserResponse(user) });
   }
 
   static async googleCallback(c: Context) {
@@ -150,7 +150,7 @@ export class AuthController {
 
   static async me(c: Context<{ Variables: SessionVariables }>) {
     const user = c.var.user;
-    return c.json({ data: authUserResponse(user) });
+    return c.json({ data: await authUserResponse(user) });
   }
 
   // Hub's own sign-out button, called as an XHR from the Hub UI.

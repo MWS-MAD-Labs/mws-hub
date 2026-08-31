@@ -11,4 +11,5 @@
 export type * from './models/Application.ts'
 export type * from './models/AppReport.ts'
 export type * from './models/AccessRequest.ts'
+export type * from './models/AuditLog.ts'
 export type * from './commonInputTypes.ts'

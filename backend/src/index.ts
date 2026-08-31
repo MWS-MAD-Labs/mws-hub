@@ -11,6 +11,40 @@ import { hubSsoJwks } from "./lib/sso-relay";
 
 const app = new Hono();
 
+function loggableLocation(location: string) {
+  try {
+    const url = new URL(location);
+    return `${url.origin}${url.pathname}`;
+  } catch {
+    return location.split("?")[0];
+  }
+}
+
+app.use("*", async (c, next) => {
+  const startedAt = Date.now();
+
+  try {
+    await next();
+  } catch (error) {
+    const duration = Date.now() - startedAt;
+    logger.error(
+      `${c.req.method} ${c.req.path} failed after ${duration}ms`,
+      error,
+    );
+    throw error;
+  }
+
+  const duration = Date.now() - startedAt;
+  const location = c.res.headers.get("location");
+  const redirectTarget =
+    location && c.res.status >= 300 && c.res.status < 400
+      ? ` -> ${loggableLocation(location)}`
+      : "";
+  logger.info(
+    `${c.req.method} ${c.req.path} ${c.res.status} ${duration}ms${redirectTarget}`,
+  );
+});
+
 app.use(
   "*",
   cors({

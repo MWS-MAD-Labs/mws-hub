@@ -1,7 +1,14 @@
-import { describe, expect, it, mock } from "bun:test";
+import { afterEach, describe, expect, it, mock } from "bun:test";
 import { HUB_CATALOG } from "../../seed/default-catalog";
 import type { HubCatalogEntry } from "../type/catalog-type";
 import type { HubUser } from "../type/central-type";
+
+type ApprovedAccessRequest = {
+  application_id: string;
+  requester_email: string;
+};
+
+let approvedAccessRequests: ApprovedAccessRequest[] = [];
 
 mock.module("../service/application-service", () => ({
   ApplicationService: {
@@ -9,7 +16,41 @@ mock.module("../service/application-service", () => ({
   },
 }));
 
+mock.module("../lib/prisma", () => ({
+  prisma: {
+    accessRequest: {
+      findMany: async (args: {
+        where: { requester_email: string; status: string };
+      }) =>
+        approvedAccessRequests
+          .filter(
+            (request) =>
+              request.requester_email === args.where.requester_email &&
+              args.where.status === "APPROVED",
+          )
+          .map((request) => ({ application_id: request.application_id })),
+      count: async (args: {
+        where: {
+          application_id: string;
+          requester_email: string;
+          status: string;
+        };
+      }) =>
+        approvedAccessRequests.filter(
+          (request) =>
+            request.application_id === args.where.application_id &&
+            request.requester_email === args.where.requester_email &&
+            args.where.status === "APPROVED",
+        ).length,
+    },
+  },
+}));
+
 const { AppsService, canAccess, isVisibleTo } = await import("../service/apps-service");
+
+afterEach(() => {
+  approvedAccessRequests = [];
+});
 
 function employee(overrides: Partial<HubUser & { source: "employee" }> = {}): HubUser {
   return {
@@ -116,9 +157,20 @@ describe("canAccess - source-based access", () => {
     expect(canAccess(app, employee({ roles: [{ name: "Super Admin" }] }))).toBe(true);
   });
 
-  it("can match a legacy bare rule against Central job metadata", () => {
+  it("does not match a bare rule against a token inside Central job metadata", () => {
     const app = entry({ allowedSources: ["teacher"] });
-    expect(canAccess(app, employee({ job_position: "Homeroom Teacher" }))).toBe(true);
+    expect(canAccess(app, employee({ job_position: "Homeroom Teacher" }))).toBe(false);
+  });
+
+  it("does not let a bare admin rule match Admin Staff job metadata", () => {
+    const app = entry({ allowedSources: ["admin"] });
+    const user = employee({ job_position: "Admin Staff", job_level: "Staff" });
+    expect(canAccess(app, user)).toBe(false);
+  });
+
+  it("still allows exact legacy metadata labels without substring token matching", () => {
+    const app = entry({ allowedSources: ["staff"] });
+    expect(canAccess(app, employee({ job_level: "Staff" }))).toBe(true);
   });
 
   it("does not infer translated labels from Central job metadata", () => {
@@ -203,9 +255,9 @@ describe("isVisibleTo", () => {
     expect(isVisibleTo(app, employee())).toBe(false);
   });
 
-  it("keeps a discoverable app out of the grid when the user has no access", () => {
+  it("keeps a discoverable locked app visible so the user can request access", () => {
     const app = entry({ allowedSources: ["admin"], discoverable: true });
-    expect(isVisibleTo(app, employee())).toBe(false);
+    expect(isVisibleTo(app, employee())).toBe(true);
   });
 
   it("shows a discoverable app the user can access", () => {
@@ -229,10 +281,37 @@ describe("AppsService.findByLaunchId", () => {
   });
 });
 
+describe("AppsService.accessTagsFor", () => {
+  it("does not mint substring tags from Central job metadata", () => {
+    const tags = AppsService.accessTagsFor(
+      employee({ job_position: "Admin Staff", job_level: "Staff" }),
+    );
+
+    expect(tags).not.toContain("admin");
+    expect(tags).toContain("admin-staff");
+    expect(tags).toContain("staff");
+  });
+});
+
 describe("AppsService.listFor against the real catalog", () => {
-  it("hides an admin-only app from a plain employee with no elevated role", async () => {
+  it("marks an admin-only app as locked for a plain employee with no elevated role", async () => {
     const listing = await AppsService.listFor(employee());
-    expect(listing.some((app) => app.id === "slides-generator")).toBe(false);
+    expect(listing.find((app) => app.id === "slides-generator")?.access).toBe(
+      "locked",
+    );
+  });
+
+  it("locks admin-only apps for Admin Staff unless Central sends an explicit admin claim", async () => {
+    const listing = await AppsService.listFor(
+      employee({ job_position: "Admin Staff", job_level: "Staff" }),
+    );
+
+    expect(listing.find((app) => app.id === "slides-generator")?.access).toBe(
+      "locked",
+    );
+    expect(listing.find((app) => app.id === "it-assets")?.access).toBe(
+      "locked",
+    );
   });
 
   it("includes an app explicitly scoped to students for a student user", async () => {
@@ -240,9 +319,41 @@ describe("AppsService.listFor against the real catalog", () => {
     expect(listing.some((app) => app.id === "emotional-checkin")).toBe(true);
   });
 
-  it("excludes an employee-only app from a student's listing", async () => {
+  it("marks an employee-only app as locked for a student", async () => {
     const listing = await AppsService.listFor(student());
-    expect(listing.some((app) => app.id === "report-assistant")).toBe(false);
+    expect(listing.find((app) => app.id === "report-assistant")?.access).toBe(
+      "locked",
+    );
+  });
+
+  it("grants a locked app when the user has an approved access request", async () => {
+    approvedAccessRequests = [
+      {
+        application_id: "report-assistant",
+        requester_email: "student@millennia21.id",
+      },
+    ];
+
+    const listing = await AppsService.listFor(student());
+    expect(listing.find((app) => app.id === "report-assistant")?.access).toBe(
+      "granted",
+    );
+  });
+
+  it("allows launch when the user has an approved access request", async () => {
+    const app = entry({
+      id: "mtss",
+      allowedSources: ["employee"],
+    });
+    const user = student({ email: "dummystudent@millennia21.id" });
+    approvedAccessRequests = [
+      {
+        application_id: "mtss",
+        requester_email: "dummystudent@millennia21.id",
+      },
+    ];
+
+    expect(await AppsService.canLaunch(app, user)).toBe(true);
   });
 
   it("never leaks allowedSources or the raw sso config to the response shape", async () => {

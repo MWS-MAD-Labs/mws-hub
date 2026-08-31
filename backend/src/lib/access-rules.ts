@@ -98,13 +98,19 @@ function claimToStrings(claim: CentralClaim): string[] {
   ].filter((value): value is string => Boolean(value));
 }
 
-function addClaim(values: Set<string>, value: string | null | undefined) {
+function addClaim(
+  values: Set<string>,
+  value: string | null | undefined,
+  options: { splitTokens?: boolean } = { splitTokens: true },
+) {
   if (!value) return;
 
   const normalized = normalizeAccessToken(value);
   if (!normalized) return;
 
   values.add(normalized);
+  if (options.splitTokens === false) return;
+
   normalized
     .split("-")
     .filter(Boolean)
@@ -214,7 +220,7 @@ export function userMatchesAccessRule(rule: string, user: HubUser): boolean {
     namedValue(user.job_position),
     namedValue(user.job_level),
     user.employment_type,
-  ].forEach((value) => addClaim(centralIdentityLabels, value));
+  ].forEach((value) => addClaim(centralIdentityLabels, value, { splitTokens: false }));
 
   return centralIdentityLabels.has(normalizedRule);
 }

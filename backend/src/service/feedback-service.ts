@@ -79,6 +79,7 @@ export async function updateReport(
       resolved_at: status === "RESOLVED" ? new Date() : null,
       resolved_by: status === "RESOLVED" ? adminEmail : null,
     },
+    include: { application: { select: { id: true, name: true } } },
   });
 }
 
@@ -98,5 +99,6 @@ export async function updateAccessRequest(
       decided_by: status === "PENDING" ? null : adminEmail,
       decision_note: decisionNote?.trim() || null,
     },
+    include: { application: { select: { id: true, name: true } } },
   });
 }

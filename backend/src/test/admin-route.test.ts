@@ -4,70 +4,12 @@ import { adminRoute } from "../route/admin-route";
 import { signSession } from "../lib/session";
 import { ResponseError } from "../error/response-error";
 import * as centralClient from "../lib/central-client";
+import { clearMadLabsUnitIdCacheForTest } from "../lib/admin-access";
 import type { SessionVariables } from "../type/hono-context";
 import type { HubUser } from "../type/central-type";
 
-let TEST_MAD_LABS_UNIT_ID = "";
-
-type CentralEmployeePage = {
-  data: Array<{
-    unit?: string | { id?: string | null; name?: string | null } | null;
-    unit_id?: string | null;
-    unitId?: string | null;
-  }>;
-  paging?: {
-    current_page?: number;
-    total_page?: number;
-  };
-};
-
-function centralUnitName(employee: CentralEmployeePage["data"][number]): string | null {
-  if (typeof employee.unit === "string") return employee.unit;
-  return employee.unit?.name || null;
-}
-
-function centralUnitId(employee: CentralEmployeePage["data"][number]): string | null {
-  if (employee.unit_id) return employee.unit_id;
-  if (employee.unitId) return employee.unitId;
-  if (employee.unit && typeof employee.unit === "object") return employee.unit.id || null;
-  return null;
-}
-
-async function madLabsUnitIdFromCentral(): Promise<string> {
-  const baseUrl = process.env.CENTRAL_API_BASE_URL?.replace(/\/$/, "");
-  const token = process.env.CENTRAL_API_TOKEN;
-
-  if (!baseUrl || !token) {
-    throw new Error("CENTRAL_API_BASE_URL and CENTRAL_API_TOKEN must be set.");
-  }
-
-  let page = 1;
-  let totalPage = 1;
-
-  do {
-    const res = await fetch(`${baseUrl}/employees?page=${page}&size=100&status=ACTIVE`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    if (!res.ok) {
-      throw new Error(`Central employees lookup failed with status ${res.status}`);
-    }
-
-    const body = (await res.json()) as CentralEmployeePage;
-    const madLabsEmployee = body.data.find((employee) => {
-      const unitName = centralUnitName(employee)?.toLowerCase();
-      return unitName === "mad lab" || unitName === "mad labs";
-    });
-    const unitId = madLabsEmployee ? centralUnitId(madLabsEmployee) : null;
-
-    if (unitId) return unitId;
-
-    totalPage = body.paging?.total_page ?? page;
-    page += 1;
-  } while (page <= totalPage);
-
-  throw new Error("MAD Labs unit id was not found in Central employees response.");
-}
+const TEST_MAD_LABS_UNIT_ID = "cmsr1gmkh000akz7bzjgdv6dq";
+const originalFetch = global.fetch;
 
 type DashboardBody = {
   data: {
@@ -80,15 +22,46 @@ type ErrorBody = {
   errors: string;
 };
 
-beforeAll(async () => {
+beforeAll(() => {
   process.env.JWT_SECRET = "test-jwt-secret-for-bun-test";
-  TEST_MAD_LABS_UNIT_ID = await madLabsUnitIdFromCentral();
-  process.env.MAD_LABS_UNIT_ID = TEST_MAD_LABS_UNIT_ID;
 });
 
 afterEach(() => {
+  clearMadLabsUnitIdCacheForTest();
+  global.fetch = originalFetch;
   mock.restore();
 });
+
+function jsonResponse(status: number, body: unknown): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+function mockCentralEmployees(unitId = TEST_MAD_LABS_UNIT_ID) {
+  global.fetch = (async () =>
+    jsonResponse(200, {
+      success: true,
+      data: [
+        {
+          id: "emp-mad-labs",
+          employee_id: "15.26.905",
+          full_name: "MAD Labs User",
+          nick_name: "MAD",
+          email: "mad@millennia21.id",
+          photo_url: null,
+          unit: "MAD Lab",
+          unit_id: unitId,
+          job_position: "Developer",
+          job_level: "Staff",
+          status: "ACTIVE",
+          employment_type: "PROBATION",
+        },
+      ],
+      paging: { current_page: 1, total_page: 1 },
+    })) as unknown as typeof fetch;
+}
 
 function employee(overrides: Partial<HubUser & { source: "employee" }> = {}): HubUser {
   return {
@@ -125,6 +98,7 @@ function buildApp() {
 describe("adminRoute", () => {
   it("admits a MAD Labs employee and returns the simple dashboard message", async () => {
     const app = buildApp();
+    mockCentralEmployees();
     const centralUser = employee();
     spyOn(centralClient, "resolveCentralIdentity").mockResolvedValue(centralUser);
     const token = await signSession(employee({ unit_id: null, unitId: null }));
@@ -140,6 +114,7 @@ describe("adminRoute", () => {
 
   it("refuses a non-MAD Labs employee", async () => {
     const app = buildApp();
+    mockCentralEmployees();
     const centralUser = employee({
       unit: "Operations",
       unit_id: "unit-other",

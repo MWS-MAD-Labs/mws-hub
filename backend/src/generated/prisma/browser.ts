@@ -32,3 +32,8 @@ export type AppReport = Prisma.AppReportModel
  * 
  */
 export type AccessRequest = Prisma.AccessRequestModel
+/**
+ * Model AuditLog
+ * 
+ */
+export type AuditLog = Prisma.AuditLogModel

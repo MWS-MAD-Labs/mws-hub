@@ -128,9 +128,8 @@ model AppReport {
   @@map("app_reports")
 }
 
-// Requirement 10: a prompt for users to ask for the role permissions they
-// are missing. Approving one is still a change in Central - this table only
-// records that the request was made and what was decided.
+// Requirement 10: a prompt for users to ask for an app permission they are
+// missing. APPROVED rows are Hub-owned per-user grants for that app.
 model AccessRequest {
   id String @id @default(cuid())
 
@@ -154,4 +153,27 @@ model AccessRequest {
   @@index([status])
   @@index([created_at])
   @@map("access_requests")
+}
+
+// Admin-facing audit trail. This intentionally stores Hub admin actions, not
+// Central identity history: the actor snapshot comes from the active session
+// and the entity data points back to Hub-owned rows.
+model AuditLog {
+  id String @id @default(cuid())
+
+  actor_email String
+  actor_name  String?
+
+  action      String
+  entity_type String
+  entity_id   String
+  summary     String
+  metadata    Json?
+
+  created_at DateTime @default(now())
+
+  @@index([created_at])
+  @@index([actor_email])
+  @@index([entity_type, entity_id])
+  @@map("audit_logs")
 }
