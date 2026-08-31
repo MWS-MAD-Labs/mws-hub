@@ -45,8 +45,8 @@ export default function useHubCatalog(): UseHubCatalogResult {
   const [loadFailed, setLoadFailed] = useState(false);
   const [reloadCount, setReloadCount] = useState(0);
 
-  // The catalog arrives already filtered to this person - GET /apps only
-  // returns what they may open, so there is no access check left to do here.
+  // The catalog arrives with server-side access state. Locked discoverable
+  // apps stay in the list so users can request access from the card.
   useEffect(() => {
     let cancelled = false;
 

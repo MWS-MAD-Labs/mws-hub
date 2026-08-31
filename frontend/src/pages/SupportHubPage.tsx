@@ -1,4 +1,5 @@
-import { memo, useCallback, useEffect } from "react";
+import { memo, useCallback, useEffect, useState } from "react";
+import type { FormEvent } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import HubHeader from "@/features/fragments/HubHeader";
@@ -19,6 +20,11 @@ import { apiRequest } from "@/lib/api";
 
 const SUPPORT_EMAIL =
   import.meta.env.VITE_SUPPORT_EMAIL || "admin@millennia21.id";
+
+type FeedbackDialogState = {
+  kind: "request" | "report";
+  app: HubApplication;
+} | null;
 
 // Why a launch bounced back here instead of opening the app. The backend's
 // /apps/:appId/launch redirects with one of these codes rather than showing
@@ -60,9 +66,106 @@ const LAUNCH_ERRORS: Record<
       "The Central database didn't answer just now. Try opening the app again in a moment.",
   }),
 };
+
+function FeedbackDialog({
+  state,
+  isSubmitting,
+  onClose,
+  onSubmit,
+}: {
+  state: FeedbackDialogState;
+  isSubmitting: boolean;
+  onClose: () => void;
+  onSubmit: (text: string) => Promise<void>;
+}) {
+  const [text, setText] = useState("");
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    setText("");
+    setError("");
+  }, [state]);
+
+  if (!state) return null;
+
+  const isRequest = state.kind === "request";
+  const title = isRequest
+    ? `Request access to ${state.app.name}`
+    : `Report ${state.app.name}`;
+  const label = isRequest ? "Reason" : "Problem";
+  const placeholder = isRequest
+    ? "Tell MAD Labs why you need this app."
+    : "Tell MAD Labs what is broken or missing.";
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const trimmed = text.trim();
+    if (!trimmed) {
+      setError(isRequest ? "Reason is required." : "Problem description is required.");
+      return;
+    }
+
+    setError("");
+    await onSubmit(trimmed);
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end bg-black/35 px-4 py-4 sm:items-center sm:justify-center"
+      role="presentation"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget && !isSubmitting) onClose();
+      }}
+    >
+      <form
+        onSubmit={handleSubmit}
+        className="w-full rounded-lg border border-border bg-card p-4 text-card-foreground shadow-xl sm:max-w-md sm:p-5"
+      >
+        <div className="space-y-1">
+          <h2 className="text-base font-semibold">{title}</h2>
+          <p className="text-sm text-muted-foreground">{state.app.audience}</p>
+        </div>
+
+        <label className="mt-4 block text-sm font-medium">
+          {label}
+          <textarea
+            value={text}
+            onChange={(event) => setText(event.target.value)}
+            placeholder={placeholder}
+            className="mt-1 min-h-28 w-full resize-none rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+            disabled={isSubmitting}
+          />
+        </label>
+
+        {error ? <p className="mt-2 text-sm text-destructive">{error}</p> : null}
+
+        <div className="mt-4 flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isSubmitting}
+            className="rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-muted disabled:opacity-60"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+          >
+            {isSubmitting ? "Sending..." : "Send"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
 const SupportHubPage = memo(() => {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
+  const [feedbackDialog, setFeedbackDialog] = useState<FeedbackDialogState>(null);
+  const [isFeedbackSubmitting, setIsFeedbackSubmitting] = useState(false);
   const {
     isLoading,
     hasError,
@@ -104,38 +207,51 @@ const SupportHubPage = memo(() => {
   }, [searchParams, setSearchParams]);
 
   const handleRequestAccess = useCallback((app: HubApplication) => {
-    const reason = window.prompt(`Why do you need access to ${app.name}?`);
-    if (reason === null) return;
-    void apiRequest(`/apps/${encodeURIComponent(app.id)}/request-access`, {
-      method: "POST",
-      body: { reason },
-    })
-      .then(() => toast.success("Access request sent"))
-      .catch((error: unknown) =>
-        toast.error(
-          error instanceof Error
-            ? error.message
-            : "Failed to send access request.",
-        ),
-      );
+    setFeedbackDialog({ kind: "request", app });
   }, []);
 
   const handleReportProblem = useCallback((app: HubApplication) => {
-    const message = window.prompt(`Describe the problem with ${app.name}:`);
-    if (message === null) return;
-    void apiRequest(`/apps/${encodeURIComponent(app.id)}/report`, {
-      method: "POST",
-      body: { message },
-    })
-      .then(() => toast.success("Problem report sent"))
-      .catch((error: unknown) =>
+    setFeedbackDialog({ kind: "report", app });
+  }, []);
+
+  const closeFeedbackDialog = useCallback(() => {
+    if (!isFeedbackSubmitting) setFeedbackDialog(null);
+  }, [isFeedbackSubmitting]);
+
+  const submitFeedbackDialog = useCallback(
+    async (text: string) => {
+      if (!feedbackDialog) return;
+
+      setIsFeedbackSubmitting(true);
+      try {
+        const path =
+          feedbackDialog.kind === "request"
+            ? `/apps/${encodeURIComponent(feedbackDialog.app.id)}/request-access`
+            : `/apps/${encodeURIComponent(feedbackDialog.app.id)}/report`;
+        const body =
+          feedbackDialog.kind === "request"
+            ? { reason: text }
+            : { message: text };
+
+        await apiRequest(path, { method: "POST", body });
+        toast.success(
+          feedbackDialog.kind === "request"
+            ? "Access request sent"
+            : "Problem report sent",
+        );
+        setFeedbackDialog(null);
+      } catch (error: unknown) {
         toast.error(
           error instanceof Error
             ? error.message
-            : "Failed to send problem report.",
-        ),
-      );
-  }, []);
+            : "Failed to send your message.",
+        );
+      } finally {
+        setIsFeedbackSubmitting(false);
+      }
+    },
+    [feedbackDialog],
+  );
 
   const isSettled = !isLoading && !hasError;
   const showNoResults =
@@ -211,6 +327,7 @@ const SupportHubPage = memo(() => {
                 user={user ? toHubUser(user) : undefined}
                 onQueryChange={setQuery}
                 onRequestAccess={handleRequestAccess}
+                onReportProblem={handleReportProblem}
               />
 
               <div className={HUB_GRID_CLASS}>
@@ -227,6 +344,13 @@ const SupportHubPage = memo(() => {
           )}
         </section>
       </main>
+
+      <FeedbackDialog
+        state={feedbackDialog}
+        isSubmitting={isFeedbackSubmitting}
+        onClose={closeFeedbackDialog}
+        onSubmit={submitFeedbackDialog}
+      />
     </div>
   );
 });

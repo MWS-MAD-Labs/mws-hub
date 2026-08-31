@@ -13,6 +13,7 @@ type MobileAppLauncherProps = {
   user?: HubUser;
   onQueryChange: (value: string) => void;
   onRequestAccess?: (app: HubApplication) => void;
+  onReportProblem?: (app: HubApplication) => void;
 };
 
 const MobileAppLauncher = memo(
@@ -22,6 +23,7 @@ const MobileAppLauncher = memo(
     user,
     onQueryChange,
     onRequestAccess,
+    onReportProblem,
   }: MobileAppLauncherProps) => {
     return (
       <section
@@ -45,6 +47,7 @@ const MobileAppLauncher = memo(
                   key={app.id}
                   app={app}
                   onRequestAccess={onRequestAccess}
+                  onReportProblem={onReportProblem}
                 />
               ))}
             </div>

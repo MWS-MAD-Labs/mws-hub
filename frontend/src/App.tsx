@@ -11,6 +11,7 @@ import Dashboard from "@/admin/pages/Dashboard";
 import ApplicationsPage from "@/admin/pages/ApplicationsPage";
 import ApplicationEditorPage from "@/admin/pages/ApplicationEditorPage";
 import FeedbackPage from "@/admin/pages/FeedbackPage";
+import AuditLogsPage from "@/admin/pages/AuditLogsPage";
 
 export default function App() {
   return (
@@ -79,6 +80,14 @@ export default function App() {
             element={
               <RequireAdmin>
                 <FeedbackPage />
+              </RequireAdmin>
+            }
+          />
+          <Route
+            path="/admin/audit-logs"
+            element={
+              <RequireAdmin>
+                <AuditLogsPage />
               </RequireAdmin>
             }
           />

@@ -112,7 +112,14 @@ function baseFromSsoEntry(entry: string): string {
 const inputClass =
   "mt-1 w-full rounded-md border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20";
 
-const sectionClass = "rounded-lg border border-border/60 p-4 sm:p-5";
+const sectionClass =
+  "rounded-lg border border-border/60 bg-card p-4 shadow-sm sm:p-5";
+
+function normalizeKeywordParts(value: string): string[] {
+  return value
+    .split(",")
+    .map((keyword) => keyword.replace(/\s+/g, " ").trim());
+}
 
 function SectionHeading({
   step,
@@ -148,6 +155,8 @@ export default function ApplicationForm({
   );
   const [formError, setFormError] = useState("");
   const [iconQuery, setIconQuery] = useState("");
+  const [accessQuery, setAccessQuery] = useState("");
+  const [activeAccessGroup, setActiveAccessGroup] = useState("base");
   const [customRule, setCustomRule] = useState("");
   const [usesSso, setUsesSso] = useState(Boolean(application?.sso_app_id));
   const [ssoBase, setSsoBase] = useState(
@@ -158,6 +167,8 @@ export default function ApplicationForm({
     setForm(formFromApplication(application));
     setUsesSso(Boolean(application?.sso_app_id));
     setSsoBase(baseFromSsoEntry(application?.sso_entry_url ?? ""));
+    setAccessQuery("");
+    setActiveAccessGroup("base");
     setFormError("");
   }, [application]);
 
@@ -196,6 +207,7 @@ export default function ApplicationForm({
   }
 
   const appId = application?.id || slugify(form.name);
+  const ssoAppId = (form.ssoAppId ?? "").trim() || appId;
 
   // Written from the access groups rather than typed separately. The two
   // fields always said the same thing, and keeping them in sync by hand is
@@ -220,17 +232,46 @@ export default function ApplicationForm({
 
   const visibleIcons = useMemo(() => {
     const query = iconQuery.trim().toLowerCase();
-    const entries = Object.entries(HUB_ICONS);
+    const entries = Object.entries(HUB_ICONS).sort(([left], [right]) =>
+      left.localeCompare(right),
+    );
     if (!query) return entries;
     return entries.filter(([name]) => name.toLowerCase().includes(query));
   }, [iconQuery]);
 
   const PreviewIcon = getAppIcon(form.icon || "AppWindow");
-  const centralAccessGroups = [
-    { title: "Unit", options: accessOptions.central.units },
-    { title: "Job Position", options: accessOptions.central.jobPositions },
-    { title: "Job Level", options: accessOptions.central.jobLevels },
+  const accessGroups = [
+    { key: "base", title: "Umum", options: accessOptions.base },
+    { key: "units", title: "Unit", options: accessOptions.central.units },
+    {
+      key: "jobPositions",
+      title: "Jabatan",
+      options: accessOptions.central.jobPositions,
+    },
+    {
+      key: "jobLevels",
+      title: "Level",
+      options: accessOptions.central.jobLevels,
+    },
   ].filter((group) => group.options.length > 0);
+  const activeAccessOptions =
+    accessGroups.find((group) => group.key === activeAccessGroup)?.options ??
+    accessGroups[0]?.options ??
+    [];
+  const filteredAccessOptions = activeAccessOptions.filter((option) => {
+    const query = accessQuery.trim().toLowerCase();
+    if (!query) return true;
+    return `${option.label} ${option.value} ${option.hint}`
+      .toLowerCase()
+      .includes(query);
+  });
+  const selectedAccessLabels = (form.allowedSources ?? []).map((source) => {
+    const option = accessGroups
+      .flatMap((group) => group.options)
+      .find((item) => item.value === source);
+    return { value: source, label: option?.label ?? source };
+  });
+  const keywordText = normalizeKeywordParts((form.keywords ?? []).join(",")).join(", ");
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -257,6 +298,10 @@ export default function ApplicationForm({
       setFormError("Isi alamat backend aplikasi, atau matikan login lewat Hub.");
       return;
     }
+    if (usesSso && !ssoAppId) {
+      setFormError("Isi kode SSO aplikasi, atau matikan login lewat Hub.");
+      return;
+    }
 
     setFormError("");
     await onSubmit({
@@ -271,7 +316,7 @@ export default function ApplicationForm({
         .map((keyword) => keyword.trim())
         .filter(Boolean),
       href: form.href?.trim() || null,
-      ssoAppId: usesSso ? appId : null,
+      ssoAppId: usesSso ? ssoAppId : null,
       ssoEntryUrl: usesSso ? ssoEntryFromBase(ssoBase) : null,
       ssoLogoutUrl: usesSso ? ssoLogoutFromBase(ssoBase) || null : null,
       sortOrder: Number(form.sortOrder) || 0,
@@ -279,7 +324,7 @@ export default function ApplicationForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
+    <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
       {formError ? (
         <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
           {formError}
@@ -288,14 +333,14 @@ export default function ApplicationForm({
 
       {/* Shows the result of the choices above it, so nobody has to save and
           go look at the hub to find out what they built. */}
-      <div className="rounded-lg border border-border/60 bg-muted/30 p-4">
+      <div className="rounded-lg border border-border/60 bg-muted/30 p-4 shadow-sm">
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           Tampilan kartu di Hub
         </p>
-        <div className="mt-3 flex items-start gap-3 rounded-md border border-border/70 bg-background p-3">
+        <div className="mt-3 flex min-w-0 items-start gap-3 rounded-md border border-border/70 bg-background p-3">
           <PreviewIcon className="mt-0.5 h-6 w-6 shrink-0 text-primary" />
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
+          <div className="min-w-0 flex-1">
+            <div className="flex min-w-0 items-center gap-2">
               <p className="truncate text-sm font-semibold">
                 {form.name || "Nama aplikasi"}
               </p>
@@ -346,9 +391,6 @@ export default function ApplicationForm({
 
           <label className="text-sm font-medium">
             Kategori
-            <span className="block text-xs font-normal text-muted-foreground">
-              Menentukan aplikasi muncul di tab mana.
-            </span>
             <select
               className={inputClass}
               value={form.category}
@@ -385,22 +427,34 @@ export default function ApplicationForm({
             <input
               className={inputClass}
               placeholder="rapor, slide, siswa"
-              value={(form.keywords ?? []).join(", ")}
+              value={keywordText}
               onChange={(event) =>
-                update("keywords", event.target.value.split(","))
+                update("keywords", normalizeKeywordParts(event.target.value))
               }
             />
           </label>
 
           <fieldset className="sm:col-span-2">
-            <legend className="text-sm font-medium">Ikon</legend>
-            <input
-              className={`${inputClass} max-w-xs`}
-              placeholder="Cari ikon, misal: file, book, wrench"
-              value={iconQuery}
-              onChange={(event) => setIconQuery(event.target.value)}
-            />
-            <div className="mt-2 grid max-h-44 grid-cols-4 gap-2 overflow-y-auto sm:grid-cols-8">
+            <div className="flex flex-col gap-3 rounded-lg border border-border/60 bg-muted/20 p-3 sm:flex-row sm:items-center">
+              <div className="flex items-center gap-3 sm:w-52">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md border border-border/70 bg-background text-primary">
+                  <PreviewIcon className="h-5 w-5" />
+                </span>
+                <div className="min-w-0">
+                  <legend className="text-sm font-medium">Ikon</legend>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {form.icon || "AppWindow"}
+                  </p>
+                </div>
+              </div>
+              <input
+                className={`${inputClass} mt-0`}
+                placeholder="Cari ikon, misal: file, book, wrench"
+                value={iconQuery}
+                onChange={(event) => setIconQuery(event.target.value)}
+              />
+            </div>
+            <div className="mt-3 grid max-h-64 grid-cols-6 gap-1.5 overflow-y-auto rounded-lg border border-border/60 bg-background p-2 sm:grid-cols-10 lg:grid-cols-12">
               {visibleIcons.map(([icon, Icon]) => (
                 <button
                   key={icon}
@@ -409,14 +463,13 @@ export default function ApplicationForm({
                   aria-label={`Gunakan ikon ${icon}`}
                   aria-pressed={form.icon === icon}
                   onClick={() => update("icon", icon)}
-                  className={`flex h-14 flex-col items-center justify-center gap-1 rounded-md border text-[10px] transition-colors ${
+                  className={`flex aspect-square min-h-10 items-center justify-center rounded-md border transition-colors ${
                     form.icon === icon
                       ? "border-primary bg-primary/10 text-primary"
                       : "border-border/70 text-muted-foreground hover:bg-muted"
                   }`}
                 >
                   <Icon className="h-5 w-5" />
-                  <span className="max-w-full truncate px-1">{icon}</span>
                 </button>
               ))}
               {visibleIcons.length === 0 ? (
@@ -435,60 +488,77 @@ export default function ApplicationForm({
           title="Siapa yang boleh memakai"
           subtitle="Pakai identity dan ID master data dari Central. Wajib pilih minimal satu."
         />
-        <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-3">
-          {accessOptions.base.map((group) => (
-            <label
-              key={group.value}
-              className="flex items-start gap-2 rounded-md border border-border/60 p-2"
-            >
-              <input
-                type="checkbox"
-                className="mt-1"
-                checked={form.allowedSources?.includes(group.value) ?? false}
-                onChange={() => toggleSource(group.value)}
-              />
-              <span>
-                <span className="font-medium">{group.label}</span>
-                {group.hint ? (
-                  <span className="block text-xs text-muted-foreground">
-                    {group.hint}
-                  </span>
-                ) : null}
-              </span>
-            </label>
-          ))}
-        </div>
-
-        {centralAccessGroups.length > 0 ? (
-          <div className="mt-4 space-y-4">
-            {centralAccessGroups.map((group) => (
-              <div key={group.title}>
-                <p className="text-sm font-semibold">{group.title}</p>
-                <div className="mt-2 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
-                  {group.options.map((option) => (
-                    <label
-                      key={option.value}
-                      className="flex items-start gap-2 rounded-md border border-border/60 p-2"
-                    >
-                      <input
-                        type="checkbox"
-                        className="mt-1"
-                        checked={
-                          form.allowedSources?.includes(option.value) ?? false
-                        }
-                        onChange={() => toggleSource(option.value)}
-                      />
-                      <span>
-                        <span className="font-medium">{option.label}</span>
-                        <span className="block text-xs text-muted-foreground">
-                          {option.hint}
-                        </span>
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              </div>
+        {accessGroups.length > 1 ? (
+          <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted/40 p-1 text-sm sm:grid-cols-4">
+            {accessGroups.map((group) => (
+              <button
+                key={group.key}
+                type="button"
+                onClick={() => {
+                  setActiveAccessGroup(group.key);
+                  setAccessQuery("");
+                }}
+                className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                  activeAccessGroup === group.key
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {group.title}
+                <span className="ml-1 text-xs text-muted-foreground">
+                  {group.options.length}
+                </span>
+              </button>
             ))}
+          </div>
+        ) : null}
+
+        {accessGroups.length > 0 ? (
+          <div className="mt-3 rounded-lg border border-border/60 bg-muted/20 p-3">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <input
+                className={`${inputClass} mt-0`}
+                placeholder="Cari nama, ID, role, atau permission"
+                value={accessQuery}
+                onChange={(event) => setAccessQuery(event.target.value)}
+              />
+              <span className="shrink-0 text-xs text-muted-foreground">
+                {filteredAccessOptions.length} pilihan
+              </span>
+            </div>
+
+            <div className="mt-3 grid max-h-72 grid-cols-1 gap-2 overflow-y-auto pr-1 text-sm sm:grid-cols-2">
+              {filteredAccessOptions.map((option) => (
+                <label
+                  key={option.value}
+                  className={`flex cursor-pointer items-start gap-2 rounded-md border p-2 transition-colors ${
+                    form.allowedSources?.includes(option.value)
+                      ? "border-primary bg-primary/5"
+                      : "border-border/60 bg-background hover:bg-muted/60"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    className="mt-1"
+                    checked={form.allowedSources?.includes(option.value) ?? false}
+                    onChange={() => toggleSource(option.value)}
+                  />
+                  <span className="min-w-0">
+                    <span className="block truncate font-medium">
+                      {option.label}
+                    </span>
+                    <span className="block break-all text-xs text-muted-foreground">
+                      {option.value}
+                    </span>
+                  </span>
+                </label>
+              ))}
+              {filteredAccessOptions.length === 0 ? (
+                <p className="col-span-full rounded-md border border-dashed border-border/70 bg-background p-4 text-center text-xs text-muted-foreground">
+                  Tidak ada pilihan yang cocok.
+                </p>
+              ) : null}
+            </div>
           </div>
         ) : (
           <p className="mt-4 rounded-md bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300">
@@ -528,7 +598,7 @@ export default function ApplicationForm({
           </div>
           <div className="mt-3 grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
             {accessOptions.centralRulePrefixes.map((prefix) => (
-              <p key={prefix.value}>
+              <p key={prefix.value} className="min-w-0 break-words">
                 <code className="rounded bg-muted px-1">{prefix.value}</code>{" "}
                 {prefix.hint}
               </p>
@@ -536,17 +606,20 @@ export default function ApplicationForm({
           </div>
         </div>
 
-        {(form.allowedSources ?? []).length > 0 ? (
+        {selectedAccessLabels.length > 0 ? (
           <div className="mt-3 flex flex-wrap gap-2">
-            {(form.allowedSources ?? []).map((source) => (
+            {selectedAccessLabels.map((source) => (
               <button
-                key={source}
+                key={source.value}
                 type="button"
-                onClick={() => removeSource(source)}
-                className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground hover:text-foreground"
+                onClick={() => removeSource(source.value)}
+                className="max-w-full rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground hover:text-foreground"
                 title="Klik untuk hapus rule"
               >
-                {source} x
+                <span className="inline-block max-w-56 truncate align-bottom">
+                  {source.label}
+                </span>{" "}
+                x
               </button>
             ))}
           </div>
@@ -665,6 +738,21 @@ export default function ApplicationForm({
         {usesSso ? (
           <div className="mt-4 space-y-3">
             <label className="block text-sm font-medium">
+              Kode SSO aplikasi
+              <span className="block text-xs font-normal text-muted-foreground">
+                Ambil dari verifier/config aplikasi tujuan; nilainya harus sama
+                dengan audience token yang app itu terima.
+              </span>
+              <input
+                className={inputClass}
+                type="text"
+                placeholder={appId || "daily-checkin"}
+                value={form.ssoAppId ?? ""}
+                onChange={(event) => update("ssoAppId", event.target.value)}
+              />
+            </label>
+
+            <label className="block text-sm font-medium">
               Alamat backend aplikasi
               <span className="block text-xs font-normal text-muted-foreground">
                 Alamat server aplikasinya saja, tanpa path. Contoh:
@@ -684,7 +772,7 @@ export default function ApplicationForm({
                 Yang akan disimpan otomatis
               </p>
               <p className="mt-1">
-                Kode SSO: <code className="rounded bg-muted px-1">{appId || "-"}</code>{" "}
+                Kode SSO: <code className="rounded bg-muted px-1">{ssoAppId || "-"}</code>{" "}
                 &nbsp;|&nbsp; Endpoint:{" "}
                 <code className="rounded bg-muted px-1">
                   {ssoEntryFromBase(ssoBase) || "-"}

@@ -3,19 +3,20 @@ services:
   db:
     image: postgres:16-alpine
     restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-hub}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgress123Abc}
-      POSTGRES_DB: ${POSTGRES_DB:-mws-hub}
+    env_file:
+      - path: ./backend/.env
+        required: false
     volumes:
       - hubdata:/var/lib/postgresql/data
     expose:
       - "5432"
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5435}:5432"
     healthcheck:
       test:
         [
           "CMD-SHELL",
-          "pg_isready -U ${POSTGRES_USER:-hub} -d ${POSTGRES_DB:-mws-hub}",
+          "pg_isready -U $${POSTGRES_USER:-hub} -d $${POSTGRES_DB:-mws-hub}",
         ]
       interval: 10s
       timeout: 5s
@@ -35,9 +36,8 @@ services:
     environment:
       NODE_ENV: production
       PORT: 4001
-      DATABASE_URL: postgresql://${POSTGRES_USER:-hub}:${POSTGRES_PASSWORD:-postgress123Abc}@db:5432/${POSTGRES_DB:-mws-hub}?schema=public
       SESSION_COOKIE_NAME: ${SESSION_COOKIE_NAME:-hub_session}
-    command: sh -c "bun run db:migrate && bun run src/index.ts"
+    command: sh -c "export DATABASE_URL=\"postgresql://$${POSTGRES_USER:-hub}:$${POSTGRES_PASSWORD:-postgress123Abc}@db:5432/$${POSTGRES_DB:-mws-hub}?schema=public\" && bun run db:migrate && bun run src/index.ts"
 
     depends_on:
       db:
@@ -68,9 +68,12 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     restart: unless-stopped
+    env_file:
+      - path: ./backend/.env
+        required: false
 
-    ports:
-      - "${FRONTEND_PORT:-5175}:80"
+    expose:
+      - "80"
 
     environment:
       HUB_API_BASE_URL: ""

@@ -26,7 +26,12 @@ const menuItems = [
   },
   { label: "Status Toggles", href: "#", icon: BarChart3, enabled: false },
   { label: "Feedback", href: "/admin/feedback", icon: LifeBuoy, enabled: true },
-  { label: "Audit Notes", href: "#", icon: ClipboardList, enabled: false },
+  {
+    label: "Audit Logs",
+    href: "/admin/audit-logs",
+    icon: ClipboardList,
+    enabled: true,
+  },
 ];
 
 export default function Sidebar({

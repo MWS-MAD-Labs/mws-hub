@@ -41,10 +41,10 @@ const BLOCKED: Record<BlockedKey, BlockedConfig> = {
 };
 
 const blockedKeyOf = (app: HubApplication): BlockedKey | null => {
-  if (app.access === "locked") return "locked";
   if (app.status === "maintenance") return "maintenance";
   if (app.status === "coming_soon") return "coming_soon";
   if (!app.href) return "no_link";
+  if (app.access === "locked") return "locked";
 
   return null;
 };
@@ -65,6 +65,10 @@ const AppCard = memo(
     const blocked = blockedKey ? BLOCKED[blockedKey] : null;
 
     const BlockedIcon = blocked?.icon;
+    const canRequestAccess =
+      blockedKey === "locked" && Boolean(onRequestAccess);
+    const canReportProblem =
+      Boolean(onReportProblem) && (isOpenable || blockedKey === "no_link");
 
     const launchId = app.ssoAppId || app.id;
 
@@ -76,10 +80,14 @@ const AppCard = memo(
     // Modifier/middle clicks (open in background tab, etc.) are left alone
     // and fall through to the anchor's own target/rel below - those always
     // open a new tab anyway, regardless of what this handler does.
-    const handleLaunchClick = (
-      event: React.MouseEvent<HTMLAnchorElement>,
-    ) => {
-      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+    const handleLaunchClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
+      if (
+        event.button !== 0 ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey
+      ) {
         return;
       }
       event.preventDefault();
@@ -176,33 +184,59 @@ const AppCard = memo(
         {/* ============================================================
             APP ICON
             ============================================================ */}
-        <span
-          className={cn(
-            "flex h-12 w-12 shrink-0",
-            "items-center justify-center",
-            "overflow-hidden",
-            "rounded-xl",
-
-            "ring-1 ring-black/[0.04]",
-            "shadow-[0_2px_7px_rgba(15,23,42,0.10)]",
-
-            getCategoryTone(app.category),
-
-            !isOpenable && "grayscale opacity-60",
-
-            // Desktop
-            "sm:h-10 sm:w-10",
-            "sm:rounded-lg",
-            "sm:shadow-none",
+        <span className="relative shrink-0">
+          {app.status === "new" && isOpenable && (
+            <span
+              className="
+                absolute
+                -top-1.5
+                left-1/2
+                z-10
+                -translate-x-1/2
+                rounded-full
+                bg-primary
+                px-1.5
+                py-0.5
+                text-[8px]
+                font-semibold
+                uppercase
+                leading-none
+                text-primary-foreground
+                shadow-sm
+                sm:hidden
+              "
+            >
+              New
+            </span>
           )}
-        >
-          <Icon
-            className="
-              h-6 w-6
-              sm:h-[18px] sm:w-[18px]
-            "
-            strokeWidth={1.8}
-          />
+          <span
+            className={cn(
+              "flex h-12 w-12 shrink-0",
+              "items-center justify-center",
+              "overflow-hidden",
+              "rounded-xl",
+
+              "ring-1 ring-black/[0.04]",
+              "shadow-[0_2px_7px_rgba(15,23,42,0.10)]",
+
+              getCategoryTone(app.category),
+
+              !isOpenable && "grayscale opacity-60",
+
+              // Desktop
+              "sm:h-10 sm:w-10",
+              "sm:rounded-lg",
+              "sm:shadow-none",
+            )}
+          >
+            <Icon
+              className="
+                h-6 w-6
+                sm:h-[18px] sm:w-[18px]
+              "
+              strokeWidth={1.8}
+            />
+          </span>
         </span>
 
         {/* ============================================================
@@ -212,9 +246,12 @@ const AppCard = memo(
           className="
             mt-1.5
             flex
+            flex-col
+            items-center
             w-full
             min-w-0
             justify-center
+            gap-2
 
             sm:mt-0
             sm:block
@@ -255,7 +292,7 @@ const AppCard = memo(
               <span className="line-clamp-2">{app.name}</span>
             </h3>
 
-            {/* New — desktop only */}
+            {/* New */}
             {app.status === "new" && isOpenable && (
               <span
                 className="
@@ -312,7 +349,7 @@ const AppCard = memo(
 
               <span className="truncate">{blocked.text(app)}</span>
 
-              {blockedKey === "locked" && (
+              {canRequestAccess && (
                 <button
                   type="button"
                   onClick={() => onRequestAccess?.(app)}
@@ -335,10 +372,31 @@ const AppCard = memo(
               )}
             </p>
           )}
-          {isOpenable && onReportProblem && (
+
+          {canRequestAccess && (
             <button
               type="button"
-              onClick={() => onReportProblem(app)}
+              onClick={() => onRequestAccess?.(app)}
+              className="relative z-10 mt-1.5 rounded-md border border-border/70 bg-background px-2 py-1 text-[10px] font-medium text-foreground shadow-sm sm:hidden"
+            >
+              Request
+            </button>
+          )}
+
+          {canReportProblem && (
+            <button
+              type="button"
+              onClick={() => onReportProblem?.(app)}
+              className="relative z-10 mt-1 text-[10px] font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline sm:hidden"
+            >
+              Report
+            </button>
+          )}
+
+          {canReportProblem && (
+            <button
+              type="button"
+              onClick={() => onReportProblem?.(app)}
               className="relative z-10 mt-2 hidden text-[11px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline sm:block"
             >
               Report a problem

@@ -77,6 +77,18 @@ export type AdminAccessRequest = {
   application: { id: string; name: string };
 };
 
+export type AdminAuditLog = {
+  id: string;
+  actor_email: string;
+  actor_name: string | null;
+  action: string;
+  entity_type: string;
+  entity_id: string;
+  summary: string;
+  metadata: unknown | null;
+  created_at: string;
+};
+
 export type AdminDashboardData = {
   message: string;
   unit: string;
@@ -152,6 +164,13 @@ export const adminApi = {
   async listAccessRequests() {
     const response = await apiRequest<{ data: AdminAccessRequest[] }>(
       "/admin/api/access-requests",
+    );
+    return response?.data ?? [];
+  },
+
+  async listAuditLogs() {
+    const response = await apiRequest<{ data: AdminAuditLog[] }>(
+      "/admin/api/audit-logs",
     );
     return response?.data ?? [];
   },

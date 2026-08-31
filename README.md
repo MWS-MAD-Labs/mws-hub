@@ -25,29 +25,27 @@ conventions from [ticketing-school](https://github.com/Rhzslya/ticketing-school)
       Satellite apps verify with Hub's public key only, so they cannot mint
       forged Hub tokens.
 
-## Local development
+## Running With Docker
 
 Both frontend and backend need a Google OAuth Client ID/Secret specific to
 Hub - do not reuse Daily Check-in's (its client was deleted from Google Cloud
 Console). Create one with an authorized JS origin of `http://localhost:5175`,
-then set `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` in `backend/.env` and
-`VITE_GOOGLE_CLIENT_ID` in `frontend/.env` to the same client. Leave
-`GOOGLE_REDIRECT_URI="postmessage"` in the backend as-is - that's the fixed
-value Google's token endpoint expects for the popup code flow, not the app's
-actual URL (see mws-data-center's `server/.env` for the same setup).
+then set `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` in `backend/.env`.
 
-Backend:
+Run the whole stack through the single compose file:
 
 ```bash
-cd backend
-bun install
-cp .env.example .env   # fill in GOOGLE_CLIENT_ID/SECRET for a Hub-specific OAuth client
-bun run dev
+docker compose up -d --build
 ```
 
-Serves at `http://localhost:4001`. Needs Central's server running and reachable
-at `CENTRAL_API_BASE_URL` (local dev: `http://localhost:3010/api/internal`),
-and a `CENTRAL_API_TOKEN` issued by `mws-data-center/server/scripts/bootstrap-hub-api-client.ts`.
+The frontend exposes port 80 only on Docker networks, so the public entrypoint
+should come from the gateway/reverse proxy attached to `mws-unified`. The
+backend reaches Hub's Postgres as `db:5432` on the internal Docker network, so
+Postgres does not need a host port and cannot collide with another stack.
+
+Backend needs Central's server reachable from inside the backend container at
+`CENTRAL_API_BASE_URL`, plus a `CENTRAL_API_TOKEN` issued by
+`mws-data-center/server/scripts/bootstrap-hub-api-client.ts`.
 
 Routes:
 - `POST /auth/google` - body `{ code }` from the frontend's Google popup-code
@@ -63,17 +61,5 @@ Routes:
   `HUB_SSO_PRIVATE_KEY`; each satellite app needs the matching public key for
   verification, not any shared signing secret.
 
-Frontend:
-
-```bash
-cd frontend
-bun install
-cp .env.example .env   # fill in VITE_GOOGLE_CLIENT_ID
-bun run dev
-```
-
-Serves at `http://localhost:5175/support-hub`. `/support-hub` and `/profile`
-redirect to `/login` if there's no session; `authApi`/`AuthContext` live under
-`frontend/src/features/auth/`.
-
-The application catalog is still static (`frontend/src/data/hubApplications.js`).
+The application catalog lives in Hub's database and is managed through the
+admin routes.
