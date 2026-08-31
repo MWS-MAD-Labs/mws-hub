@@ -3,10 +3,13 @@ import {
   normalizeAccessToken,
   userMatchesAccessRule,
 } from "../lib/access-rules";
-import { prisma } from "../lib/prisma";
 import { ApplicationService } from "./application-service";
 import type { CentralClaim, HubUser } from "../type/central-type";
 import type { HubAccessSource, HubAppResponse, HubCatalogEntry } from "../type/catalog-type";
+
+type ApprovedAccessLookup = (user: HubUser) => Promise<Set<string>>;
+
+let approvedAccessLookupForTest: ApprovedAccessLookup | null = null;
 
 function claimToStrings(claim: CentralClaim): string[] {
   if (typeof claim === "string") return [claim];
@@ -117,7 +120,8 @@ export function canAccess(entry: HubCatalogEntry, user: HubUser): boolean {
   return sourceAllowed || hasExplicitAppPermission(entry, user);
 }
 
-async function approvedApplicationIdsFor(user: HubUser): Promise<Set<string>> {
+async function approvedApplicationIdsFromDb(user: HubUser): Promise<Set<string>> {
+  const { prisma } = await import("../lib/prisma");
   const rows = await prisma.accessRequest.findMany({
     where: {
       requester_email: user.email,
@@ -129,21 +133,23 @@ async function approvedApplicationIdsFor(user: HubUser): Promise<Set<string>> {
   return new Set(rows.map((row) => row.application_id));
 }
 
+async function approvedApplicationIdsFor(user: HubUser): Promise<Set<string>> {
+  return approvedAccessLookupForTest
+    ? approvedAccessLookupForTest(user)
+    : approvedApplicationIdsFromDb(user);
+}
+
+export function setApprovedAccessLookupForTest(lookup: ApprovedAccessLookup | null) {
+  approvedAccessLookupForTest = lookup;
+}
+
 export async function canAccessWithApprovedRequest(
   entry: HubCatalogEntry,
   user: HubUser,
 ): Promise<boolean> {
   if (canAccess(entry, user)) return true;
 
-  const approvedRequestCount = await prisma.accessRequest.count({
-    where: {
-      application_id: entry.id,
-      requester_email: user.email,
-      status: "APPROVED",
-    },
-  });
-
-  return approvedRequestCount > 0;
+  return (await approvedApplicationIdsFor(user)).has(entry.id);
 }
 
 // Visibility adds only the display lever. A discoverable app can still be

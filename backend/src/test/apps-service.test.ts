@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, mock } from "bun:test";
+import { afterAll, afterEach, describe, expect, it, mock } from "bun:test";
 import { HUB_CATALOG } from "../../seed/default-catalog";
 import type { HubCatalogEntry } from "../type/catalog-type";
 import type { HubUser } from "../type/central-type";
@@ -16,40 +16,27 @@ mock.module("../service/application-service", () => ({
   },
 }));
 
-mock.module("../lib/prisma", () => ({
-  prisma: {
-    accessRequest: {
-      findMany: async (args: {
-        where: { requester_email: string; status: string };
-      }) =>
-        approvedAccessRequests
-          .filter(
-            (request) =>
-              request.requester_email === args.where.requester_email &&
-              args.where.status === "APPROVED",
-          )
-          .map((request) => ({ application_id: request.application_id })),
-      count: async (args: {
-        where: {
-          application_id: string;
-          requester_email: string;
-          status: string;
-        };
-      }) =>
-        approvedAccessRequests.filter(
-          (request) =>
-            request.application_id === args.where.application_id &&
-            request.requester_email === args.where.requester_email &&
-            args.where.status === "APPROVED",
-        ).length,
-    },
-  },
-}));
+const {
+  AppsService,
+  canAccess,
+  isVisibleTo,
+  setApprovedAccessLookupForTest,
+} = await import("../service/apps-service");
 
-const { AppsService, canAccess, isVisibleTo } = await import("../service/apps-service");
+setApprovedAccessLookupForTest(async (user) => {
+  return new Set(
+    approvedAccessRequests
+      .filter((request) => request.requester_email === user.email)
+      .map((request) => request.application_id),
+  );
+});
 
 afterEach(() => {
   approvedAccessRequests = [];
+});
+
+afterAll(() => {
+  setApprovedAccessLookupForTest(null);
 });
 
 function employee(overrides: Partial<HubUser & { source: "employee" }> = {}): HubUser {
