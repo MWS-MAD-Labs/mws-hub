@@ -7,7 +7,67 @@ import * as centralClient from "../lib/central-client";
 import type { SessionVariables } from "../type/hono-context";
 import type { HubUser } from "../type/central-type";
 
-const TEST_MAD_LABS_UNIT_ID = "cmsh7trcj000a40lsm0w7tl4h";
+let TEST_MAD_LABS_UNIT_ID = "";
+
+type CentralEmployeePage = {
+  data: Array<{
+    unit?: string | { id?: string | null; name?: string | null } | null;
+    unit_id?: string | null;
+    unitId?: string | null;
+  }>;
+  paging?: {
+    current_page?: number;
+    total_page?: number;
+  };
+};
+
+function centralUnitName(employee: CentralEmployeePage["data"][number]): string | null {
+  if (typeof employee.unit === "string") return employee.unit;
+  return employee.unit?.name || null;
+}
+
+function centralUnitId(employee: CentralEmployeePage["data"][number]): string | null {
+  if (employee.unit_id) return employee.unit_id;
+  if (employee.unitId) return employee.unitId;
+  if (employee.unit && typeof employee.unit === "object") return employee.unit.id || null;
+  return null;
+}
+
+async function madLabsUnitIdFromCentral(): Promise<string> {
+  const baseUrl = process.env.CENTRAL_API_BASE_URL?.replace(/\/$/, "");
+  const token = process.env.CENTRAL_API_TOKEN;
+
+  if (!baseUrl || !token) {
+    throw new Error("CENTRAL_API_BASE_URL and CENTRAL_API_TOKEN must be set.");
+  }
+
+  let page = 1;
+  let totalPage = 1;
+
+  do {
+    const res = await fetch(`${baseUrl}/employees?page=${page}&size=100&status=ACTIVE`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (!res.ok) {
+      throw new Error(`Central employees lookup failed with status ${res.status}`);
+    }
+
+    const body = (await res.json()) as CentralEmployeePage;
+    const madLabsEmployee = body.data.find((employee) => {
+      const unitName = centralUnitName(employee)?.toLowerCase();
+      return unitName === "mad lab" || unitName === "mad labs";
+    });
+    const unitId = madLabsEmployee ? centralUnitId(madLabsEmployee) : null;
+
+    if (unitId) return unitId;
+
+    totalPage = body.paging?.total_page ?? page;
+    page += 1;
+  } while (page <= totalPage);
+
+  throw new Error("MAD Labs unit id was not found in Central employees response.");
+}
 
 type DashboardBody = {
   data: {
@@ -20,8 +80,9 @@ type ErrorBody = {
   errors: string;
 };
 
-beforeAll(() => {
+beforeAll(async () => {
   process.env.JWT_SECRET = "test-jwt-secret-for-bun-test";
+  TEST_MAD_LABS_UNIT_ID = await madLabsUnitIdFromCentral();
   process.env.MAD_LABS_UNIT_ID = TEST_MAD_LABS_UNIT_ID;
 });
 
