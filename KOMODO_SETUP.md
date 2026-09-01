@@ -55,6 +55,10 @@ frontend container - it is the only one on the gateway network.
 | Compose source | `docker-compose.yml` | `deploy/production.compose.yml` |
 | Gateway target | `mws-hub-fe` on `mws-unified` | `hub-fe-prod` on `mws-unified-prod` |
 
+For staging, route `app.mws.web.id` to `mws-hub-fe` port `80`. Do not route
+the gateway to `backend:4001`; the backend intentionally stays off the gateway
+network and is reached only by frontend Nginx over `internal`.
+
 ## Environment
 
 Komodo supplies these to the stack as one root `.env` file (Env File Path:
@@ -71,7 +75,7 @@ when the container starts rather than baked into the bundle.
 NODE_ENV=production
 PORT=4001
 
-FRONTEND_ORIGIN=<temporary Komodo app URL>   # later: https://hub-stg.mws.web.id
+FRONTEND_ORIGIN=https://app.mws.web.id
 
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
@@ -99,11 +103,11 @@ MTSS_API_URL=https://app.millenniaws.sch.id/mtss
 HUB_API_BASE_URL=          # empty: same origin
 GOOGLE_CLIENT_ID=          # same client as the backend
 SUPPORT_EMAIL=admin@millennia21.id
-HUB_PUBLIC_URL=                              # later: https://hub-stg.mws.web.id
+HUB_PUBLIC_URL=https://app.mws.web.id
 ```
 
-`HUB_PUBLIC_URL` sets nginx's `server_name`. Leave it empty while using
-Komodo's temporary host; set it once staging DNS exists.
+`HUB_PUBLIC_URL` sets nginx's `server_name`. For staging, keep it aligned with
+the gateway host so Nginx accepts requests forwarded by Komodo.
 
 ## Before the first deploy
 
@@ -131,7 +135,7 @@ Komodo's temporary host; set it once staging DNS exists.
    Copy the printed token into `CENTRAL_API_TOKEN`. It is shown once.
 
 4. **Register the Google OAuth origin.** Add
-   both `https://hub-stg.mws.web.id` and `https://hub.millenniaws.sch.id` as
+   both `https://app.mws.web.id` and `https://hub.millenniaws.sch.id` as
    authorised JavaScript origins on
    Hub's own OAuth client. Leave `GOOGLE_REDIRECT_URI` as the literal
    `postmessage` - that is what Google's token endpoint expects for the popup
@@ -140,7 +144,7 @@ Komodo's temporary host; set it once staging DNS exists.
 ## Verifying a deploy
 
 ```bash
-curl -s https://hub-stg.mws.web.id/.well-known/jwks.json | head -c 120
+curl -s https://app.mws.web.id/.well-known/jwks.json | head -c 120
 ```
 
 Should return a JWKS with one RSA key whose `kid` matches `HUB_SSO_KEY_ID`.

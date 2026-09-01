@@ -2,6 +2,7 @@
 services:
   db:
     image: postgres:16-alpine
+    container_name: mws-hub-db
     restart: unless-stopped
     env_file:
       - path: ./.env
@@ -25,6 +26,7 @@ services:
       - internal
 
   backend:
+    container_name: mws-hub-be
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -66,6 +68,7 @@ services:
         max-file: "3"
 
   frontend:
+    container_name: mws-hub-fe
     build:
       context: ./frontend
       dockerfile: Dockerfile
@@ -86,8 +89,10 @@ services:
       - backend
 
     networks:
-      - internal
-      - mws-unified
+      internal:
+      mws-unified:
+        aliases:
+          - mws-hub-fe
     healthcheck:
       test:
         [
