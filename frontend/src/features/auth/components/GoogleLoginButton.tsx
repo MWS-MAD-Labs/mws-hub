@@ -14,7 +14,10 @@ export function GoogleLoginButton() {
     // /auth/google/callback can send the browser straight back to it instead
     // of always landing on Hub's own dashboard.
     const redirect = searchParams.get("redirect");
-    const startUrl = new URL(`${env.hubApiBaseUrl}/auth/google/start`);
+    const startUrl = new URL(
+      `${env.hubApiBaseUrl}/auth/google/start`,
+      window.location.origin,
+    );
     if (redirect) startUrl.searchParams.set("redirect", redirect);
     window.location.assign(startUrl.toString());
   }
