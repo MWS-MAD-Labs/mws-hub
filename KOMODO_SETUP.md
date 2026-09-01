@@ -75,6 +75,8 @@ when the container starts rather than baked into the bundle.
 
 ```
 FRONTEND_PORT=8083        # host-local frontend port for the Komodo gateway
+BACKEND_PORT=4003         # host-local backend debug/health port
+POSTGRES_PORT=15436       # host-local Postgres maintenance port
 ```
 
 ### Backend variables

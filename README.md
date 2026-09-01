@@ -39,10 +39,11 @@ docker compose up -d --build
 ```
 
 The frontend exposes port 80 on Docker networks and publishes
-`127.0.0.1:${FRONTEND_PORT:-8083}` for the gateway/reverse proxy. The backend
-reaches Hub's Postgres as `db:5432` on the internal Docker network, so Postgres
-is not published on a host port and cannot collide with another stack. Use
-`docker compose exec db psql` for server-side maintenance access.
+`127.0.0.1:${FRONTEND_PORT:-8083}` for the gateway/reverse proxy. Backend and
+Postgres also publish localhost-only debug/maintenance ports
+(`BACKEND_PORT:-4003`, `POSTGRES_PORT:-15436`), while application traffic still
+uses Docker's internal network: frontend Nginx reaches backend as
+`backend:4001`, and backend reaches Postgres as `db:5432`.
 
 Backend needs Central's server reachable from inside the backend container at
 `CENTRAL_API_BASE_URL`, plus a `CENTRAL_API_TOKEN` issued by

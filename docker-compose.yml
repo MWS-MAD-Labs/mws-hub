@@ -13,6 +13,8 @@ services:
       - hubdata:/var/lib/postgresql/data
     expose:
       - "5432"
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-15436}:5432"
     healthcheck:
       test:
         [
@@ -48,6 +50,8 @@ services:
         condition: service_healthy
     expose:
       - "4001"
+    ports:
+      - "127.0.0.1:${BACKEND_PORT:-4003}:4001"
 
     networks:
       - internal
