@@ -18,6 +18,8 @@ jobs:
     name: Backend Validation (Bun, Hono)
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      DATABASE_URL: postgresql://hub_ci:hub_ci@127.0.0.1:5432/mws_hub_ci_test
     defaults:
       run:
         working-directory: backend
@@ -37,8 +39,9 @@ jobs:
       - name: Typecheck BE
         run: bun run typecheck
 
-      # No database in this stack - every test here is hermetic (mocked
-      # fetch/env), so it needs no service containers.
+      # Tests are still hermetic and use mocked fetch/env. Prisma validates
+      # DATABASE_URL when imported, so CI provides a non-production URL without
+      # starting a database service container.
       - name: Test BE
         run: bun test
 
