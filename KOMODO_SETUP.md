@@ -58,21 +58,12 @@ frontend container - it is the only one on the gateway network.
 ## Environment
 
 Komodo supplies these to the stack as one root `.env` file (Env File Path:
-`.env`, Run Directory left blank so it lands next to the compose file). Both
-`backend` and `frontend` read the same file via `env_file:` - that's why
-`GOOGLE_CLIENT_ID` only needs to be set once even though both containers use
-it. The frontend needs almost nothing beyond that, because its own config is
-written into `env.js` when the container starts rather than baked into the
-bundle.
-
-### Compose variables
-
-```
-POSTGRES_PORT=5437        # host-only Postgres port; backend still uses db:5432
-```
-
-If another stack already owns that host port, pick any unused localhost port.
-The internal container port must stay `5432`.
+`.env`, Run Directory left blank so it lands next to the compose file). The
+Compose services read that same root `.env` via `env_file:` - that's why
+`GOOGLE_CLIENT_ID` only needs to be set once even though both backend and
+frontend use it. Local runs may still use `backend/.env`. The frontend needs
+almost nothing beyond that, because its own config is written into `env.js`
+when the container starts rather than baked into the bundle.
 
 ### Backend variables
 
