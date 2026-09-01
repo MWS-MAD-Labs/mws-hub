@@ -11,7 +11,7 @@ services:
     expose:
       - "5432"
     ports:
-      - "127.0.0.1:${POSTGRES_PORT:-5435}:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-5436}:5432"
     healthcheck:
       test:
         [
