@@ -38,11 +38,11 @@ Run the whole stack through the single compose file:
 docker compose up -d --build
 ```
 
-The frontend exposes port 80 only on Docker networks, so the public entrypoint
-should come from the gateway/reverse proxy attached to `mws-unified`. The
-backend reaches Hub's Postgres as `db:5432` on the internal Docker network, so
-Postgres is not published on a host port and cannot collide with another stack.
-Use `docker compose exec db psql` for server-side maintenance access.
+The frontend exposes port 80 on Docker networks and publishes
+`127.0.0.1:${FRONTEND_PORT:-8083}` for the gateway/reverse proxy. The backend
+reaches Hub's Postgres as `db:5432` on the internal Docker network, so Postgres
+is not published on a host port and cannot collide with another stack. Use
+`docker compose exec db psql` for server-side maintenance access.
 
 Backend needs Central's server reachable from inside the backend container at
 `CENTRAL_API_BASE_URL`, plus a `CENTRAL_API_TOKEN` issued by

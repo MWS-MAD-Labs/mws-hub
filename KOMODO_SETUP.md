@@ -53,9 +53,11 @@ frontend container - it is the only one on the gateway network.
 | | Staging | Production |
 |---|---|---|
 | Compose source | `docker-compose.yml` | `deploy/production.compose.yml` |
-| Gateway target | `mws-hub-fe` on `mws-unified` | `hub-fe-prod` on `mws-unified-prod` |
+| Gateway target | `127.0.0.1:8083` or `mws-hub-fe:80` on `mws-unified` | `hub-fe-prod` on `mws-unified-prod` |
 
-For staging, route `app.mws.web.id` to `mws-hub-fe` port `80`. Do not route
+For staging, route `app.mws.web.id` to frontend only. If the Komodo gateway is
+configured as a host-level reverse proxy, use `127.0.0.1:8083`. If it is
+attached to Docker's `mws-unified` network, use `mws-hub-fe:80`. Do not route
 the gateway to `backend:4001`; the backend intentionally stays off the gateway
 network and is reached only by frontend Nginx over `internal`.
 
@@ -68,6 +70,12 @@ Compose services read that same root `.env` via `env_file:` - that's why
 frontend use it. Local runs may still use `backend/.env`. The frontend needs
 almost nothing beyond that, because its own config is written into `env.js`
 when the container starts rather than baked into the bundle.
+
+### Compose variables
+
+```
+FRONTEND_PORT=8083        # host-local frontend port for the Komodo gateway
+```
 
 ### Backend variables
 

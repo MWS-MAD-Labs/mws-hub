@@ -81,6 +81,8 @@ services:
 
     expose:
       - "80"
+    ports:
+      - "127.0.0.1:${FRONTEND_PORT:-8083}:80"
 
     environment:
       HUB_API_BASE_URL: ""
