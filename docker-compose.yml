@@ -14,7 +14,7 @@ services:
     expose:
       - "5432"
     ports:
-      - "127.0.0.1:${POSTGRES_PORT:-15436}:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-5436}:5432"
     healthcheck:
       test:
         [
@@ -51,7 +51,7 @@ services:
     expose:
       - "4001"
     ports:
-      - "127.0.0.1:${BACKEND_PORT:-4003}:4001"
+      - "127.0.0.1:${BACKEND_PORT:-4001}:4001"
 
     networks:
       - internal
@@ -86,7 +86,7 @@ services:
     expose:
       - "80"
     ports:
-      - "127.0.0.1:${FRONTEND_PORT:-8083}:80"
+      - "127.0.0.1:${FRONTEND_PORT:-5178}:80"
 
     environment:
       HUB_API_BASE_URL: ""
