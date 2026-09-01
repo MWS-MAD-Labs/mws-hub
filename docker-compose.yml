@@ -85,9 +85,13 @@ services:
     environment:
       HUB_API_BASE_URL: ""
 
-    depends_on:
-      - backend
-
+    # Deliberately does NOT depend on backend. Nginx proxies the API through a
+    # variable (`set $hub_api backend:4001`) with a resolver, so it resolves the
+    # backend per request instead of at startup - an absent backend costs /auth
+    # and /apps, nothing else. Waiting on backend here chained the frontend to
+    # the database as well (backend waits for db healthy), so a database that
+    # could not start took down the static login page with it, and the gateway
+    # reported 502 for a route that never touches the API.
     networks:
       internal:
       mws-unified:
