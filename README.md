@@ -41,7 +41,9 @@ docker compose up -d --build
 The frontend exposes port 80 only on Docker networks, so the public entrypoint
 should come from the gateway/reverse proxy attached to `mws-unified`. The
 backend reaches Hub's Postgres as `db:5432` on the internal Docker network, so
-Postgres does not need a host port and cannot collide with another stack.
+the app does not depend on the host mapping. Compose publishes Postgres on
+`127.0.0.1:${POSTGRES_PORT:-5437}` only for local/server maintenance access;
+change `POSTGRES_PORT` if another stack already owns that port.
 
 Backend needs Central's server reachable from inside the backend container at
 `CENTRAL_API_BASE_URL`, plus a `CENTRAL_API_TOKEN` issued by
