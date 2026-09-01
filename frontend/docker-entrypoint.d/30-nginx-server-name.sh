@@ -1,9 +1,8 @@
 #!/bin/sh
 set -eu
-# Renders the site config, pointing server_name at whatever host this
-# deployment answers on so the default_server 444 block keeps catching
-# everything else. Leave HUB_PUBLIC_URL empty to answer on any Host, which is
-# what a Komodo temporary URL or a gateway that forwards its own name needs.
+# Renders the site config from a pristine template on every container start.
+# The server stays default_server, so Komodo/gateway Host header rewrites still
+# reach the app instead of being dropped as a bad gateway.
 #
 # Docker re-runs /docker-entrypoint.d on EVERY container start, not just the
 # first. So this always renders from a read-only template rather than editing
@@ -23,10 +22,7 @@ if [ -n "$runtime_host" ]; then
     *" $runtime_host "*) server_names="$default_hosts" ;;
     *) server_names="$runtime_host $default_hosts" ;;
   esac
-  sed -i "s/server_name hub\.millenniaws\.sch\.id app\.mws\.web\.id localhost;/server_name $server_names;/" "$conf"
-else
-  sed -i '1,/^}$/d' "$conf"
-  sed -i "s/server_name hub\.millenniaws\.sch\.id app\.mws\.web\.id localhost;/server_name _;/" "$conf"
+  sed -i "s/server_name _;/server_name $server_names;/" "$conf"
 fi
 
 # A config with no server block starts nginx successfully and listens on

@@ -83,7 +83,7 @@ services:
       - "80"
 
     environment:
-      HUB_API_BASE_URL: "https://db-stg.mws.web.id/api/internal"
+      HUB_API_BASE_URL: ""
 
     # Deliberately does NOT depend on backend. Nginx proxies the API through a
     # variable (`set $hub_api backend:4001`) with a resolver, so it resolves the
