@@ -38,19 +38,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
-    // Best-effort: fan out to every satellite app's own session first, but
-    // never let that block or fail Hub's own logout below - a satellite
-    // that's slow, unreachable, or doesn't support this yet must not leave
-    // the person stuck still signed into Hub.
+    await authApi.logout();
+    setUser(null);
+
+    // Best-effort after Hub's own cookie is gone: slow/unreachable satellite
+    // logout pages must not keep the Hub session alive through a refresh.
     try {
       const targets = await authApi.logoutTargets();
       await fanOutLogout(targets);
     } catch {
       // ignored - see above
     }
-
-    await authApi.logout();
-    setUser(null);
   }, []);
 
   const value = useMemo(
