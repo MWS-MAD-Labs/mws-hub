@@ -43,6 +43,7 @@ services:
       NODE_ENV: production
       PORT: 4001
       SESSION_COOKIE_NAME: ${SESSION_COOKIE_NAME:-hub_session}
+      CENTRAL_API_BASE_URL: ${CENTRAL_API_BASE_URL:-http://host.docker.internal:5173/api/internal}
     command: sh -c "export DATABASE_URL=\"postgresql://$${POSTGRES_USER:-hub}:$${POSTGRES_PASSWORD:-postgress123Abc}@db:5432/$${POSTGRES_DB:-mws-hub}?schema=public\" && bun run db:migrate && bun run src/index.ts"
 
     depends_on:
@@ -52,6 +53,8 @@ services:
       - "4001"
     ports:
       - "127.0.0.1:${BACKEND_PORT:-4001}:4001"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
     networks:
       - internal
@@ -90,6 +93,7 @@ services:
 
     environment:
       HUB_API_BASE_URL: ""
+      VITE_HUB_API_BASE_URL: ""
 
     # Deliberately does NOT depend on backend. Nginx proxies the API through a
     # variable (`set $hub_api backend:4001`) with a resolver, so it resolves the

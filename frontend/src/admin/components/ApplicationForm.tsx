@@ -89,11 +89,35 @@ function slugify(value: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
-// The SSO entry point is always the app's address plus /auth/sso. Asking for
-// the address and building the rest removes the single most confusing field
-// in this form.
+// The SSO entry point is always the app service origin plus /auth/sso. Some
+// apps, like Daily Check-in, land on a frontend route after SSO (/select-role);
+// strip that landing route back off so it never becomes /select-role/auth/sso.
+const SSO_BASE_SUFFIXES = [
+  /\/auth\/sso\/?$/i,
+  /\/auth\/logout-silent\/?$/i,
+  /\/select-role\/?$/i,
+];
+
+function normalizeSsoBase(base: string): string {
+  let trimmed = base.trim().replace(/\/+$/, "");
+  let changed = true;
+
+  while (changed) {
+    changed = false;
+    for (const suffix of SSO_BASE_SUFFIXES) {
+      const next = trimmed.replace(suffix, "");
+      if (next !== trimmed) {
+        trimmed = next.replace(/\/+$/, "");
+        changed = true;
+      }
+    }
+  }
+
+  return trimmed;
+}
+
 function ssoEntryFromBase(base: string): string {
-  const trimmed = base.trim().replace(/\/+$/, "");
+  const trimmed = normalizeSsoBase(base);
   return trimmed ? `${trimmed}/auth/sso` : "";
 }
 
@@ -101,12 +125,12 @@ function ssoEntryFromBase(base: string): string {
 // local session" page for Hub's logout fan-out exposes it at this fixed
 // path, so there is nothing extra to ask for here either.
 function ssoLogoutFromBase(base: string): string {
-  const trimmed = base.trim().replace(/\/+$/, "");
+  const trimmed = normalizeSsoBase(base);
   return trimmed ? `${trimmed}/auth/logout-silent` : "";
 }
 
 function baseFromSsoEntry(entry: string): string {
-  return entry.replace(/\/auth\/sso\/?$/, "");
+  return normalizeSsoBase(entry);
 }
 
 const inputClass =
@@ -755,8 +779,8 @@ export default function ApplicationForm({
             <label className="block text-sm font-medium">
               Alamat backend aplikasi
               <span className="block text-xs font-normal text-muted-foreground">
-                Alamat server aplikasinya saja, tanpa path. Contoh:
-                https://app.millenniaws.sch.id/mtss
+                Alamat server atau halaman awal app. Contoh:
+                https://app-stg.mws.web.id/select-role
               </span>
               <input
                 className={inputClass}

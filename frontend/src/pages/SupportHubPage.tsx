@@ -25,14 +25,6 @@ type FeedbackDialogState = {
   kind: "request" | "report";
   app: HubApplication;
 } | null;
-
-// Why a launch bounced back here instead of opening the app. The backend's
-// /apps/:appId/launch redirects with one of these codes rather than showing
-// a raw error body in the tab it just opened.
-// Why a launch bounced back here instead of opening the app. The backend's
-// /apps/:appId/launch redirects with one of these codes rather than showing
-// a raw error body in the tab it just opened, and passes the app name so the
-// notice can say which one.
 const LAUNCH_ERRORS: Record<
   string,
   (app: string) => { title: string; description: string }
