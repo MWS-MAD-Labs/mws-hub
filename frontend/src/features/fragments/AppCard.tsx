@@ -1,4 +1,5 @@
 import { memo } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   ArrowUpRight,
   Lock,
@@ -13,6 +14,7 @@ import { getAppIcon, getCategoryTone } from "@/data/hubCategories";
 import { env } from "@/config/env";
 import { loadHiddenIframe } from "@/lib/hiddenIframe";
 import { probeAuthenticated } from "@/lib/authProbe";
+import { useAuth } from "@/features/auth/hooks/useAuth";
 import type { HubApplication } from "@/model/hub-model";
 
 type BlockedKey = "locked" | "maintenance" | "coming_soon" | "no_link";
@@ -58,6 +60,8 @@ type AppCardProps = {
 
 const AppCard = memo(
   ({ app, onRequestAccess, onReportProblem }: AppCardProps) => {
+    const navigate = useNavigate();
+    const { refreshUser } = useAuth();
     const Icon = getAppIcon(app.icon);
 
     const blockedKey = blockedKeyOf(app);
@@ -81,7 +85,9 @@ const AppCard = memo(
     // Modifier/middle clicks (open in background tab, etc.) are left alone
     // and fall through to the anchor's own target/rel below - those always
     // open a new tab anyway, regardless of what this handler does.
-    const handleLaunchClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    const handleLaunchClick = async (
+      event: React.MouseEvent<HTMLAnchorElement>,
+    ) => {
       if (
         event.button !== 0 ||
         event.metaKey ||
@@ -92,6 +98,21 @@ const AppCard = memo(
         return;
       }
       event.preventDefault();
+
+      // Hub's session is a cookie, which - unlike localStorage - never
+      // fires a cross-tab event this tab could react to. So this tab has
+      // no passive way to learn its own session was cleared elsewhere
+      // (e.g. by signing out of a satellite app in another tab): it just
+      // keeps rendering as signed in until something asks. Check right
+      // here, before opening or navigating anything, so a stale Hub tab
+      // lands on Hub's own login screen immediately - instead of opening a
+      // blank tab that dead-ends on the satellite's own "Session ended"
+      // while this tab sits frozen until a manual refresh.
+      const currentUser = await refreshUser();
+      if (!currentUser) {
+        navigate("/login?error=session_expired");
+        return;
+      }
 
       // window.open with an empty URL is the standard "find-or-create a
       // named window without navigating it" trick: it hands back the SAME

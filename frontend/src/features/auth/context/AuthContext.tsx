@@ -37,6 +37,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // Hub's session is a cookie, which unlike localStorage never fires a
+  // cross-tab event this tab could react to - so a tab that's been open a
+  // while has no passive way to learn its cookie was cleared elsewhere
+  // (e.g. by signing out of a satellite app in another tab). Call this
+  // right before anything that depends on still being signed in, so a
+  // stale tab finds out before acting on wrong assumptions instead of
+  // after.
+  const refreshUser = useCallback(async () => {
+    const currentUser = await authApi.currentUser();
+    setUser(currentUser);
+    return currentUser;
+  }, []);
+
   const logout = useCallback(async () => {
     await authApi.logout();
     setUser(null);
@@ -59,8 +72,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isLoggingIn,
       loginWithGoogle,
       logout,
+      refreshUser,
     }),
-    [user, isSessionLoading, isLoggingIn, loginWithGoogle, logout],
+    [user, isSessionLoading, isLoggingIn, loginWithGoogle, logout, refreshUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

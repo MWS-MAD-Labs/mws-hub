@@ -8,6 +8,7 @@ export type AuthContextValue = {
   isLoggingIn: boolean;
   loginWithGoogle: (code: string) => Promise<AuthUser>;
   logout: () => Promise<void>;
+  refreshUser: () => Promise<AuthUser | null>;
 };
 
 export const AuthContext = createContext<AuthContextValue | null>(null);
