@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { getAppIcon, getCategoryTone } from "@/data/hubCategories";
 import { env } from "@/config/env";
 import { loadHiddenIframe } from "@/lib/hiddenIframe";
+import { probeAuthenticated } from "@/lib/authProbe";
 import type { HubApplication } from "@/model/hub-model";
 
 type BlockedKey = "locked" | "maintenance" | "coming_soon" | "no_link";
@@ -137,14 +138,26 @@ const AppCard = memo(
       }
 
       // Existing tab: replay the handshake in a hidden iframe instead of
-      // navigating this one, so there's no visible redirect chain. The
-      // satellite app's own auth callback writes the fresh token to its
+      // navigating this one, so there's usually no visible redirect chain.
+      // The satellite app's own auth callback writes the fresh token to its
       // own localStorage regardless of visibility; the visible tab picks
       // it up live via the browser's `storage` event (see
-      // mws-mtss-system's useCrossTabAuthSync) instead of ever reloading.
-      loadHiddenIframe(launchHref, 8000).then(() => {
-        target.focus();
-      });
+      // mws-mtss-system's useCrossTabAuthSync) instead of ever reloading -
+      // when that actually reaches it. Some browsers partition a hidden
+      // iframe's storage away from the real tab's, so the write can
+      // silently never arrive. probeAuthenticated asks the tab itself
+      // whether it worked; if not, fall back to a real (visible, but
+      // guaranteed) navigation of that same tab instead of leaving it
+      // stuck on whatever it was showing before.
+      loadHiddenIframe(launchHref, 8000)
+        .then(() => probeAuthenticated(target, 1500))
+        .then((authenticated) => {
+          if (authenticated) {
+            target.focus();
+            return;
+          }
+          target.location.href = launchHref;
+        });
       toast.info(`${app.name} sudah terbuka di tab lain`, {
         description: "Beralih ke tab tersebut untuk melanjutkan.",
       });
