@@ -1,7 +1,10 @@
 import type { Context } from "hono";
 import { AppsService } from "../service/apps-service";
 import { mintRelayToken } from "../lib/sso-relay";
-import { resolveCentralIdentity } from "../lib/central-client";
+import {
+  listUpcomingEmployeeBirthdays,
+  resolveCentralIdentity,
+} from "../lib/central-client";
 import { ResponseError } from "../error/response-error";
 import { logger } from "../lib/logger";
 import { frontendOrigin } from "../lib/frontend-origin";
@@ -32,6 +35,15 @@ export class AppsController {
   // hands out a credential.
   static async list(c: Context<{ Variables: SessionVariables }>) {
     return c.json({ data: await AppsService.listFor(c.var.user) });
+  }
+
+  static async birthdays(c: Context<{ Variables: SessionVariables }>) {
+    const requestedLimit = Number(c.req.query("limit") || 8);
+    const limit = Number.isFinite(requestedLimit)
+      ? Math.min(Math.max(requestedLimit, 1), 20)
+      : 8;
+
+    return c.json({ data: await listUpcomingEmployeeBirthdays(limit) });
   }
 
   static async launch(c: Context<{ Variables: SessionVariables }>) {

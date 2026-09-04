@@ -41,6 +41,10 @@ export type EmployeeLookupResponse = {
   job_level: string | CentralNamedRef | null;
   job_level_id?: string | null;
   jobLevelId?: string | null;
+  birth_date?: string | null;
+  date_of_birth?: string | null;
+  dob?: string | null;
+  birthday?: string | null;
   status: string;
   employment_type: string | null;
 } & CentralAccessClaims;

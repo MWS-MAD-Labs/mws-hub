@@ -17,6 +17,22 @@ type CentralPage<T> = {
   };
 };
 
+export type CentralBirthdayResponse = {
+  id: string;
+  name: string;
+  nick_name: string | null;
+  photo_url: string | null;
+  unit: string | null;
+  birthday: string;
+  days_until: number;
+  is_today: boolean;
+};
+
+type MonthDay = {
+  month: number;
+  day: number;
+};
+
 function unitIdOf(record: {
   unit_id?: string | null;
   unitId?: string | null;
@@ -40,6 +56,51 @@ function unitNameOf(record: {
   }
 
   return null;
+}
+
+function birthdayValueOf(employee: EmployeeLookupResponse): string | null {
+  return (
+    employee.birth_date ||
+    employee.date_of_birth ||
+    employee.dob ||
+    employee.birthday ||
+    null
+  );
+}
+
+function monthDayOf(value: string): MonthDay | null {
+  const trimmed = value.trim();
+  const dateOnlyMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})/);
+
+  if (dateOnlyMatch) {
+    return {
+      month: Number(dateOnlyMatch[2]),
+      day: Number(dateOnlyMatch[3]),
+    };
+  }
+
+  const parsed = new Date(trimmed);
+  if (Number.isNaN(parsed.getTime())) return null;
+
+  return {
+    month: parsed.getUTCMonth() + 1,
+    day: parsed.getUTCDate(),
+  };
+}
+
+function daysUntilBirthday({ month, day }: MonthDay, today = new Date()): number {
+  const todayUtc = Date.UTC(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate(),
+  );
+  let nextBirthdayUtc = Date.UTC(today.getFullYear(), month - 1, day);
+
+  if (nextBirthdayUtc < todayUtc) {
+    nextBirthdayUtc = Date.UTC(today.getFullYear() + 1, month - 1, day);
+  }
+
+  return Math.round((nextBirthdayUtc - todayUtc) / 86_400_000);
 }
 
 function namedRefNameOf(
@@ -173,4 +234,36 @@ export async function listActiveEmployees(): Promise<
   } while (page <= totalPage);
 
   return employees;
+}
+
+export async function listUpcomingEmployeeBirthdays(
+  limit = 8,
+): Promise<CentralBirthdayResponse[]> {
+  const employees = await listActiveEmployees();
+
+  return employees
+    .map((employee) => {
+      const birthday = birthdayValueOf(employee);
+      const monthDay = birthday ? monthDayOf(birthday) : null;
+      if (!birthday || !monthDay) return null;
+
+      const daysUntil = daysUntilBirthday(monthDay);
+
+      return {
+        id: employee.id,
+        name: employee.nick_name || employee.full_name,
+        nick_name: employee.nick_name,
+        photo_url: employee.photo_url,
+        unit: unitNameOf(employee),
+        birthday,
+        days_until: daysUntil,
+        is_today: daysUntil === 0,
+      };
+    })
+    .filter((birthday): birthday is CentralBirthdayResponse => Boolean(birthday))
+    .sort(
+      (a, b) =>
+        a.days_until - b.days_until || a.name.localeCompare(b.name),
+    )
+    .slice(0, limit);
 }

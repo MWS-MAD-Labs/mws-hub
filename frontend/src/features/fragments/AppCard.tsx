@@ -190,7 +190,7 @@ const AppCard = memo(
           // ============================================================
           // MOBILE
           // ============================================================
-          "group relative flex w-full min-w-0",
+          "group relative flex w-full min-w-0 max-w-[6.75rem]",
           "flex-col items-center justify-start",
           "text-center",
           "transition-transform duration-150",
@@ -200,7 +200,7 @@ const AppCard = memo(
           // ============================================================
           // DESKTOP
           // ============================================================
-          "sm:h-auto sm:flex-row sm:items-start",
+          "sm:h-auto sm:max-w-none sm:flex-row sm:items-start",
           "sm:justify-start sm:gap-3",
           "sm:overflow-visible sm:rounded-xl",
           "sm:border sm:border-border/50",
@@ -250,8 +250,8 @@ const AppCard = memo(
               "overflow-hidden",
               "rounded-xl",
 
-              "ring-1 ring-black/[0.04]",
-              "shadow-[0_2px_7px_rgba(15,23,42,0.10)]",
+              "ring-1 ring-border/55",
+              "shadow-[0_2px_8px_rgba(15,23,42,0.08)]",
 
               getCategoryTone(app.category),
 
@@ -260,12 +260,13 @@ const AppCard = memo(
               // Desktop
               "sm:h-10 sm:w-10",
               "sm:rounded-lg",
+              "sm:ring-black/[0.04]",
               "sm:shadow-none",
             )}
           >
             <Icon
               className="
-                h-6 w-6
+                h-5 w-5
                 sm:h-[18px] sm:w-[18px]
               "
               strokeWidth={1.8}
@@ -278,14 +279,14 @@ const AppCard = memo(
             ============================================================ */}
         <div
           className="
-            mt-1.5
+            mt-1
             flex
             flex-col
             items-center
             w-full
             min-w-0
             justify-center
-            gap-2
+            gap-0.5
 
             sm:mt-0
             sm:block
@@ -308,19 +309,21 @@ const AppCard = memo(
             <h3
               className="
                 min-w-0
-                max-w-[92px]
+                max-w-full
                 overflow-hidden
 
                 text-[11px]
-                font-medium
+                font-semibold
                 leading-[14px]
-                tracking-[-0.01em]
+                tracking-normal
                 text-foreground
 
                 sm:max-w-full
                 sm:truncate
                 sm:text-sm
+                sm:font-medium
                 sm:leading-normal
+                sm:tracking-[-0.01em]
               "
             >
               <span className="line-clamp-2">{app.name}</span>
@@ -411,9 +414,9 @@ const AppCard = memo(
             <button
               type="button"
               onClick={() => onRequestAccess?.(app)}
-              className="relative z-10 mt-1.5 rounded-md border border-border/70 bg-background px-2 py-1 text-[10px] font-medium text-foreground shadow-sm sm:hidden"
+              className="relative z-10 mt-1 rounded-full border border-border/60 bg-background/70 px-2 py-0.5 text-[9px] font-medium leading-none text-muted-foreground shadow-sm sm:hidden"
             >
-              Request
+              Request Access
             </button>
           )}
 
@@ -421,7 +424,7 @@ const AppCard = memo(
             <button
               type="button"
               onClick={() => onReportProblem?.(app)}
-              className="relative z-10 mt-1 text-[10px] font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline sm:hidden"
+              className="relative z-10 mt-0.5 text-[9px] font-medium leading-none text-muted-foreground/70 underline-offset-2 hover:text-foreground hover:underline sm:hidden"
             >
               Report
             </button>

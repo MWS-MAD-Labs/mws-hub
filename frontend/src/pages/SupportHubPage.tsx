@@ -11,6 +11,7 @@ import MobileAppLauncher from "@/features/fragments/MobileAppLauncher";
 import HubEmptyState from "@/features/fragments/HubEmptyState";
 import { AppCardSkeletonGrid } from "@/features/fragments/AppCardSkeleton";
 import { HUB_GRID_CLASS } from "@/features/fragments/hubGrid";
+import MobileHeader from "@/mobile/components/MobileHeader";
 import useHubCatalog from "@/hooks/useHubCatalog";
 import type { HubApplication } from "@/model/hub-model";
 import { toHubUser } from "@/model/auth-model";
@@ -253,7 +254,10 @@ const SupportHubPage = memo(() => {
 
   return (
     <div className="h-screen overflow-hidden bg-background text-foreground sm:h-auto sm:min-h-screen sm:overflow-visible">
-      <HubHeader user={user ? toHubUser(user) : undefined} isAdmin={isAdmin} />
+      <MobileHeader user={user ? toHubUser(user) : undefined} />
+      <div className="hidden sm:block">
+        <HubHeader user={user ? toHubUser(user) : undefined} isAdmin={isAdmin} />
+      </div>
 
       <main className="mx-auto flex h-[calc(100svh-3.5rem)] max-w-[1600px] flex-col overflow-hidden px-4 pb-0 pt-4 sm:block sm:h-auto sm:overflow-visible sm:px-6 sm:py-9">
         <div className="hidden sm:block">
