@@ -99,6 +99,33 @@ const AppCard = memo(
       }
       event.preventDefault();
 
+      // Mobile browsers are strict about popups: if window.open happens
+      // after an awaited request, the tap gesture is already gone and the
+      // browser may leave users staring at about:blank. Claim/find the
+      // target synchronously, then do the session check before navigating it.
+      let target = window.open("", launchWindowName);
+      if (!target) {
+        window.location.assign(launchHref);
+        return;
+      }
+
+      if (target === window) {
+        window.name = "";
+        target = window.open("", launchWindowName);
+        if (!target) {
+          window.location.assign(launchHref);
+          return;
+        }
+      }
+
+      let isFreshWindow = true;
+      try {
+        isFreshWindow =
+          target.location.href === "about:blank" || target.location.href === "";
+      } catch {
+        isFreshWindow = false;
+      }
+
       // Hub's session is a cookie, which - unlike localStorage - never
       // fires a cross-tab event this tab could react to. So this tab has
       // no passive way to learn its own session was cleared elsewhere
@@ -110,47 +137,9 @@ const AppCard = memo(
       // while this tab sits frozen until a manual refresh.
       const currentUser = await refreshUser();
       if (!currentUser) {
+        if (isFreshWindow) target.close();
         navigate("/login?error=session_expired");
         return;
-      }
-
-      // window.open with an empty URL is the standard "find-or-create a
-      // named window without navigating it" trick: it hands back the SAME
-      // window if one with this name is already open anywhere in this
-      // tab's browsing-context group, or a fresh blank one otherwise -
-      // and it does this by asking the browser's own name registry, which
-      // outlives a reload of THIS page (unlike a plain JS variable, which
-      // a previous version of this relied on and which a Hub reload wipes
-      // clean, silently falling back to the old flicker-y behavior).
-      const target = window.open("", launchWindowName);
-      if (!target) return; // popup blocked
-
-      if (target === window) {
-        // This tab's own window.name still carries a stale claim to
-        // launchWindowName from an earlier life - e.g. it WAS the MTSS
-        // tab, but then navigated in-place back to Hub itself (its own
-        // "Sign in" button does a same-tab redirect, not a new tab), and
-        // window.name survives an in-place navigation, even cross-origin.
-        // Reusing "ourselves" as the reuse target would silently hijack
-        // the tab the person is currently looking at Hub in - release the
-        // stale name so it stops squatting on it, then open a genuinely
-        // new tab like a first launch.
-        window.name = "";
-        window.open(launchHref, launchWindowName);
-        return;
-      }
-
-      let isFreshWindow = true;
-      try {
-        // A window we just created is still about:blank and still
-        // same-origin, so reading its location succeeds. One that already
-        // navigated to the satellite app's origin throws instead on that
-        // same read - that's the signal it's an existing, already-launched
-        // tab rather than a blank new one.
-        isFreshWindow =
-          target.location.href === "about:blank" || target.location.href === "";
-      } catch {
-        isFreshWindow = false;
       }
 
       if (isFreshWindow) {
