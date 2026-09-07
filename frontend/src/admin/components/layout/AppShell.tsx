@@ -1,7 +1,6 @@
 import { Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import ThemeToggle from "@/features/fragments/ThemeToggle";
 import { cn } from "@/lib/utils";
 import Sidebar from "./Sidebard";
 
@@ -57,9 +56,7 @@ export default function AppShell({ children }: AppShellProps) {
                 MAD Labs dashboard access
               </p>
             </div>
-
             <div className="ml-auto flex items-center gap-2">
-              <ThemeToggle />
               <Link
                 to="/support-hub"
                 className="rounded-md border border-border/60 px-3 py-2 text-xs font-semibold hover:bg-card"

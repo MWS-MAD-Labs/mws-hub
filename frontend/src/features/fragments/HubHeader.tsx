@@ -2,7 +2,6 @@ import { memo } from "react";
 import { Link } from "react-router-dom";
 import { LayoutDashboard } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import ThemeToggle from "./ThemeToggle";
 import Logo from "@/assets/logo.webp";
 import type { HubUser } from "@/model/hub-model";
 
@@ -46,7 +45,6 @@ const HubHeader = memo(({ user, isAdmin }: HubHeaderProps) => (
         ) : null}
 
         <div className="hidden items-center gap-1.5 sm:flex">
-          <ThemeToggle />
           <Link
             to="/profile"
             className="flex items-center gap-2 rounded-full py-1 pl-1 pr-1 transition-colors hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:pr-3"

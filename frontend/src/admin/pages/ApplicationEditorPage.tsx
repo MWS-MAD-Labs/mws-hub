@@ -3,7 +3,7 @@ import { ArrowLeft } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import AppShell from "@/admin/components/layout/AppShell";
-import ApplicationForm from "@/admin/components/ApplicationForm";
+import ApplicationForm from "@/admin/features/application-form/ApplicationForm";
 import {
   adminApi,
   type AdminAccessOptions,
