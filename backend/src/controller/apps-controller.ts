@@ -8,6 +8,7 @@ import {
 import { ResponseError } from "../error/response-error";
 import { logger } from "../lib/logger";
 import { frontendOrigin } from "../lib/frontend-origin";
+import { recordAuditLog } from "../service/audit-log-service";
 import type { HubUser } from "../type/central-type";
 import type { SessionVariables } from "../type/hono-context";
 
@@ -25,6 +26,33 @@ function launchFailure(c: Context, code: string, appName?: string) {
   logger.info(`Launch redirected to support-hub: ${code}`);
 
   return c.redirect(`${origin}/support-hub?${params}`, 302);
+}
+
+async function recordLaunchAudit({
+  actor,
+  appId,
+  appName,
+  outcome,
+  target,
+}: {
+  actor: HubUser;
+  appId: string;
+  appName?: string;
+  outcome: string;
+  target?: "sso" | "url" | "hub";
+}) {
+  await recordAuditLog({
+    actor,
+    action: "application.launch",
+    entity: { type: "application", id: appId },
+    summary: `${actor.email} launched ${appName ?? appId}: ${outcome}`,
+    metadata: {
+      application_id: appId,
+      application_name: appName ?? null,
+      outcome,
+      target: target ?? null,
+    },
+  });
 }
 
 export class AppsController {
@@ -50,6 +78,16 @@ export class AppsController {
     const appId = c.req.param("appId");
     const entry = appId ? await AppsService.findByLaunchId(appId) : null;
     if (!entry) {
+      logger.info("Launch refused, unknown app:", {
+        appId,
+        actor: c.var.user.email,
+      });
+      await recordLaunchAudit({
+        actor: c.var.user,
+        appId: appId || "unknown",
+        outcome: "unknown_app",
+        target: "hub",
+      });
       throw new ResponseError(404, `Unknown app: ${appId}`);
     }
 
@@ -66,11 +104,25 @@ export class AppsController {
       // Fail closed. A Central outage means we cannot say who this is, and
       // "cannot say" must never be treated as "allowed".
       logger.error("Central lookup failed during launch:", error);
+      await recordLaunchAudit({
+        actor: c.var.user,
+        appId: entry.id,
+        appName: entry.name,
+        outcome: "central_unavailable",
+        target: "hub",
+      });
       return launchFailure(c, "central_unavailable");
     }
 
     if (!user) {
       logger.info("Launch refused, no active Central record:", c.var.user.email);
+      await recordLaunchAudit({
+        actor: c.var.user,
+        appId: entry.id,
+        appName: entry.name,
+        outcome: "account_inactive",
+        target: "hub",
+      });
       return launchFailure(c, "account_inactive");
     }
 
@@ -82,14 +134,37 @@ export class AppsController {
         `Launch refused, ${user.source} not admitted by ${entry.id}:`,
         user.email,
       );
+      await recordLaunchAudit({
+        actor: user,
+        appId: entry.id,
+        appName: entry.name,
+        outcome: "access_denied",
+        target: "hub",
+      });
       return launchFailure(c, "app_access_denied", entry.name);
     }
 
     if (entry.status === "maintenance") {
+      logger.info(`Launch refused, app under maintenance: ${entry.id}`, user.email);
+      await recordLaunchAudit({
+        actor: user,
+        appId: entry.id,
+        appName: entry.name,
+        outcome: "maintenance",
+        target: "hub",
+      });
       return launchFailure(c, "app_maintenance", entry.name);
     }
 
     if (entry.status === "coming_soon") {
+      logger.info(`Launch refused, app coming soon: ${entry.id}`, user.email);
+      await recordLaunchAudit({
+        actor: user,
+        appId: entry.id,
+        appName: entry.name,
+        outcome: "coming_soon",
+        target: "hub",
+      });
       return launchFailure(c, "app_coming_soon", entry.name);
     }
 
@@ -99,7 +174,14 @@ export class AppsController {
         tags: AppsService.accessTagsFor(user),
       });
 
-      logger.info(`Launch redirected to SSO: ${entry.id}`);
+      logger.info(`Launch redirected to SSO: ${entry.id}`, user.email);
+      await recordLaunchAudit({
+        actor: user,
+        appId: entry.id,
+        appName: entry.name,
+        outcome: "redirected",
+        target: "sso",
+      });
       return c.redirect(
         `${entry.sso.entryUrl}?token=${encodeURIComponent(token)}`,
         302,
@@ -107,10 +189,25 @@ export class AppsController {
     }
 
     if (!entry.href) {
+      logger.info(`Launch refused, app has no link: ${entry.id}`, user.email);
+      await recordLaunchAudit({
+        actor: user,
+        appId: entry.id,
+        appName: entry.name,
+        outcome: "no_link",
+        target: "hub",
+      });
       return launchFailure(c, "app_no_link", entry.name);
     }
 
-    logger.info(`Launch redirected to URL: ${entry.id}`);
+    logger.info(`Launch redirected to URL: ${entry.id}`, user.email);
+    await recordLaunchAudit({
+      actor: user,
+      appId: entry.id,
+      appName: entry.name,
+      outcome: "redirected",
+      target: "url",
+    });
     return c.redirect(entry.href, 302);
   }
 }

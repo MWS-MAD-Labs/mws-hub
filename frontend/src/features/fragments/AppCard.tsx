@@ -97,6 +97,17 @@ const AppCard = memo(
       ) {
         return;
       }
+
+      // On phones, long-press preview proves the anchor URL itself is fine.
+      // The fragile part is the desktop-only reuse/silent-refresh flow below:
+      // mobile browsers can leave the named window at about:blank after a
+      // prevented click plus async work. Let mobile use the native anchor
+      // navigation instead; the backend launch route still redirects expired
+      // sessions back to Hub login.
+      if (window.matchMedia("(pointer: coarse)").matches) {
+        return;
+      }
+
       event.preventDefault();
 
       // Mobile browsers are strict about popups: if window.open happens
