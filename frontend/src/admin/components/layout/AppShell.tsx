@@ -26,7 +26,7 @@ export default function AppShell({ children }: AppShellProps) {
           isSidebarOpen ? "lg:pl-64" : "lg:pl-20",
         )}
       >
-        <header className="sticky top-0 z-30 border-b border-border/60 bg-background/90 backdrop-blur-xl">
+        <header className="sticky top-0 z-30 border-b border-border/60 bg-white backdrop-blur-xl">
           <div className="flex h-14 items-center gap-3 px-4 sm:px-6">
             <button
               type="button"
@@ -57,16 +57,20 @@ export default function AppShell({ children }: AppShellProps) {
               </p>
             </div>
             <div className="ml-auto flex items-center gap-2">
-              <Link
-                to="/support-hub"
-                className="rounded-md border border-border/60 px-3 py-2 text-xs font-semibold hover:bg-card"
-              >
-                Hub
-              </Link>
+              <div>
+                {/* <Notification /> */}
+              </div>
+              <div className="ml-auto flex items-center gap-2">
+                <Link
+                  to="/support-hub"
+                  className="rounded-md border border-border/60 px-3 py-2 text-xs font-semibold hover:bg-card"
+                >
+                  Hub
+                </Link>
+              </div>
             </div>
           </div>
         </header>
-
         <main className="px-4 py-6 sm:px-6 lg:px-8">{children}</main>
       </div>
     </div>

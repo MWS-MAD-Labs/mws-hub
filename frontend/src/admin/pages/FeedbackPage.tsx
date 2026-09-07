@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import AppShell from "@/admin/components/layout/AppShell";
+import Dropdown from "@/admin/components/ui/Dropdown";
 import {
   adminApi,
   type AdminAccessRequest,
@@ -61,6 +62,17 @@ export default function FeedbackPage() {
     }
   }
 
+  const reportStatusOptions = [
+    { value: "OPEN", label: "open" },
+    { value: "IN_PROGRESS", label: "in progress" },
+    { value: "RESOLVED", label: "resolved" },
+  ] satisfies Array<{ value: AdminReport["status"]; label: string }>;
+  const requestStatusOptions = [
+    { value: "PENDING", label: "pending" },
+    { value: "APPROVED", label: "approved" },
+    { value: "REJECTED", label: "rejected" },
+  ] satisfies Array<{ value: AdminAccessRequest["status"]; label: string }>;
+
   return (
     <AppShell>
       <section className="space-y-8">
@@ -93,20 +105,18 @@ export default function FeedbackPage() {
                     {report.reporter_email}
                   </td>
                   <td className="px-4 py-4">
-                    <select
-                      className="rounded-md border border-border/70 bg-background px-2 py-1 text-xs"
+                    <Dropdown
                       value={report.status}
-                      onChange={(event) =>
+                      className="w-36"
+                      buttonClassName="text-xs"
+                      options={reportStatusOptions}
+                      onChange={(value) =>
                         void changeReport(
                           report.id,
-                          event.target.value as AdminReport["status"],
+                          value,
                         )
                       }
-                    >
-                      <option value="OPEN">Open</option>
-                      <option value="IN_PROGRESS">In progress</option>
-                      <option value="RESOLVED">Resolved</option>
-                    </select>
+                    />
                   </td>
                 </>
               )}
@@ -127,20 +137,18 @@ export default function FeedbackPage() {
                     {request.requester_email}
                   </td>
                   <td className="px-4 py-4">
-                    <select
-                      className="rounded-md border border-border/70 bg-background px-2 py-1 text-xs"
+                    <Dropdown
                       value={request.status}
-                      onChange={(event) =>
+                      className="w-36"
+                      buttonClassName="text-xs"
+                      options={requestStatusOptions}
+                      onChange={(value) =>
                         void changeRequest(
                           request.id,
-                          event.target.value as AdminAccessRequest["status"],
+                          value,
                         )
                       }
-                    >
-                      <option value="PENDING">Pending</option>
-                      <option value="APPROVED">Approved</option>
-                      <option value="REJECTED">Rejected</option>
-                    </select>
+                    />
                   </td>
                 </>
               )}

@@ -1,5 +1,12 @@
 import type { AdminApplicationInput } from "@/admin/api/adminApi";
-import { inputClass, sectionClass, STATUSES } from "../constants";
+import {
+  helperTextClass,
+  inputClass,
+  labelClass,
+  sectionBodyClass,
+  sectionClass,
+  STATUSES,
+} from "../constants";
 import SectionHeading from "./SectionHeading";
 
 type StatusAndUrlSectionProps = {
@@ -20,10 +27,10 @@ export default function StatusAndUrlSection({ form, update }: StatusAndUrlSectio
         title="Alamat dan status"
         subtitle="Ke mana kartu ini membuka, dan apakah sedang bisa dipakai."
       />
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="text-sm font-medium sm:col-span-2">
+      <div className={`${sectionBodyClass} grid gap-5 md:grid-cols-2`}>
+        <label className={`${labelClass} md:col-span-2`}>
           Alamat aplikasi
-          <span className="block text-xs font-normal text-muted-foreground">
+          <span className={helperTextClass}>
             Halaman yang dibuka saat kartu diklik. Contoh:
             https://app.millenniaws.sch.id/mtss
           </span>
@@ -36,28 +43,28 @@ export default function StatusAndUrlSection({ form, update }: StatusAndUrlSectio
           />
         </label>
 
-        <fieldset className="sm:col-span-2">
-          <legend className="text-sm font-medium">Status</legend>
-          <div className="mt-2 grid gap-2 sm:grid-cols-3">
+        <fieldset className="md:col-span-2">
+          <legend className="text-sm font-medium text-slate-700">Status</legend>
+          <div className="mt-2 grid gap-3 md:grid-cols-3">
             {STATUSES.map((status) => (
               <label
                 key={status.value}
-                className={`flex cursor-pointer items-start gap-2 rounded-md border p-2 text-sm ${
+                className={`flex cursor-pointer items-start gap-3 rounded-md border p-3 text-sm transition-colors ${
                   form.status === status.value
-                    ? "border-primary bg-primary/5"
-                    : "border-border/60"
+                    ? "border-primary/40 bg-primary/5"
+                    : "border-slate-200 hover:bg-slate-50"
                 }`}
               >
                 <input
                   type="radio"
                   name="status"
-                  className="mt-1"
+                  className="mt-1 h-4 w-4 border-slate-300 text-primary focus:ring-primary/20"
                   checked={form.status === status.value}
                   onChange={() => update("status", status.value)}
                 />
                 <span>
-                  <span className="font-medium">{status.label}</span>
-                  <span className="block text-xs text-muted-foreground">
+                  <span className="font-medium text-slate-800">{status.label}</span>
+                  <span className="mt-1 block text-xs leading-5 text-slate-500">
                     {status.hint}
                   </span>
                 </span>
@@ -66,9 +73,9 @@ export default function StatusAndUrlSection({ form, update }: StatusAndUrlSectio
           </div>
         </fieldset>
 
-        <label className="text-sm font-medium">
+        <label className={labelClass}>
           Urutan tampil
-          <span className="block text-xs font-normal text-muted-foreground">
+          <span className={helperTextClass}>
             Angka kecil tampil lebih dulu. Biarkan 0 kalau tidak penting.
           </span>
           <input
@@ -79,16 +86,16 @@ export default function StatusAndUrlSection({ form, update }: StatusAndUrlSectio
           />
         </label>
 
-        <label className="flex items-start gap-2 self-end text-sm">
+        <label className="flex items-start gap-3 self-end rounded-md border border-slate-200 p-3 text-sm">
           <input
             type="checkbox"
-            className="mt-1"
+            className="mt-1 h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary/20"
             checked={form.discoverable ?? true}
             onChange={(event) => update("discoverable", event.target.checked)}
           />
           <span>
-            <span className="font-medium">Tampilkan di halaman Hub</span>
-            <span className="block text-xs text-muted-foreground">
+            <span className="font-medium text-slate-800">Tampilkan di halaman Hub</span>
+            <span className="mt-1 block text-xs leading-5 text-slate-500">
               Matikan untuk menyembunyikan tanpa menghapus.
             </span>
           </span>

@@ -13,6 +13,8 @@ const Dashboard = lazy(() => import("@/admin/pages/Dashboard"));
 const ApplicationsPage = lazy(() => import("@/admin/pages/ApplicationsPage"));
 const ApplicationEditorPage = lazy(() => import("@/admin/pages/ApplicationEditorPage"));
 const FeedbackPage = lazy(() => import("@/admin/pages/FeedbackPage"));
+const AccessRequest = lazy(() => import("@/admin/pages/AccessRequest"));
+const BrokenTools = lazy(() => import("@/admin/pages/BrokenTools"));
 const AuditLogsPage = lazy(() => import("@/admin/pages/AuditLogsPage"));
 
 function PageLoader({ children }: { children: ReactNode }) {
@@ -123,6 +125,30 @@ export default function App() {
               <PageLoader>
                 <RequireAdmin>
                   <FeedbackPage />
+                </RequireAdmin>
+              </PageLoader>
+            }
+          />
+          <Route
+            path="/admin/broken-tools"
+            element={
+              <PageLoader>
+                <RequireAdmin>
+                  <BrokenTools />
+                </RequireAdmin>
+              </PageLoader>
+            }
+          />
+          <Route
+            path="/admin/Broken-tool-reports"
+            element={<Navigate to="/admin/broken-tools" replace />}
+          />
+          <Route
+            path="/admin/access-requests"
+            element={
+              <PageLoader>
+                <RequireAdmin>
+                  <AccessRequest />
                 </RequireAdmin>
               </PageLoader>
             }

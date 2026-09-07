@@ -1,9 +1,9 @@
 import {
   AppWindow,
-  BarChart3,
   ClipboardList,
   Home,
-  LifeBuoy,
+  KeyRound,
+  Wrench,
   X,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
@@ -24,8 +24,19 @@ const menuItems = [
     icon: AppWindow,
     enabled: true,
   },
-  { label: "Status Toggles", href: "#", icon: BarChart3, enabled: false },
-  { label: "Feedback", href: "/admin/feedback", icon: LifeBuoy, enabled: true },
+  {
+    label: "Broken Tools",
+    href: "/admin/broken-tools",
+    icon: Wrench,
+    enabled: true,
+  },
+  {
+    label: "Access requests",
+    href: "/admin/access-requests",
+    icon: KeyRound,
+    enabled: true,
+  },
+
   {
     label: "Audit Logs",
     href: "/admin/audit-logs",
@@ -56,9 +67,7 @@ export default function Sidebar({
           "border-r border-slate-200 bg-white",
           "transition-all duration-200 ease-out",
           "lg:translate-x-0",
-          isMobileOpen
-            ? "translate-x-0"
-            : "-translate-x-full lg:translate-x-0",
+          isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
           isOpen ? "lg:w-[270px]" : "lg:w-[72px]",
           "w-[270px]",
         )}
@@ -77,12 +86,7 @@ export default function Sidebar({
               className="h-9 w-9 shrink-0 object-contain"
             />
 
-            <div
-              className={cn(
-                "min-w-0",
-                !isOpen && "lg:hidden",
-              )}
-            >
+            <div className={cn("min-w-0", !isOpen && "lg:hidden")}>
               <p className="truncate text-[20px] font-bold tracking-[-0.02em] text-slate-800">
                 MWS Hub
               </p>
@@ -139,12 +143,7 @@ export default function Sidebar({
                   >
                     <Icon className="h-[18px] w-[18px] shrink-0 stroke-[1.7]" />
 
-                    <span
-                      className={cn(
-                        "truncate",
-                        !isOpen && "lg:hidden",
-                      )}
-                    >
+                    <span className={cn("truncate", !isOpen && "lg:hidden")}>
                       {item.label}
                     </span>
                   </div>
@@ -165,10 +164,7 @@ export default function Sidebar({
                       !isOpen && "lg:justify-center lg:px-0",
 
                       isActive
-                        ? [
-                            "bg-indigo-50",
-                            "text-indigo-600",
-                          ]
+                        ? ["bg-red-50", "text-red-700"]
                         : [
                             "text-slate-600",
                             "hover:bg-slate-50",
@@ -184,17 +180,12 @@ export default function Sidebar({
                         className={cn(
                           "h-[18px] w-[18px] shrink-0 stroke-[1.7]",
                           isActive
-                            ? "text-indigo-600"
+                            ? "text-red-700"
                             : "text-slate-500 group-hover:text-slate-700",
                         )}
                       />
 
-                      <span
-                        className={cn(
-                          "truncate",
-                          !isOpen && "lg:hidden",
-                        )}
-                      >
+                      <span className={cn("truncate", !isOpen && "lg:hidden")}>
                         {item.label}
                       </span>
                     </>

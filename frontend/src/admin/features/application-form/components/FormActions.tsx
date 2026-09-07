@@ -1,3 +1,5 @@
+import { primaryButtonClass, secondaryButtonClass } from "../constants";
+
 type FormActionsProps = {
   isSaving: boolean;
   isEditing: boolean;
@@ -6,18 +8,18 @@ type FormActionsProps = {
 
 export default function FormActions({ isSaving, isEditing, onCancel }: FormActionsProps) {
   return (
-    <div className="flex justify-end gap-2 border-t border-border/60 pt-4">
+    <div className="flex flex-col-reverse gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:justify-end">
       <button
         type="button"
         onClick={onCancel}
-        className="rounded-md border border-border/70 px-4 py-2 text-sm font-semibold hover:bg-muted"
+        className={secondaryButtonClass}
       >
         Batal
       </button>
       <button
         type="submit"
         disabled={isSaving}
-        className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+        className={primaryButtonClass}
       >
         {isSaving ? "Menyimpan..." : isEditing ? "Simpan perubahan" : "Tambah aplikasi"}
       </button>

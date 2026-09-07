@@ -40,7 +40,19 @@ export const emptyForm: AdminApplicationInput = {
 };
 
 export const inputClass =
-  "mt-1 w-full rounded-md border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20";
+  "mt-1.5 w-full rounded-md border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-primary focus:ring-4 focus:ring-primary/10";
 
 export const sectionClass =
-  "rounded-lg border border-border/60 bg-card p-4 shadow-sm sm:p-5";
+  "overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm";
+
+export const sectionBodyClass = "p-5 sm:p-6";
+
+export const labelClass = "block text-sm font-medium text-slate-700";
+
+export const helperTextClass = "mt-1 text-xs leading-5 text-slate-500";
+
+export const secondaryButtonClass =
+  "inline-flex h-10 items-center justify-center rounded-md border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50";
+
+export const primaryButtonClass =
+  "inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60";

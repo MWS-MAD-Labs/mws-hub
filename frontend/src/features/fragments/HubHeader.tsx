@@ -18,10 +18,6 @@ type HubHeaderProps = {
   isAdmin?: boolean;
 };
 
-// Thin utility bar only: identity on the left, the user on the right. Search
-// moved into the page body - it belongs with the content it filters, and a
-// launcher's first screen should lead with the search field, not bury it in
-// chrome.
 const HubHeader = memo(({ user, isAdmin }: HubHeaderProps) => (
   <header className="sticky top-0 z-30 border-b border-border/50 bg-background/85 backdrop-blur-xl">
     <div className="mx-auto flex h-14 max-w-[1600px] items-center px-4 sm:px-6">

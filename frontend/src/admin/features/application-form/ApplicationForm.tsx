@@ -33,7 +33,8 @@ export default function ApplicationForm({
   onCancel,
   onSubmit,
 }: ApplicationFormProps) {
-  const { form, update, appId, formError, setFormError } = useApplicationForm(application);
+  const { form, update, appId, formError, setFormError } =
+    useApplicationForm(application);
   const { iconQuery, setIconQuery, visibleIcons } = useIconPicker();
 
   const {
@@ -57,11 +58,18 @@ export default function ApplicationForm({
     resetKey: application,
   });
 
-  const { usesSso, setUsesSso, ssoBase, setSsoBase, resolve: resolveSso } =
-    useSsoConfig(application);
+  const {
+    usesSso,
+    setUsesSso,
+    ssoBase,
+    setSsoBase,
+    resolve: resolveSso,
+  } = useSsoConfig(application);
 
   const PreviewIcon = getAppIcon(form.icon || "AppWindow");
-  const keywordText = normalizeKeywordParts((form.keywords ?? []).join(",")).join(", ");
+  const keywordText = normalizeKeywordParts(
+    (form.keywords ?? []).join(","),
+  ).join(", ");
   const isEditing = Boolean(application);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -81,7 +89,9 @@ export default function ApplicationForm({
       description: form.description.trim(),
       audience: derivedAudience,
       category: form.category.trim(),
-      keywords: (form.keywords ?? []).map((keyword) => keyword.trim()).filter(Boolean),
+      keywords: (form.keywords ?? [])
+        .map((keyword) => keyword.trim())
+        .filter(Boolean),
       href: form.href?.trim() || null,
       ssoAppId: sso.ssoAppId,
       ssoEntryUrl: sso.ssoEntryUrl,
@@ -91,57 +101,77 @@ export default function ApplicationForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
+    <form onSubmit={handleSubmit} className="space-y-5">
       {formError ? (
-        <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+        <p className="rounded-md border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           {formError}
         </p>
       ) : null}
 
-      <CardPreview form={form} derivedAudience={derivedAudience} PreviewIcon={PreviewIcon} />
+      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+        {/* LEFT — FORM */}
+        <div className="min-w-0 space-y-5">
+          <IdentitySection
+            form={form}
+            update={update}
+            appId={appId}
+            isEditing={isEditing}
+            keywordText={keywordText}
+            iconQuery={iconQuery}
+            setIconQuery={setIconQuery}
+            visibleIcons={visibleIcons}
+            PreviewIcon={PreviewIcon}
+          />
 
-      <IdentitySection
-        form={form}
-        update={update}
-        appId={appId}
-        isEditing={isEditing}
-        keywordText={keywordText}
-        iconQuery={iconQuery}
-        setIconQuery={setIconQuery}
-        visibleIcons={visibleIcons}
-        PreviewIcon={PreviewIcon}
-      />
+          <AccessControlSection
+            accessGroups={accessGroups}
+            activeAccessGroup={activeAccessGroup}
+            setActiveAccessGroup={setActiveAccessGroup}
+            accessQuery={accessQuery}
+            setAccessQuery={setAccessQuery}
+            filteredAccessOptions={filteredAccessOptions}
+            selectedAccessLabels={selectedAccessLabels}
+            allowedSources={form.allowedSources ?? []}
+            toggleSource={toggleSource}
+            removeSource={removeSource}
+            customRule={customRule}
+            setCustomRule={setCustomRule}
+            addCustomRule={addCustomRule}
+            centralRulePrefixes={accessOptions.centralRulePrefixes}
+          />
 
-      <AccessControlSection
-        accessGroups={accessGroups}
-        activeAccessGroup={activeAccessGroup}
-        setActiveAccessGroup={setActiveAccessGroup}
-        accessQuery={accessQuery}
-        setAccessQuery={setAccessQuery}
-        filteredAccessOptions={filteredAccessOptions}
-        selectedAccessLabels={selectedAccessLabels}
-        allowedSources={form.allowedSources ?? []}
-        toggleSource={toggleSource}
-        removeSource={removeSource}
-        customRule={customRule}
-        setCustomRule={setCustomRule}
-        addCustomRule={addCustomRule}
-        centralRulePrefixes={accessOptions.centralRulePrefixes}
-      />
+          <StatusAndUrlSection form={form} update={update} />
 
-      <StatusAndUrlSection form={form} update={update} />
+          <SsoSection
+            usesSso={usesSso}
+            setUsesSso={setUsesSso}
+            ssoBase={ssoBase}
+            setSsoBase={setSsoBase}
+            appId={appId}
+            formSsoAppId={form.ssoAppId}
+            update={update}
+          />
+        </div>
 
-      <SsoSection
-        usesSso={usesSso}
-        setUsesSso={setUsesSso}
-        ssoBase={ssoBase}
-        setSsoBase={setSsoBase}
-        appId={appId}
-        formSsoAppId={form.ssoAppId}
-        update={update}
-      />
+        {/* RIGHT — PREVIEW + ACTIONS */}
+        <aside className="lg:sticky lg:top-20 lg:self-start">
+          <div className="overflow-hidden rounded-lg bg-white shadow-sm">
+            <CardPreview
+              form={form}
+              derivedAudience={derivedAudience}
+              PreviewIcon={PreviewIcon}
+            />
 
-      <FormActions isSaving={isSaving} isEditing={isEditing} onCancel={onCancel} />
+            <div className="p-4">
+              <FormActions
+                isSaving={isSaving}
+                isEditing={isEditing}
+                onCancel={onCancel}
+              />
+            </div>
+          </div>
+        </aside>
+      </div>
     </form>
   );
 }

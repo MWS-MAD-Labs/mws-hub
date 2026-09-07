@@ -47,7 +47,7 @@ export default function AuditLogsPage() {
 
   return (
     <AppShell>
-      <section className="space-y-6">
+      <section className="space-y-6 w-full p-8">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
