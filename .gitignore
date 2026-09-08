@@ -8,3 +8,6 @@ KOMODO_SETUP.md
 Admin.md
 Revisi1.md
 Revisi2.md
+
+# graphify knowledge graph (regenerable build artifact, machine-specific cache/paths)
+graphify-out/
