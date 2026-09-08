@@ -1,17 +1,35 @@
+import { lazy, Suspense, type ReactNode } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster } from "sonner";
 import { AuthProvider } from "@/features/auth/context/AuthContext";
 import { RequireAuth } from "@/features/auth/components/RequireAuth";
 import { RequireAdmin } from "@/features/auth/components/RequireAdmin";
-import SupportHubPage from "@/pages/SupportHubPage";
-import ProfilePage from "@/pages/ProfilePage";
-import LoginPage from "@/pages/LoginPage";
-import LogoutRelayPage from "@/pages/LogoutRelayPage";
-import Dashboard from "@/admin/pages/Dashboard";
-import ApplicationsPage from "@/admin/pages/ApplicationsPage";
-import ApplicationEditorPage from "@/admin/pages/ApplicationEditorPage";
-import FeedbackPage from "@/admin/pages/FeedbackPage";
-import AuditLogsPage from "@/admin/pages/AuditLogsPage";
+
+const SupportHubPage = lazy(() => import("@/pages/SupportHubPage"));
+const ProfilePage = lazy(() => import("@/pages/ProfilePage"));
+const LoginPage = lazy(() => import("@/pages/LoginPage"));
+const LogoutRelayPage = lazy(() => import("@/pages/LogoutRelayPage"));
+const Dashboard = lazy(() => import("@/admin/pages/Dashboard"));
+const ApplicationsPage = lazy(() => import("@/admin/pages/ApplicationsPage"));
+const ApplicationEditorPage = lazy(() => import("@/admin/pages/ApplicationEditorPage"));
+const FeedbackPage = lazy(() => import("@/admin/pages/FeedbackPage"));
+const AccessRequest = lazy(() => import("@/admin/pages/AccessRequest"));
+const BrokenTools = lazy(() => import("@/admin/pages/BrokenTools"));
+const AuditLogsPage = lazy(() => import("@/admin/pages/AuditLogsPage"));
+
+function PageLoader({ children }: { children: ReactNode }) {
+  return (
+    <Suspense
+      fallback={
+        <div className="grid min-h-screen place-items-center bg-background text-sm text-muted-foreground">
+          Loading...
+        </div>
+      }
+    >
+      {children}
+    </Suspense>
+  );
+}
 
 export default function App() {
   return (
@@ -19,54 +37,80 @@ export default function App() {
       <AuthProvider>
         <Routes>
           <Route path="/" element={<Navigate to="/support-hub" replace />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/logout-relay" element={<LogoutRelayPage />} />
+          <Route
+            path="/login"
+            element={
+              <PageLoader>
+                <LoginPage />
+              </PageLoader>
+            }
+          />
+          <Route
+            path="/logout-relay"
+            element={
+              <PageLoader>
+                <LogoutRelayPage />
+              </PageLoader>
+            }
+          />
           <Route
             path="/support-hub"
             element={
-              <RequireAuth>
-                <SupportHubPage />
-              </RequireAuth>
+              <PageLoader>
+                <RequireAuth>
+                  <SupportHubPage />
+                </RequireAuth>
+              </PageLoader>
             }
           />
           <Route
             path="/profile"
             element={
-              <RequireAuth>
-                <ProfilePage />
-              </RequireAuth>
+              <PageLoader>
+                <RequireAuth>
+                  <ProfilePage />
+                </RequireAuth>
+              </PageLoader>
             }
           />
           <Route
             path="/admin"
             element={
-              <RequireAdmin>
-                <Dashboard />
-              </RequireAdmin>
+              <PageLoader>
+                <RequireAdmin>
+                  <Dashboard />
+                </RequireAdmin>
+              </PageLoader>
             }
           />
           <Route
             path="/admin/catalog"
             element={
-              <RequireAdmin>
-                <ApplicationsPage />
-              </RequireAdmin>
+              <PageLoader>
+                <RequireAdmin>
+                  <ApplicationsPage />
+                </RequireAdmin>
+              </PageLoader>
             }
           />
           <Route
             path="/admin/catalog/new"
             element={
-              <RequireAdmin>
-                <ApplicationEditorPage />
-              </RequireAdmin>
+              <PageLoader>
+                <RequireAdmin>
+                  <ApplicationEditorPage />
+                </RequireAdmin>
+              </PageLoader>
             }
           />
           <Route
             path="/admin/catalog/:id/edit"
             element={
-              <RequireAdmin>
-                <ApplicationEditorPage />
-              </RequireAdmin>
+              <PageLoader>
+                <RequireAdmin>
+                  <ApplicationEditorPage />
+                </RequireAdmin>
+              </PageLoader>
             }
           />
           <Route
@@ -78,17 +122,45 @@ export default function App() {
           <Route
             path="/admin/feedback"
             element={
-              <RequireAdmin>
-                <FeedbackPage />
-              </RequireAdmin>
+              <PageLoader>
+                <RequireAdmin>
+                  <FeedbackPage />
+                </RequireAdmin>
+              </PageLoader>
+            }
+          />
+          <Route
+            path="/admin/broken-tools"
+            element={
+              <PageLoader>
+                <RequireAdmin>
+                  <BrokenTools />
+                </RequireAdmin>
+              </PageLoader>
+            }
+          />
+          <Route
+            path="/admin/Broken-tool-reports"
+            element={<Navigate to="/admin/broken-tools" replace />}
+          />
+          <Route
+            path="/admin/access-requests"
+            element={
+              <PageLoader>
+                <RequireAdmin>
+                  <AccessRequest />
+                </RequireAdmin>
+              </PageLoader>
             }
           />
           <Route
             path="/admin/audit-logs"
             element={
-              <RequireAdmin>
-                <AuditLogsPage />
-              </RequireAdmin>
+              <PageLoader>
+                <RequireAdmin>
+                  <AuditLogsPage />
+                </RequireAdmin>
+              </PageLoader>
             }
           />
         </Routes>

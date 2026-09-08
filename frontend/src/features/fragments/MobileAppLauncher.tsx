@@ -6,6 +6,8 @@ import {
   MOBILE_LAUNCHER_SCROLLER_CLASS,
 } from "./hubGrid";
 import type { HubApplication, HubUser } from "@/model/hub-model";
+import BirthdayList from "@/mobile/components/layout/Birthdaylist";
+import Announcements from "@/mobile/components/layout/Announcements";
 
 type MobileAppLauncherProps = {
   apps: HubApplication[];
@@ -39,7 +41,18 @@ const MobileAppLauncher = memo(
           sm:hidden
         "
       >
+        <BirthdayList />
+
         <div className={MOBILE_LAUNCHER_SCROLLER_CLASS}>
+          <div className="flex items-baseline gap-1.5 px-1 pt-1">
+            <h2 className="text-xs font-semibold text-muted-foreground">
+              Your Apps
+            </h2>
+            <span className="text-[10px] font-medium text-muted-foreground/70">
+              {apps.length}
+            </span>
+          </div>
+
           {apps.length > 0 ? (
             <div className={MOBILE_LAUNCHER_PAGE_CLASS}>
               {apps.map((app) => (
@@ -52,12 +65,13 @@ const MobileAppLauncher = memo(
               ))}
             </div>
           ) : (
-            <div className="flex h-full items-center justify-center text-sm font-medium text-muted-foreground">
+            <div className="flex min-h-36 items-center justify-center rounded-lg border border-dashed border-border/60 bg-card/50 text-sm font-medium text-muted-foreground">
               No apps found
             </div>
           )}
-        </div>
 
+          <Announcements />
+        </div>
         <MobileSpotlightSearch
           query={query}
           user={user}

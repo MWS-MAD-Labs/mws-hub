@@ -6,7 +6,9 @@ import { ResponseError } from "../error/response-error";
 import { resolveLogoutRedirect } from "../lib/logout-redirect";
 import { frontendOrigin } from "../lib/frontend-origin";
 import { logger } from "../lib/logger";
+import { verifySession } from "../lib/session";
 import { AppsService } from "../service/apps-service";
+import { recordAuditLog } from "../service/audit-log-service";
 import { getUserUnitId, isMadLabsUser } from "../lib/admin-access";
 import type { SessionVariables } from "../type/hono-context";
 
@@ -85,6 +87,13 @@ async function authUserResponse(user: SessionVariables["user"]) {
   };
 }
 
+async function sessionUserFromCookie(c: Context): Promise<SessionVariables["user"] | null> {
+  const cookieName = process.env.SESSION_COOKIE_NAME || "hub_session";
+  const token = getCookie(c, cookieName);
+  if (!token) return null;
+  return (await verifySession(token))?.user ?? null;
+}
+
 export class AuthController {
   static async startGoogleLogin(c: Context) {
     const redirect = sanitizeLaunchRedirect(c.req.query("redirect"));
@@ -109,6 +118,19 @@ export class AuthController {
       maxAge: 60 * 60 * 8,
     });
 
+    logger.info("User logged in:", user.email);
+    await recordAuditLog({
+      actor: user,
+      action: "auth.login",
+      entity: { type: "user", id: user.email },
+      summary: `${user.email} logged in`,
+      metadata: {
+        method: "google",
+        source: user.source,
+        unit_id: getUserUnitId(user),
+      },
+    });
+
     return c.json({ data: await authUserResponse(user) });
   }
 
@@ -126,8 +148,9 @@ export class AuthController {
     const redirect = redirectFromState(state);
 
     let token: string;
+    let user: SessionVariables["user"];
     try {
-      ({ token } = await AuthService.loginWithGoogle(code));
+      ({ token, user } = await AuthService.loginWithGoogle(code));
     } catch (err) {
       logger.error("Google callback failed:", err);
       const errorCode =
@@ -145,6 +168,20 @@ export class AuthController {
       maxAge: 60 * 60 * 8,
     });
 
+    logger.info("User logged in from Google callback:", user.email);
+    await recordAuditLog({
+      actor: user,
+      action: "auth.login",
+      entity: { type: "user", id: user.email },
+      summary: `${user.email} logged in`,
+      metadata: {
+        method: "google_callback",
+        source: user.source,
+        unit_id: getUserUnitId(user),
+        redirect: redirect ?? "/support-hub",
+      },
+    });
+
     return c.redirect(`${frontendOrigin()}${redirect ?? "/support-hub"}`, 302);
   }
 
@@ -155,8 +192,23 @@ export class AuthController {
 
   // Hub's own sign-out button, called as an XHR from the Hub UI.
   static async logout(c: Context) {
+    const user = await sessionUserFromCookie(c);
     const cookieName = process.env.SESSION_COOKIE_NAME || "hub_session";
     deleteCookie(c, cookieName, cookieOptions());
+
+    if (user) {
+      logger.info("User logged out:", user.email);
+      await recordAuditLog({
+        actor: user,
+        action: "auth.logout",
+        entity: { type: "user", id: user.email },
+        summary: `${user.email} logged out`,
+        metadata: { surface: "hub" },
+      });
+    } else {
+      logger.info("Logout requested without a valid Hub session");
+    }
+
     return c.json({ data: "Logged out successfully" });
   }
 
@@ -179,6 +231,7 @@ export class AuthController {
   // Put Hub on a different domain than the apps and this silently stops
   // clearing anything.
   static async logoutFromApp(c: Context) {
+    const user = await sessionUserFromCookie(c);
     const cookieName = process.env.SESSION_COOKIE_NAME || "hub_session";
     deleteCookie(c, cookieName, cookieOptions());
 
@@ -194,6 +247,22 @@ export class AuthController {
       ...postLogoutRedirectCookieOptions(),
       maxAge: 30,
     });
+
+    if (user) {
+      logger.info("User logged out from satellite app:", user.email);
+      await recordAuditLog({
+        actor: user,
+        action: "auth.logout",
+        entity: { type: "user", id: user.email },
+        summary: `${user.email} logged out from a connected app`,
+        metadata: {
+          surface: "connected_app",
+          redirect_target: target,
+        },
+      });
+    } else {
+      logger.info("App logout reached Hub without a valid Hub session");
+    }
 
     return c.redirect(`${frontendOrigin()}/logout-relay`, 302);
   }

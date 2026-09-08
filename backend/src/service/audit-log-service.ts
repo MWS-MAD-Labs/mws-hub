@@ -22,7 +22,7 @@ export function actorDisplayName(actor: HubUser): string | null {
 
 export async function recordAuditLog(input: AuditLogInput) {
   try {
-    return await prisma.auditLog.create({
+    const auditLog = await prisma.auditLog.create({
       data: {
         actor_email: input.actor.email,
         actor_name: actorDisplayName(input.actor),
@@ -33,6 +33,15 @@ export async function recordAuditLog(input: AuditLogInput) {
         metadata: input.metadata,
       },
     });
+
+    logger.info("Audit event:", {
+      action: input.action,
+      actor: input.actor.email,
+      entity: `${input.entity.type}:${input.entity.id}`,
+      summary: input.summary,
+    });
+
+    return auditLog;
   } catch (error) {
     logger.error("Audit log write failed:", error);
     return null;

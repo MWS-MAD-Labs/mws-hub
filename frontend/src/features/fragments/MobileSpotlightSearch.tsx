@@ -82,7 +82,7 @@ const MobileSpotlightSearch = memo(
               <Search className="h-5 w-5 shrink-0" aria-hidden="true" />
 
               {!isExpanded && (
-                <span className="text-sm text-muted-foreground">Search</span>
+                <span className="text-sm text-muted-foreground">Search apps...</span>
               )}
             </button>
 
@@ -94,7 +94,7 @@ const MobileSpotlightSearch = memo(
               onKeyDown={(event) => {
                 if (event.key === "Escape") collapse();
               }}
-              placeholder="Search"
+              placeholder="Search apps..."
               aria-label="Search applications"
               className={cn(
                 "h-full min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground transition-opacity duration-200 ",

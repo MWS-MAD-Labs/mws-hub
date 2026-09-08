@@ -36,6 +36,17 @@ export type HubCategoryFilterOption = {
   count: number;
 };
 
+export type HubBirthday = {
+  id: string;
+  name: string;
+  nick_name: string | null;
+  photo_url: string | null;
+  unit: string | null;
+  birthday: string;
+  days_until: number;
+  is_today: boolean;
+};
+
 // UI-facing shape HubHeader/etc render - see model/auth-model.ts's
 // toHubUser() for how this gets derived from a real Central identity.
 export type HubUser = {

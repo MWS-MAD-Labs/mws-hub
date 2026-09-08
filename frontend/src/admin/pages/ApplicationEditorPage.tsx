@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import AppShell from "@/admin/components/layout/AppShell";
-import ApplicationForm from "@/admin/components/ApplicationForm";
+import ApplicationForm from "@/admin/features/application-form/ApplicationForm";
 import {
   adminApi,
   type AdminAccessOptions,
@@ -93,32 +92,41 @@ export default function ApplicationEditorPage() {
 
   return (
     <AppShell>
-      <section className="mx-auto max-w-4xl">
-        <Link
-          to="/admin/catalog"
-          className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Catalog
-        </Link>
+      <section className="-mx-4 -my-6 min-h-[calc(100vh-3.5rem)] bg-slate-50 px-4 py-6 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+        <div className="w-full p-8">
+          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                Catalog management
+              </p>
+              <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">
+                {isEditing ? "Edit Application" : "Add Application"}
+              </h1>
+            </div>
 
-        <div className="mt-5">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Catalog management
-          </p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight">
-            {isEditing ? "Edit application" : "Add application"}
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Kelola kartu aplikasi tanpa mengubah source code Hub.
-          </p>
-        </div>
+            <nav className="flex items-center gap-2 text-sm text-slate-500">
+              <Link to="/admin" className="hover:text-slate-900">
+                Dashboard
+              </Link>
+              <span>/</span>
+              <Link to="/admin/catalog" className="hover:text-slate-900">
+                Applications
+              </Link>
+              <span>/</span>
+              <span className="font-medium text-slate-900">
+                {isEditing ? "Edit" : "Add"}
+              </span>
+            </nav>
+          </div>
 
-        <div className="mt-6 rounded-lg border border-border/60 bg-card p-5 sm:p-6">
           {isLoading ? (
-            <p className="text-sm text-muted-foreground">Loading form...</p>
+            <div className="rounded-lg border border-slate-200 bg-white p-6 text-sm text-slate-500 shadow-sm">
+              Loading form...
+            </div>
           ) : error ? (
-            <p className="text-sm text-destructive">{error}</p>
+            <div className="rounded-lg border border-destructive/20 bg-white p-6 text-sm text-destructive shadow-sm">
+              {error}
+            </div>
           ) : (
             <ApplicationForm
               application={application}

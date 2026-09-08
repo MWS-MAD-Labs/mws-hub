@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import Logo from "@/assets/logo.webp";
 import { GoogleLoginButton } from "@/features/auth/components/GoogleLoginButton";
 import { useAuth } from "@/features/auth/hooks/useAuth";
+import LoginPages from "@/mobile/pages/LoginPages";
 
 const HOME_PATH = "/support-hub";
 const LOGIN_ERRORS: Record<string, { title: string; description: string }> = {
@@ -67,34 +68,46 @@ export default function LoginPage() {
     return <Navigate to={HOME_PATH} replace />;
   }
 
+  const showAccountNotRegisteredError =
+    searchParams.get("error") === "account_not_registered";
+
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background px-4 text-foreground">
-      <div className="w-full max-w-sm rounded-2xl border border-border/60 bg-card p-6 shadow-sm">
-        <div className="mb-6 flex items-center gap-2.5">
-          <img src={Logo} alt="" className="h-8 w-8 object-contain" />
-          <div>
-            <p className="text-sm font-semibold">MWS Hub</p>
-            <p className="text-xs text-muted-foreground">
-              Sign in with your MWS Google account
-            </p>
-          </div>
-        </div>
-
+    <>
+      <LoginPages
+        isSessionLoading={isSessionLoading}
+        showAccountNotRegisteredError={showAccountNotRegisteredError}
+      >
         <GoogleLoginButton />
+      </LoginPages>
 
-        {searchParams.get("error") === "account_not_registered" && (
-          <p className="mt-4 rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs leading-relaxed text-destructive">
-            Your account is not registered in the Central database yet. Please
-            contact the administrator.
-          </p>
-        )}
+      <main className="hidden min-h-screen items-center justify-center bg-background px-4 text-foreground sm:flex">
+        <div className="w-full max-w-sm rounded-2xl border border-border/60 bg-card p-6 shadow-sm">
+          <div className="mb-6 flex items-center gap-2.5">
+            <img src={Logo} alt="" className="h-8 w-8 object-contain" />
+            <div>
+              <p className="text-sm font-semibold">MWS Hub</p>
+              <p className="text-xs text-muted-foreground">
+                Sign in with your MWS Google account
+              </p>
+            </div>
+          </div>
 
-        {isSessionLoading && (
-          <p className="mt-4 text-xs text-muted-foreground">
-            Checking session...
-          </p>
-        )}
-      </div>
-    </main>
+          <GoogleLoginButton />
+
+          {showAccountNotRegisteredError && (
+            <p className="mt-4 rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs leading-relaxed text-destructive">
+              Your account is not registered in the Central database yet. Please
+              contact the administrator.
+            </p>
+          )}
+
+          {isSessionLoading && (
+            <p className="mt-4 text-xs text-muted-foreground">
+              Checking session...
+            </p>
+          )}
+        </div>
+      </main>
+    </>
   );
 }

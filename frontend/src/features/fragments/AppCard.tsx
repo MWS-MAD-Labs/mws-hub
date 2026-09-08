@@ -97,7 +97,45 @@ const AppCard = memo(
       ) {
         return;
       }
+
+      // On phones, long-press preview proves the anchor URL itself is fine.
+      // The fragile part is the desktop-only reuse/silent-refresh flow below:
+      // mobile browsers can leave the named window at about:blank after a
+      // prevented click plus async work. Let mobile use the native anchor
+      // navigation instead; the backend launch route still redirects expired
+      // sessions back to Hub login.
+      if (window.matchMedia("(pointer: coarse)").matches) {
+        return;
+      }
+
       event.preventDefault();
+
+      // Mobile browsers are strict about popups: if window.open happens
+      // after an awaited request, the tap gesture is already gone and the
+      // browser may leave users staring at about:blank. Claim/find the
+      // target synchronously, then do the session check before navigating it.
+      let target = window.open("", launchWindowName);
+      if (!target) {
+        window.location.assign(launchHref);
+        return;
+      }
+
+      if (target === window) {
+        window.name = "";
+        target = window.open("", launchWindowName);
+        if (!target) {
+          window.location.assign(launchHref);
+          return;
+        }
+      }
+
+      let isFreshWindow = true;
+      try {
+        isFreshWindow =
+          target.location.href === "about:blank" || target.location.href === "";
+      } catch {
+        isFreshWindow = false;
+      }
 
       // Hub's session is a cookie, which - unlike localStorage - never
       // fires a cross-tab event this tab could react to. So this tab has
@@ -110,47 +148,9 @@ const AppCard = memo(
       // while this tab sits frozen until a manual refresh.
       const currentUser = await refreshUser();
       if (!currentUser) {
+        if (isFreshWindow) target.close();
         navigate("/login?error=session_expired");
         return;
-      }
-
-      // window.open with an empty URL is the standard "find-or-create a
-      // named window without navigating it" trick: it hands back the SAME
-      // window if one with this name is already open anywhere in this
-      // tab's browsing-context group, or a fresh blank one otherwise -
-      // and it does this by asking the browser's own name registry, which
-      // outlives a reload of THIS page (unlike a plain JS variable, which
-      // a previous version of this relied on and which a Hub reload wipes
-      // clean, silently falling back to the old flicker-y behavior).
-      const target = window.open("", launchWindowName);
-      if (!target) return; // popup blocked
-
-      if (target === window) {
-        // This tab's own window.name still carries a stale claim to
-        // launchWindowName from an earlier life - e.g. it WAS the MTSS
-        // tab, but then navigated in-place back to Hub itself (its own
-        // "Sign in" button does a same-tab redirect, not a new tab), and
-        // window.name survives an in-place navigation, even cross-origin.
-        // Reusing "ourselves" as the reuse target would silently hijack
-        // the tab the person is currently looking at Hub in - release the
-        // stale name so it stops squatting on it, then open a genuinely
-        // new tab like a first launch.
-        window.name = "";
-        window.open(launchHref, launchWindowName);
-        return;
-      }
-
-      let isFreshWindow = true;
-      try {
-        // A window we just created is still about:blank and still
-        // same-origin, so reading its location succeeds. One that already
-        // navigated to the satellite app's origin throws instead on that
-        // same read - that's the signal it's an existing, already-launched
-        // tab rather than a blank new one.
-        isFreshWindow =
-          target.location.href === "about:blank" || target.location.href === "";
-      } catch {
-        isFreshWindow = false;
       }
 
       if (isFreshWindow) {
@@ -190,7 +190,7 @@ const AppCard = memo(
           // ============================================================
           // MOBILE
           // ============================================================
-          "group relative flex w-full min-w-0",
+          "group relative flex w-full min-w-0 max-w-[6.75rem]",
           "flex-col items-center justify-start",
           "text-center",
           "transition-transform duration-150",
@@ -200,7 +200,7 @@ const AppCard = memo(
           // ============================================================
           // DESKTOP
           // ============================================================
-          "sm:h-auto sm:flex-row sm:items-start",
+          "sm:h-auto sm:max-w-none sm:flex-row sm:items-start",
           "sm:justify-start sm:gap-3",
           "sm:overflow-visible sm:rounded-xl",
           "sm:border sm:border-border/50",
@@ -250,8 +250,8 @@ const AppCard = memo(
               "overflow-hidden",
               "rounded-xl",
 
-              "ring-1 ring-black/[0.04]",
-              "shadow-[0_2px_7px_rgba(15,23,42,0.10)]",
+              "ring-1 ring-border/55",
+              "shadow-[0_2px_8px_rgba(15,23,42,0.08)]",
 
               getCategoryTone(app.category),
 
@@ -260,12 +260,13 @@ const AppCard = memo(
               // Desktop
               "sm:h-10 sm:w-10",
               "sm:rounded-lg",
+              "sm:ring-black/[0.04]",
               "sm:shadow-none",
             )}
           >
             <Icon
               className="
-                h-6 w-6
+                h-5 w-5
                 sm:h-[18px] sm:w-[18px]
               "
               strokeWidth={1.8}
@@ -278,14 +279,14 @@ const AppCard = memo(
             ============================================================ */}
         <div
           className="
-            mt-1.5
+            mt-1
             flex
             flex-col
             items-center
             w-full
             min-w-0
             justify-center
-            gap-2
+            gap-0.5
 
             sm:mt-0
             sm:block
@@ -308,19 +309,21 @@ const AppCard = memo(
             <h3
               className="
                 min-w-0
-                max-w-[92px]
+                max-w-full
                 overflow-hidden
 
                 text-[11px]
-                font-medium
+                font-semibold
                 leading-[14px]
-                tracking-[-0.01em]
+                tracking-normal
                 text-foreground
 
                 sm:max-w-full
                 sm:truncate
                 sm:text-sm
+                sm:font-medium
                 sm:leading-normal
+                sm:tracking-[-0.01em]
               "
             >
               <span className="line-clamp-2">{app.name}</span>
@@ -411,9 +414,9 @@ const AppCard = memo(
             <button
               type="button"
               onClick={() => onRequestAccess?.(app)}
-              className="relative z-10 mt-1.5 rounded-md border border-border/70 bg-background px-2 py-1 text-[10px] font-medium text-foreground shadow-sm sm:hidden"
+              className="relative z-10 mt-1 rounded-full border border-border/60 bg-background/70 px-2 py-0.5 text-[9px] font-medium leading-none text-muted-foreground shadow-sm sm:hidden"
             >
-              Request
+              Request Access
             </button>
           )}
 
@@ -421,7 +424,7 @@ const AppCard = memo(
             <button
               type="button"
               onClick={() => onReportProblem?.(app)}
-              className="relative z-10 mt-1 text-[10px] font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline sm:hidden"
+              className="relative z-10 mt-0.5 text-[9px] font-medium leading-none text-muted-foreground/70 underline-offset-2 hover:text-foreground hover:underline sm:hidden"
             >
               Report
             </button>

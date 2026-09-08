@@ -6,7 +6,11 @@ import { applyThemePreference, emitThemeSpell, getStoredTheme, persistTheme, typ
 
 type PendingSpell = { x: number; y: number } | null;
 
-export default function ThemeToggle() {
+type ThemeToggleProps = {
+  variant?: "default" | "admin";
+};
+
+export default function ThemeToggle({ variant = "default" }: ThemeToggleProps) {
   const lowMotion = usePreferLowMotion();
   const [theme, setTheme] = useState<Theme>(() => (typeof window === "undefined" ? "light" : getStoredTheme()));
   const isFirstSyncRef = useRef(true);
@@ -60,6 +64,23 @@ export default function ThemeToggle() {
     },
     [lowMotion, theme],
   );
+
+  if (variant === "admin") {
+    return (
+      <button
+        type="button"
+        onClick={handleToggleTheme}
+        aria-label="Toggle theme"
+        className="inline-flex h-8 w-8 items-center justify-center rounded-[0.25rem] border border-border bg-card text-foreground transition-colors hover:bg-muted"
+      >
+        {theme === "dark" ? (
+          <Sun className="h-4 w-4 text-yellow-500" />
+        ) : (
+          <Moon className="h-4 w-4 text-indigo-500" />
+        )}
+      </button>
+    );
+  }
 
   return (
     <motion.div
