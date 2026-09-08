@@ -41,6 +41,14 @@ export type EmployeeLookupResponse = {
   job_level: string | CentralNamedRef | null;
   job_level_id?: string | null;
   jobLevelId?: string | null;
+  // Central's own job_level.is_teaching_role flag - the same signal
+  // mws-mtss-system/mws-daily-checkin gate teacher-vs-staff on (see their
+  // jobLevelRoleMapping.js). Gating MTSS access on this instead of a
+  // hand-picked job_level/position name list means a new teaching job
+  // level (or one this catalog entry's rules were never updated for, e.g.
+  // "SE Teacher") gets in automatically instead of needing a matching
+  // access-rule edit every time Central adds one.
+  is_teaching_role?: boolean;
   birth_date?: string | null;
   date_of_birth?: string | null;
   dob?: string | null;

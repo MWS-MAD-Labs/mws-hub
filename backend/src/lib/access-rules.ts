@@ -22,6 +22,11 @@ export const BASE_ACCESS_RULE_OPTIONS: AccessRuleOption[] = [
     label: "Semua siswa",
     hint: "Semua identity dengan source student dari Central.",
   },
+  {
+    value: "teaching-role",
+    label: "Semua role mengajar (is_teaching_role)",
+    hint: "Karyawan yang job level-nya ditandai is_teaching_role di Central - Teacher, SE Teacher, dan job level mengajar lain, tanpa perlu daftar nama job level manual.",
+  },
 ];
 
 export const CENTRAL_RULE_PREFIXES: AccessRuleOption[] = [
@@ -159,6 +164,14 @@ export function userMatchesAccessRule(rule: string, user: HubUser): boolean {
   if (normalizedRule === "public") return true;
   if (normalizedRule === user.source || normalizedRule === `source:${user.source}`) {
     return true;
+  }
+
+  // Central's own "does this job level actually teach" signal - checked
+  // directly rather than via a job-level/position name list, so a new
+  // teaching job level (or one an app's rules were never updated for)
+  // gets in automatically. Only employees carry this field.
+  if (normalizedRule === "teaching-role") {
+    return user.source === "employee" && user.is_teaching_role === true;
   }
 
   if (normalizedRule.startsWith("unit:")) {
