@@ -4,6 +4,15 @@ import { AuthContext } from "./authContext";
 import { fanOutLogout } from "../utils/logoutFanOut";
 import type { AuthUser } from "@/model/auth-model";
 
+// Hub's own cross-tab signal, mirroring the pattern every satellite app
+// already uses (see e.g. daily-checkin/mtss's useCrossTabAuthSync) - the
+// cookie itself can't fire a cross-tab event, but a localStorage write can,
+// so a tab that ends up signed out (its own explicit logout, or a fresh
+// load after landing here via a satellite app's logout-relay trip) leaves
+// a note every OTHER open Hub tab's own `storage` listener below picks up,
+// instead of those tabs needing a manual reload to notice.
+const AUTH_SIGNAL_KEY = "hub.auth_signal";
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isSessionLoading, setIsSessionLoading] = useState(true);
@@ -24,6 +33,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  // Leaves a note for sibling Hub tabs once this tab settles on "signed
+  // out" - whether that's this tab's own explicit logout() below, or this
+  // tab freshly loading Hub's front page after a satellite app's logout
+  // flow routed it through here. A value that changes each time (not a
+  // fixed string) is what actually fires the `storage` event below in
+  // other tabs - writing the same value twice in a row would not.
+  useEffect(() => {
+    if (isSessionLoading || user) return;
+    try {
+      localStorage.setItem(AUTH_SIGNAL_KEY, String(Date.now()));
+    } catch {
+      // Private browsing / storage disabled - nothing to do, this is a
+      // best-effort convenience, not a security boundary.
+    }
+  }, [isSessionLoading, user]);
+
+  // The other half of the signal above: an OTHER Hub tab's own write
+  // lands here as a `storage` event (never fires in the tab that made the
+  // write itself), so this re-checks the actual session rather than just
+  // trusting the signal blindly.
+  useEffect(() => {
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key !== AUTH_SIGNAL_KEY) return;
+      authApi.currentUser().then(setUser);
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
   }, []);
 
   const loginWithGoogle = useCallback(async (code: string) => {
