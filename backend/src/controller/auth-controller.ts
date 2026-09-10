@@ -44,11 +44,20 @@ function redirectFromState(state: string): string | null {
   return separator === -1 ? null : sanitizeLaunchRedirect(state.slice(separator + 1));
 }
 
+// Lax, not Strict: the Google OAuth callback below redirects straight into
+// a session-gated route (an app-launch bounce-back) as part of the SAME
+// navigation chain that started at Google - a genuinely cross-site
+// initiator. A Strict cookie set moments earlier in that same chain isn't
+// sent on that next hop (only a fresh, independently-initiated navigation
+// counts), so the launch 401s right after a successful login and only
+// works after a manual reload. Lax still rides along on that top-level GET
+// redirect while continuing to block the cookie from cross-site POST/embed
+// requests - the CSRF vector Strict vs. Lax actually differs on.
 function cookieOptions() {
   return {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "Strict" as const,
+    sameSite: "Lax" as const,
     path: "/",
   };
 }
@@ -227,9 +236,9 @@ export class AuthController {
   // delete it. A back-channel call would leave the user still signed in here.
   //
   // Works because Hub and the apps share a registrable domain, which keeps
-  // this a same-site navigation and lets the SameSite=Strict cookie through.
-  // Put Hub on a different domain than the apps and this silently stops
-  // clearing anything.
+  // this a same-site navigation and lets the SameSite=Lax session cookie
+  // through (see cookieOptions() above). Put Hub on a different domain
+  // than the apps and this silently stops clearing anything.
   static async logoutFromApp(c: Context) {
     const user = await sessionUserFromCookie(c);
     const cookieName = process.env.SESSION_COOKIE_NAME || "hub_session";

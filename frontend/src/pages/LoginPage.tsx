@@ -7,6 +7,20 @@ import { useAuth } from "@/features/auth/hooks/useAuth";
 import LoginPages from "@/mobile/pages/LoginPages";
 
 const HOME_PATH = "/support-hub";
+
+// launchSessionAuthMiddleware (apps-route.ts) sends people here with
+// ?redirect=/apps/:appId/launch when they clicked "Sign in with Hub" from
+// a satellite app while signed out - without reading it back, login always
+// dropped them on Support Hub instead of continuing that launch, so
+// finishing sign-in never actually returned them to the app they came
+// from. Only ever a same-origin relative path from our own middleware, but
+// treated as untrusted anyway (it's still a URL query param) - reject
+// anything that isn't a genuine relative path so this can't become an open
+// redirect.
+function sanitizeRedirectPath(value: string | null): string | null {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) return null;
+  return value;
+}
 const LOGIN_ERRORS: Record<string, { title: string; description: string }> = {
   account_not_registered: {
     title: "Account not registered",
@@ -65,7 +79,8 @@ export default function LoginPage() {
   }, [searchParams, setSearchParams]);
 
   if (isAuthenticated) {
-    return <Navigate to={HOME_PATH} replace />;
+    const redirect = sanitizeRedirectPath(searchParams.get("redirect"));
+    return <Navigate to={redirect || HOME_PATH} replace />;
   }
 
   const showAccountNotRegisteredError =
