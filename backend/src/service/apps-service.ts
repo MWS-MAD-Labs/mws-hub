@@ -230,4 +230,20 @@ export class AppsService {
       (url): url is string => Boolean(url),
     );
   }
+
+  // Server-to-server counterpart to logoutTargets() above - same per-app
+  // base (every app exposing /auth/logout-silent for the browser-driven
+  // iframe fan-out already lives at this origin), but pointed at an
+  // authenticated backend endpoint Hub calls directly instead of loading in
+  // the user's browser. Doesn't depend on the browser visiting these URLs,
+  // third-party cookies being allowed, or the tab staying open long enough
+  // for a hidden iframe to finish - see lib/session-revocation.ts for the
+  // caller.
+  static async revokeSessionTargets(): Promise<string[]> {
+    const catalog = await effectiveCatalog();
+    return catalog
+      .map((entry) => entry.sso?.logoutUrl)
+      .filter((url): url is string => Boolean(url))
+      .map((url) => url.replace(/\/auth\/logout-silent$/, "/auth/revoke-session"));
+  }
 }

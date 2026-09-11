@@ -8,6 +8,7 @@ import { frontendOrigin } from "../lib/frontend-origin";
 import { logger } from "../lib/logger";
 import { verifySession } from "../lib/session";
 import { AppsService } from "../service/apps-service";
+import { revokeSessionsForUser } from "../lib/session-revocation";
 import { recordAuditLog } from "../service/audit-log-service";
 import { getUserUnitId, isMadLabsUser } from "../lib/admin-access";
 import type { SessionVariables } from "../type/hono-context";
@@ -207,6 +208,7 @@ export class AuthController {
 
     if (user) {
       logger.info("User logged out:", user.email);
+      await revokeSessionsForUser(user.email);
       await recordAuditLog({
         actor: user,
         action: "auth.logout",
@@ -235,10 +237,14 @@ export class AuthController {
   // because Hub's session is a cookie on Hub's domain and no other server can
   // delete it. A back-channel call would leave the user still signed in here.
   //
-  // Works because Hub and the apps share a registrable domain, which keeps
-  // this a same-site navigation and lets the SameSite=Lax session cookie
-  // through (see cookieOptions() above). Put Hub on a different domain
-  // than the apps and this silently stops clearing anything.
+  // Works via top-level navigation + SameSite=Lax (see cookieOptions()
+  // above) - Lax cookies ride along on a cross-site top-level GET
+  // regardless of whether Hub and the apps share a registrable domain, so
+  // this part doesn't actually need them to. (The apps' own OTHER local
+  // sessions are a different story - see revokeSessionsForUser() below,
+  // added specifically because the apps and Hub do NOT share a domain in
+  // production, which breaks the browser-driven iframe fan-out this
+  // redirect leads into at /logout-relay.)
   static async logoutFromApp(c: Context) {
     const user = await sessionUserFromCookie(c);
     const cookieName = process.env.SESSION_COOKIE_NAME || "hub_session";
@@ -259,6 +265,11 @@ export class AuthController {
 
     if (user) {
       logger.info("User logged out from satellite app:", user.email);
+      // Back-channel, server-to-server - the browser-driven iframe fan-out
+      // that /logout-relay does next is a best-effort backup for apps that
+      // don't implement /auth/revoke-session yet, not the primary
+      // mechanism for apps that do.
+      await revokeSessionsForUser(user.email);
       await recordAuditLog({
         actor: user,
         action: "auth.logout",
