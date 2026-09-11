@@ -186,6 +186,25 @@ const SupportHubPage = memo(() => {
       // which happens for failures that are not about a specific app.
       const failure = build(searchParams.get("app") || "That app");
       toast.error(failure.title, { description: failure.description });
+
+      // A satellite app's own silent-relogin iframe (utils/hubSilentLogin.js
+      // in daily-checkin/MTSS) landing here means its launch attempt was
+      // refused - tell it directly so it can show this same message itself
+      // instead of leaving the user staring at a toast on a hidden iframe
+      // they never see. The toast above still fires unconditionally - a
+      // genuine top-level visit to this page must keep showing it too.
+      if (window.parent !== window) {
+        window.parent.postMessage(
+          {
+            type: "MWS_HUB_LAUNCH_ERROR",
+            code,
+            app: searchParams.get("app"),
+            title: failure.title,
+            description: failure.description,
+          },
+          "*",
+        );
+      }
     }
 
     setSearchParams(
