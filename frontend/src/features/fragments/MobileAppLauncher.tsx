@@ -6,7 +6,7 @@ import {
   MOBILE_LAUNCHER_SCROLLER_CLASS,
 } from "./hubGrid";
 import type { HubApplication, HubUser } from "@/model/hub-model";
-import BirthdayList from "@/mobile/components/layout/Birthdaylist";
+import BirthdayList from "@/mobile/Features/birthday";
 import Announcements from "@/mobile/components/layout/Announcements";
 
 type MobileAppLauncherProps = {
