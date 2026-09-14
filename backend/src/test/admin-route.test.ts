@@ -1,12 +1,44 @@
 import { afterEach, beforeAll, describe, expect, it, mock, spyOn } from "bun:test";
 import { Hono } from "hono";
-import { adminRoute } from "../route/admin-route";
-import { signSession } from "../lib/session";
 import { ResponseError } from "../error/response-error";
 import * as centralClient from "../lib/central-client";
 import { clearMadLabsUnitIdCacheForTest } from "../lib/admin-access";
 import type { SessionVariables } from "../type/hono-context";
 import type { HubUser } from "../type/central-type";
+
+// signSession/verifySession (used via sessionAuthMiddleware inside
+// adminRoute, and directly below) now check a real DB row
+// (session_version) - tests are hermetic (see .github/workflows/ci-cd.yml),
+// so this stands in for it with a plain in-memory map instead of a live
+// Postgres.
+const sessionVersions = new Map<string, number>();
+
+mock.module("../lib/prisma", () => ({
+  prisma: {
+    userSession: {
+      upsert: async ({
+        where,
+        create,
+      }: {
+        where: { email: string };
+        create: { session_version: number };
+      }) => {
+        const next = sessionVersions.has(where.email)
+          ? sessionVersions.get(where.email)! + 1
+          : create.session_version;
+        sessionVersions.set(where.email, next);
+        return { email: where.email, session_version: next };
+      },
+      findUnique: async ({ where }: { where: { email: string } }) => {
+        if (!sessionVersions.has(where.email)) return null;
+        return { email: where.email, session_version: sessionVersions.get(where.email)! };
+      },
+    },
+  },
+}));
+
+const { adminRoute } = await import("../route/admin-route");
+const { signSession } = await import("../lib/session");
 
 const TEST_MAD_LABS_UNIT_ID = "cmsr1gmkh000akz7bzjgdv6dq";
 const originalFetch = global.fetch;

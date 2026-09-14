@@ -1,10 +1,41 @@
 import { describe, it, expect, spyOn, afterEach, beforeAll, mock } from "bun:test";
-import { AuthService } from "../service/auth-service";
 import { GoogleAuth } from "../lib/google-auth";
 import * as centralClient from "../lib/central-client";
-import { verifySession } from "../lib/session";
 import type { HubUser } from "../type/central-type";
 import type { GooglePayload } from "../type/google-type";
+
+// signSession/verifySession (used inside AuthService.loginWithGoogle and
+// below) now check a real DB row (session_version) - tests are hermetic
+// (see .github/workflows/ci-cd.yml), so this stands in for it with a plain
+// in-memory map instead of a live Postgres.
+const sessionVersions = new Map<string, number>();
+
+mock.module("../lib/prisma", () => ({
+  prisma: {
+    userSession: {
+      upsert: async ({
+        where,
+        create,
+      }: {
+        where: { email: string };
+        create: { session_version: number };
+      }) => {
+        const next = sessionVersions.has(where.email)
+          ? sessionVersions.get(where.email)! + 1
+          : create.session_version;
+        sessionVersions.set(where.email, next);
+        return { email: where.email, session_version: next };
+      },
+      findUnique: async ({ where }: { where: { email: string } }) => {
+        if (!sessionVersions.has(where.email)) return null;
+        return { email: where.email, session_version: sessionVersions.get(where.email)! };
+      },
+    },
+  },
+}));
+
+const { AuthService } = await import("../service/auth-service");
+const { verifySession } = await import("../lib/session");
 
 const centralUser: HubUser = {
   source: "employee",
