@@ -247,12 +247,29 @@ export class AuthController {
   // redirect leads into at /logout-relay.)
   static async logoutFromApp(c: Context) {
     const user = await sessionUserFromCookie(c);
-    const cookieName = process.env.SESSION_COOKIE_NAME || "hub_session";
-    deleteCookie(c, cookieName, cookieOptions());
 
     const target =
       (await resolveLogoutRedirect(c.req.query("redirect"))) ||
       `${frontendOrigin()}/login`;
+
+    // The satellite app tells us which email IT was actually logged in as
+    // (see e.g. mws-daily-checkin's routes/auth.js). Normally that matches
+    // Hub's own current session, but not always - a stale session in one
+    // app can sit alongside a genuinely different, currently-active Hub
+    // login for someone else. In that case this logout isn't Hub's (or any
+    // other app's) to act on: leave Hub's cookie and every other app's
+    // session alone, and just send the browser back to where the satellite
+    // app's own logout already cleared its own cookie.
+    const loggedOutEmail = c.req.query("email");
+    if (loggedOutEmail && user && loggedOutEmail.toLowerCase() !== user.email.toLowerCase()) {
+      logger.info(
+        `App logout email mismatch - leaving Hub session alone: app logged out ${loggedOutEmail}, Hub session is ${user.email}`,
+      );
+      return c.redirect(target, 302);
+    }
+
+    const cookieName = process.env.SESSION_COOKIE_NAME || "hub_session";
+    deleteCookie(c, cookieName, cookieOptions());
 
     // Hub's own cookie is gone, but every other satellite app the person had
     // open still has its own separate session that only the browser can
