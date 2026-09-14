@@ -54,7 +54,8 @@ export const ModelName = {
   Application: 'Application',
   AppReport: 'AppReport',
   AccessRequest: 'AccessRequest',
-  AuditLog: 'AuditLog'
+  AuditLog: 'AuditLog',
+  UserSession: 'UserSession'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -142,6 +143,15 @@ export const AuditLogScalarFieldEnum = {
 } as const
 
 export type AuditLogScalarFieldEnum = (typeof AuditLogScalarFieldEnum)[keyof typeof AuditLogScalarFieldEnum]
+
+
+export const UserSessionScalarFieldEnum = {
+  email: 'email',
+  session_version: 'session_version',
+  updated_at: 'updated_at'
+} as const
+
+export type UserSessionScalarFieldEnum = (typeof UserSessionScalarFieldEnum)[keyof typeof UserSessionScalarFieldEnum]
 
 
 export const SortOrder = {

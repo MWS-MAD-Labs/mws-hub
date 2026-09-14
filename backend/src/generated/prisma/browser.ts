@@ -37,3 +37,8 @@ export type AccessRequest = Prisma.AccessRequestModel
  * 
  */
 export type AuditLog = Prisma.AuditLogModel
+/**
+ * Model UserSession
+ * 
+ */
+export type UserSession = Prisma.UserSessionModel

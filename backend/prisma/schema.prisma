@@ -177,3 +177,14 @@ model AuditLog {
   @@index([entity_type, entity_id])
   @@map("audit_logs")
 }
+
+// Session bookkeeping only, not identity - bumped on every Hub login so any
+// previously-issued session JWT for that email (any other browser/device)
+// fails its next verifySession() check. See lib/session.ts.
+model UserSession {
+  email           String   @id
+  session_version Int      @default(0)
+  updated_at      DateTime @updatedAt
+
+  @@map("user_sessions")
+}

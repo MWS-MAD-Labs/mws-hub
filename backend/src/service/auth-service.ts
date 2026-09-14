@@ -1,6 +1,7 @@
 import { GoogleAuth } from "../lib/google-auth";
 import { resolveCentralIdentity } from "../lib/central-client";
 import { signSession } from "../lib/session";
+import { revokeSessionsForUser } from "../lib/session-revocation";
 import { ResponseError } from "../error/response-error";
 import type { HubUser } from "../type/central-type";
 
@@ -25,6 +26,10 @@ export class AuthService {
     }
 
     const token = await signSession(user);
+    // Single-session policy: a fresh login here also ends this person's
+    // other active sessions in every connected app, not just Hub's own
+    // (signSession above already did the Hub half via session_version).
+    await revokeSessionsForUser(user.email);
     return { token, user };
   }
 }
