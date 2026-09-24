@@ -4,6 +4,7 @@ import { LayoutDashboard } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import Logo from "@/assets/logo.webp";
 import type { HubUser } from "@/model/hub-model";
+import InstallAppButton from "./InstallAppButton";
 
 const initialsOf = (user?: HubUser): string =>
   String(user?.name || "?")
@@ -30,6 +31,8 @@ const HubHeader = memo(({ user, isAdmin }: HubHeaderProps) => (
       </Link>
 
       <div className="ml-auto flex items-center gap-2">
+        <InstallAppButton />
+
         {isAdmin ? (
           <Link
             to="/admin"
