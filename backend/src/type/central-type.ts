@@ -27,6 +27,11 @@ export type CentralNamedRef = {
 
 export type EmployeeLookupResponse = {
   id: string;
+  // Person.id - the one id space shared with the student side, and what
+  // mintRelayToken() now puts in a relay token's `sub` claim instead of
+  // email. `id` above (Employee.id) stays what resolveCentralIdentityById
+  // re-verifies sessions by - a different, employee-table-scoped id.
+  person_id: string;
   employee_id: string;
   full_name: string;
   nick_name: string | null;
@@ -59,6 +64,8 @@ export type EmployeeLookupResponse = {
 
 export type StudentLookupResponse = {
   id: string;
+  // Person.id - see the matching note in EmployeeLookupResponse.
+  person_id: string;
   nis: string | null;
   nisn: string | null;
   full_name: string;

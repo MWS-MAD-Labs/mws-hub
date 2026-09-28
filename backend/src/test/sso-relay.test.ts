@@ -80,9 +80,9 @@ describe("hubSsoJwks / mintRelayToken with a valid key", () => {
     expect(jwks.keys[0]?.use).toBe("sig");
   });
 
-  it("mints a relay token whose claims match the audience and subject it was asked for", async () => {
+  it("mints a relay token whose sub is the Central Person.id, not email", async () => {
     const token = await mintRelayToken(
-      "someone@millennia21.id",
+      { id: "person-1", email: "someone@millennia21.id" },
       { appId: "daily-checkin", entryUrl: "https://app.millenniaws.sch.id/auth/sso" },
       { source: "employee", tags: ["public", "employee", "staff", "teacher"] },
     );
@@ -95,7 +95,10 @@ describe("hubSsoJwks / mintRelayToken with a valid key", () => {
     expect(header.kid).toBe("test-key-id");
     expect(payload.iss).toBe("mws-hub");
     expect(payload.aud).toBe("daily-checkin");
-    expect(payload.sub).toBe("someone@millennia21.id");
+    // sub is the stable Person.id - a receiving app's actual identity
+    // anchor. email is still carried, but only as a display attribute.
+    expect(payload.sub).toBe("person-1");
+    expect(payload.email).toBe("someone@millennia21.id");
     expect(payload.exp - payload.iat).toBe(30);
     expect(payload.source).toBe("employee");
     expect(payload.tags).toEqual(["public", "employee", "staff", "teacher"]);
@@ -103,7 +106,7 @@ describe("hubSsoJwks / mintRelayToken with a valid key", () => {
 
   it("produces a signature the published public key actually verifies", async () => {
     const token = await mintRelayToken(
-      "someone@millennia21.id",
+      { id: "person-1", email: "someone@millennia21.id" },
       { appId: "daily-checkin", entryUrl: "https://app.millenniaws.sch.id/auth/sso" },
       { source: "employee", tags: ["public", "employee", "staff"] },
     );

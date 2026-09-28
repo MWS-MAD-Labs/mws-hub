@@ -29,7 +29,7 @@ export class AuthService {
     // Single-session policy: a fresh login here also ends this person's
     // other active sessions in every connected app, not just Hub's own
     // (signSession above already did the Hub half via session_version).
-    await revokeSessionsForUser(user.email);
+    await revokeSessionsForUser(user.email, user.person_id);
     return { token, user };
   }
 }

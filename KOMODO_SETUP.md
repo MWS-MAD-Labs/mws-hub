@@ -1,17 +1,20 @@
 # MWS Hub - Komodo Deployment
 
-Staging and production follow `mws-central-database-user`: GitHub Actions runs
-quality gates, then calls the stack webhook, and Komodo builds from source.
+Staging and production follow `mws-central-database-user`: one `docker-compose.yml`
+for both environments, GitHub Actions runs quality gates then calls the stack
+webhook, and Komodo builds from source. Staging and production are two
+separate Komodo stacks pointed at the same compose file - everything that
+differs between them (ports, the gateway network name, the gateway alias,
+`HUB_SSO_PRIVATE_KEY`, etc.) lives in each stack's own `.env`, not in a second
+compose file.
 
 | Environment | Branch | Build source | Compose | Gateway network | Komodo stack |
 |---|---|---|---|---|---|
-| Staging | `staging` | Komodo builds from source | `docker-compose.yml` | `mws-unified` | `mws-hub` |
-| Production | `master` | Komodo builds from source | `deploy/production.compose.yml` | `mws-unified-prod` | `mws-hub-production` |
+| Staging | `staging` | Komodo builds from source | `docker-compose.yml` | `mws-unified` | `mws-hub-staging` |
+| Production | `master` | Komodo builds from source | `docker-compose.yml` | `mws-unified-prod` | `mws-hub` |
 
 Hub's default branch is `master`, not `main` as in the satellites - the
 production workflow triggers accordingly.
-
-`docker-compose.local.yml` is for local smoke tests.
 
 ### GitHub Actions secrets
 
@@ -40,20 +43,40 @@ prefixes. The SPA router must never claim them.
 
 ## Builds and containers
 
-| Environment | Build/Image | Containers |
-|---|---|---|
-| Staging | Komodo `build:` from `./backend` and `./frontend` | `mws-hub-be`, `mws-hub-fe` |
-| Production | Komodo `build:` from `../backend` and `../frontend` | `hub-be-prod`, `hub-fe-prod` |
+Both environments build from `./backend` and `./frontend` in the same
+`docker-compose.yml` - there is no separate production compose file and no
+hardcoded `container_name:` in either service. Container names are left to
+Compose's own default (`<project>-<service>-1`), where `<project>` is
+whichever Komodo stack name is set below, so staging and production never
+collide even when they run on the same Docker host.
+
+| Environment | Komodo stack (= Compose project name) | Backend container | Frontend container |
+|---|---|---|---|
+| Staging | `mws-hub-staging` | `mws-hub-staging-backend-1` | `mws-hub-staging-frontend-1` |
+| Production | `mws-hub` | `mws-hub-backend-1` | `mws-hub-frontend-1` |
+
+Confirmed against the real staging stack in Komodo: it's named `mws-hub-staging`
+with Clone Path left on its default (`$root_directory/stacks/mws-hub-staging`),
+which is also what Compose derives its project name from when none is set
+explicitly - so the table above should match what `docker ps` actually shows,
+not just the stack name in Komodo's UI. Worth a quick `docker ps` check after
+the first production deploy to confirm the production project name really
+does come out as `mws-hub` and not something else Komodo derives internally.
 
 ## Komodo stack
 
-Create a **Stack** with manual compose contents, then point the gateway at the
-frontend container - it is the only one on the gateway network.
+Create a **Stack** with manual compose contents (same `docker-compose.yml`
+for both), then point the gateway at the frontend container - it is the only
+one on the gateway network. What actually separates staging from production
+is each stack's own `.env`: `GATEWAY_NETWORK` and `GATEWAY_ALIAS` (see
+Compose variables below), plus every backend/frontend variable further down.
 
 | | Staging | Production |
 |---|---|---|
-| Compose source | `docker-compose.yml` | `deploy/production.compose.yml` |
-| Gateway target | `127.0.0.1:8083` or `mws-hub-fe:80` on `mws-unified` | `hub-fe-prod` on `mws-unified-prod` |
+| Compose source | `docker-compose.yml` | `docker-compose.yml` |
+| `GATEWAY_NETWORK` | `mws-unified` | `mws-unified-prod` |
+| `GATEWAY_ALIAS` | `mws-hub-fe` (default, can be left unset) | `hub-fe-prod` |
+| Gateway target | `127.0.0.1:8083` or `mws-hub-fe:80` on `mws-unified` | `hub-fe-prod:80` on `mws-unified-prod` |
 
 For staging, route `app.mws.web.id` to frontend only. If the Komodo gateway is
 configured as a host-level reverse proxy, use `127.0.0.1:8083`. If it is
@@ -73,10 +96,26 @@ when the container starts rather than baked into the bundle.
 
 ### Compose variables
 
+Staging and production run on the same Docker host, so every host-bound port
+below must actually differ between the two stacks' `.env` files or the
+second one to start will fail with "port is already allocated".
+
 ```
+# staging .env example
 FRONTEND_PORT=8083        # host-local frontend port for the Komodo gateway
 BACKEND_PORT=4003         # host-local backend debug/health port
 POSTGRES_PORT=15436       # host-local Postgres maintenance port
+GATEWAY_NETWORK=mws-unified
+GATEWAY_ALIAS=mws-hub-fe  # optional to set explicitly, this is also the default
+```
+
+```
+# production .env example - different ports, different gateway network/alias
+FRONTEND_PORT=8093
+BACKEND_PORT=4013
+POSTGRES_PORT=15446
+GATEWAY_NETWORK=mws-unified-prod
+GATEWAY_ALIAS=hub-fe-prod
 ```
 
 ### Backend variables

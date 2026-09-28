@@ -8,6 +8,12 @@ import { logger } from "./logger";
 const BASE_URL = process.env.CENTRAL_API_BASE_URL;
 const TOKEN = process.env.CENTRAL_API_TOKEN;
 
+// Without this, a Central that's slow (not fully down/erroring) hangs
+// sign-in, launch(), and the admin middleware indefinitely - the existing
+// fail-closed handling below only triggers on a thrown error, never on a
+// plain hang. Same 5s budget as session-revocation.ts's satellite-app calls.
+const CALL_TIMEOUT_MS = 5000;
+
 type CentralPage<T> = {
   success?: boolean;
   data: T[];
@@ -134,9 +140,14 @@ function namedRefIdOf(record: {
   return null;
 }
 
-async function lookup<T>(path: string, email: string): Promise<T | null> {
-  const res = await fetch(`${BASE_URL}${path}?email=${encodeURIComponent(email)}`, {
+async function lookup<T>(
+  path: string,
+  query: Record<string, string>,
+): Promise<T | null> {
+  const params = new URLSearchParams(query);
+  const res = await fetch(`${BASE_URL}${path}?${params.toString()}`, {
     headers: { Authorization: `Bearer ${TOKEN}` },
+    signal: AbortSignal.timeout(CALL_TIMEOUT_MS),
   });
 
   if (res.status === 404) return null;
@@ -152,6 +163,7 @@ async function lookup<T>(path: string, email: string): Promise<T | null> {
 async function listPage<T>(path: string): Promise<CentralPage<T>> {
   const res = await fetch(`${BASE_URL}${path}`, {
     headers: { Authorization: `Bearer ${TOKEN}` },
+    signal: AbortSignal.timeout(CALL_TIMEOUT_MS),
   });
 
   if (!res.ok) {
@@ -160,6 +172,24 @@ async function listPage<T>(path: string): Promise<CentralPage<T>> {
   }
 
   return (await res.json()) as CentralPage<T>;
+}
+
+// Central's /persons/lookup response shape - collapses the employee-then-
+// student fallback resolveCentralIdentity used to do into one HTTP call.
+type PersonLookupResponse =
+  | ({ source: "employee" } & EmployeeLookupResponse)
+  | ({ source: "student" } & StudentLookupResponse);
+
+function normalizeStudent(
+  student: StudentLookupResponse,
+): Extract<HubUser, { source: "student" }> {
+  const unitId = unitIdOf(student);
+  return {
+    source: "student",
+    ...student,
+    unit_id: unitId,
+    unitId: unitId,
+  };
 }
 
 function normalizeEmployee(
@@ -196,25 +226,50 @@ function normalizeEmployee(
 }
 
 // Resolves who just signed in with Google against Central's employee/student
-// records. Employee is checked first since most Hub sign-ins are staff.
+// records, in one call to /persons/lookup instead of the old
+// employee-then-student fallback (which cost every student sign-in a wasted
+// 404 round-trip to /employees/lookup first). Central itself decides which
+// side wins if a Person somehow has both an Employee and a Student record
+// (Person.employee/Person.student are both optional 1:1 - nothing stops both
+// existing at once) - confirmed with the product owner that MWS has no real
+// dual-role people, so this never needs to surface a choice. If that ever
+// changes, this is the place a "pick which role" step would need to go, not
+// downstream in Hub's session/token shape.
+// Email is the only identifier available at this point - Google hands back
+// an email, not a Central id - so this is the one place in Hub that has to
+// look someone up by it. Everywhere else that already knows someone's
+// Central id (a re-check on an existing session) should prefer
+// resolveCentralIdentityById below instead, which stays on the precise
+// per-source endpoint since it already knows which one to ask.
 export async function resolveCentralIdentity(email: string): Promise<HubUser | null> {
-  const employee = await lookup<EmployeeLookupResponse>("/employees/lookup", email);
-  if (employee) {
-    return normalizeEmployee(employee);
+  const person = await lookup<PersonLookupResponse>("/persons/lookup", { email });
+  if (!person) return null;
+
+  return person.source === "employee"
+    ? normalizeEmployee(person)
+    : normalizeStudent(person);
+}
+
+// Re-resolves someone Hub already identified once, by Central's own stable
+// id instead of email - email is editable in Central (see
+// EmployeeValidation.UPDATE server-side), so a row/lookup keyed by it
+// silently breaks the moment someone's email changes there. `source` is
+// required because Central exposes separate employee/student lookup
+// endpoints - the caller already knows which one from the session it's
+// re-checking, so this skips /persons/lookup entirely and goes straight to
+// the precise endpoint, unlike resolveCentralIdentity above which doesn't
+// know the source yet.
+export async function resolveCentralIdentityById(
+  id: string,
+  source: "employee" | "student",
+): Promise<HubUser | null> {
+  if (source === "employee") {
+    const employee = await lookup<EmployeeLookupResponse>("/employees/lookup", { id });
+    return employee ? normalizeEmployee(employee) : null;
   }
 
-  const student = await lookup<StudentLookupResponse>("/students/lookup", email);
-  if (student) {
-    const unitId = unitIdOf(student);
-    return {
-      source: "student",
-      ...student,
-      unit_id: unitId,
-      unitId: unitId,
-    };
-  }
-
-  return null;
+  const student = await lookup<StudentLookupResponse>("/students/lookup", { id });
+  return student ? normalizeStudent(student) : null;
 }
 
 export async function listActiveEmployees(): Promise<

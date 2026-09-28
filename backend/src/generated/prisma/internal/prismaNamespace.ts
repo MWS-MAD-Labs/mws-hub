@@ -902,6 +902,7 @@ export type AuditLogScalarFieldEnum = (typeof AuditLogScalarFieldEnum)[keyof typ
 
 
 export const UserSessionScalarFieldEnum = {
+  central_id: 'central_id',
   email: 'email',
   session_version: 'session_version',
   updated_at: 'updated_at'

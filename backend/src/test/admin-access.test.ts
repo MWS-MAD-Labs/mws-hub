@@ -49,6 +49,7 @@ function employee(overrides: Partial<Extract<HubUser, { source: "employee" }>> =
   return {
     source: "employee",
     id: "emp-1",
+    person_id: "person-1",
     employee_id: "15.26.905",
     full_name: "MAD Labs User",
     nick_name: "MAD",
@@ -96,6 +97,7 @@ describe("isMadLabsUser", () => {
       await isMadLabsUser({
         source: "student",
         id: "stu-1",
+        person_id: "person-2",
         nis: null,
         nisn: null,
         full_name: "Student",

@@ -128,7 +128,7 @@ export function hubSsoJwks(): { keys: HubSsoJwk[] } {
 // for an app that was never looked up, and authorization always happens at
 // the call site before anything is signed.
 export async function mintRelayToken(
-  email: string,
+  user: { id: string; email: string },
   sso: HubAppSso,
   identity: { source: IdentitySource; tags: HubAccessSource[] },
 ): Promise<string> {
@@ -141,7 +141,15 @@ export async function mintRelayToken(
   const payload = {
     iss: ISSUER,
     aud: sso.appId,
-    sub: email,
+    // Central's Person.id - a receiving app's actual identity anchor.
+    // Never email: Central allows editing it (EmployeeValidation.UPDATE),
+    // so a receiving app that keyed its own session by sub-as-email would
+    // silently break the moment someone's email changed there, the exact
+    // bug UserSession here in Hub used to have (see its own migration
+    // note). `email` below is still carried, but only as a display/contact
+    // attribute - it must never be what a receiving app keys anything on.
+    sub: user.id,
+    email: user.email,
     source: identity.source,
     tags: identity.tags,
     jti: crypto.randomUUID(),

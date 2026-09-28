@@ -132,7 +132,7 @@ describe("adminRoute", () => {
     const app = buildApp();
     mockCentralEmployees();
     const centralUser = employee();
-    spyOn(centralClient, "resolveCentralIdentity").mockResolvedValue(centralUser);
+    spyOn(centralClient, "resolveCentralIdentityById").mockResolvedValue(centralUser);
     const token = await signSession(employee({ unit_id: null, unitId: null }));
     const res = await app.request("/admin/dashboard-data", {
       headers: { Cookie: `hub_session=${token}` },
@@ -152,7 +152,7 @@ describe("adminRoute", () => {
       unit_id: "unit-other",
       unitId: "unit-other",
     });
-    spyOn(centralClient, "resolveCentralIdentity").mockResolvedValue(centralUser);
+    spyOn(centralClient, "resolveCentralIdentityById").mockResolvedValue(centralUser);
     const token = await signSession(
       employee({ unit: "Operations", unit_id: "unit-other", unitId: "unit-other" }),
     );

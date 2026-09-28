@@ -179,12 +179,23 @@ model AuditLog {
 }
 
 // Session bookkeeping only, not identity - bumped on every Hub login so any
-// previously-issued session JWT for that email (any other browser/device)
+// previously-issued session JWT for that person (any other browser/device)
 // fails its next verifySession() check. See lib/session.ts.
+//
+// Keyed by Central's own Employee/Student id, not email: email is an
+// editable field in Central (see EmployeeValidation.UPDATE server-side), so
+// a row keyed by email would silently orphan itself the moment someone's
+// email changes there - the next resolveCentralIdentity() lookup, done by
+// the person's *current* email, would return a *different* Central id than
+// whatever this row was keyed on, and their old row would linger, unbumped,
+// forever matching nothing. `email` stays as a plain column for admin
+// lookups/debugging only, never the identity anchor.
 model UserSession {
-  email           String   @id
+  central_id      String   @id
+  email           String
   session_version Int      @default(0)
   updated_at      DateTime @updatedAt
 
+  @@index([email])
   @@map("user_sessions")
 }

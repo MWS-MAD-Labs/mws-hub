@@ -24,23 +24,20 @@ function claimToStrings(claim: CentralClaim): string[] {
   ].filter((value): value is string => Boolean(value));
 }
 
-function addAccessTag(
-  tags: Set<HubAccessSource>,
-  rawValue: string | null | undefined,
-  options: { splitTokens?: boolean } = { splitTokens: true },
-) {
+// Whole-value tags only, deliberately never split on "-" into sub-word
+// tags. A compound label can be a broader role that should admit a narrower
+// rule (e.g. hypothetically "Super Admin" -> also "admin") just as easily
+// as it can be a distinct, unrelated one (e.g. "Assistant Director" is not
+// "Director" and must not silently inherit its access) - the string alone
+// can't tell those apart, so this never guesses. An app that wants to admit
+// a compound role names it exactly in allowedSources.
+function addAccessTag(tags: Set<HubAccessSource>, rawValue: string | null | undefined) {
   if (!rawValue) return;
 
   const normalized = normalizeAccessToken(rawValue);
   if (!normalized) return;
 
   tags.add(normalized);
-  if (options.splitTokens === false) return;
-
-  normalized
-    .split("-")
-    .filter(Boolean)
-    .forEach((token) => tags.add(token));
 }
 
 function namedValue(
@@ -68,7 +65,7 @@ function getUserAccessTags(user: HubUser): Set<HubAccessSource> {
     namedValue(user.job_position),
     namedValue(user.job_level),
     user.employment_type,
-  ].forEach((value) => addAccessTag(tags, value, { splitTokens: false }));
+  ].forEach((value) => addAccessTag(tags, value));
   }
 
   return tags;

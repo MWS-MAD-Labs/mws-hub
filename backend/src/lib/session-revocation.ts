@@ -16,7 +16,20 @@ import { logger } from "./logger";
 // are only logged, never thrown.
 const CALL_TIMEOUT_MS = 5000;
 
-export async function revokeSessionsForUser(email: string): Promise<void> {
+// personId is additive, not a replacement for email - existing satellite
+// apps (mws-mtss-system) only read `email` from this body today and ignore
+// unknown fields harmlessly. An app updated to key its own sessions by
+// Central id (see UserSession here in Hub, or mws-daily-checkin's
+// centralPersonId, for why) can start reading `central_id` instead once
+// it's ready, without every consumer needing to move in lockstep.
+//
+// This is Central's Person.id - the same id space as the relay token's
+// `sub` (mintRelayToken) - not Employee.id/Student.id (HubUser.id, what
+// Hub's own UserSession/resolveCentralIdentityById key by internally).
+// Those are a different id space per source; a receiving app has no
+// `source` to disambiguate them with here, so Person.id is the only one
+// that's safe to match on unconditionally.
+export async function revokeSessionsForUser(email: string, personId?: string): Promise<void> {
   if (!email) return;
 
   const secret = process.env.HUB_INTERNAL_SECRET;
@@ -39,7 +52,7 @@ export async function revokeSessionsForUser(email: string): Promise<void> {
             "Content-Type": "application/json",
             "X-Hub-Internal-Secret": secret,
           },
-          body: JSON.stringify({ email }),
+          body: JSON.stringify({ email, ...(personId ? { central_id: personId } : {}) }),
           signal: AbortSignal.timeout(CALL_TIMEOUT_MS),
         });
         if (!res.ok) {

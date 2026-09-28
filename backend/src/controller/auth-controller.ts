@@ -132,7 +132,7 @@ export class AuthController {
     await recordAuditLog({
       actor: user,
       action: "auth.login",
-      entity: { type: "user", id: user.email },
+      entity: { type: "user", id: user.id },
       summary: `${user.email} logged in`,
       metadata: {
         method: "google",
@@ -182,7 +182,7 @@ export class AuthController {
     await recordAuditLog({
       actor: user,
       action: "auth.login",
-      entity: { type: "user", id: user.email },
+      entity: { type: "user", id: user.id },
       summary: `${user.email} logged in`,
       metadata: {
         method: "google_callback",
@@ -208,11 +208,11 @@ export class AuthController {
 
     if (user) {
       logger.info("User logged out:", user.email);
-      await revokeSessionsForUser(user.email);
+      await revokeSessionsForUser(user.email, user.person_id);
       await recordAuditLog({
         actor: user,
         action: "auth.logout",
-        entity: { type: "user", id: user.email },
+        entity: { type: "user", id: user.id },
         summary: `${user.email} logged out`,
         metadata: { surface: "hub" },
       });
@@ -286,11 +286,11 @@ export class AuthController {
       // that /logout-relay does next is a best-effort backup for apps that
       // don't implement /auth/revoke-session yet, not the primary
       // mechanism for apps that do.
-      await revokeSessionsForUser(user.email);
+      await revokeSessionsForUser(user.email, user.person_id);
       await recordAuditLog({
         actor: user,
         action: "auth.logout",
-        entity: { type: "user", id: user.email },
+        entity: { type: "user", id: user.id },
         summary: `${user.email} logged out from a connected app`,
         metadata: {
           surface: "connected_app",

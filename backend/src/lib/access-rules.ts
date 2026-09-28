@@ -9,8 +9,14 @@ export type AccessRuleOption = {
 export const BASE_ACCESS_RULE_OPTIONS: AccessRuleOption[] = [
   {
     value: "public",
-    label: "Semua pengguna Central",
-    hint: "Karyawan dan siswa aktif yang bisa login ke Hub.",
+    // "Public" here means "no restriction beyond a successful Google +
+    // Central sign-in" (the union of employee + student), never "reachable
+    // without logging in" - by the time this rule is evaluated, Hub's own
+    // session middleware already required a valid session. Label/hint spell
+    // this out explicitly since "public" alone reads like the opposite in
+    // most security contexts.
+    label: "Semua anggota Central (tetap wajib login)",
+    hint: "Karyawan dan siswa aktif yang berhasil login Google + ketemu di Central - bukan akses tanpa login/terbuka ke publik internet. Gabungan dari \"Semua karyawan\" + \"Semua siswa\".",
   },
   {
     value: "employee",
@@ -103,23 +109,20 @@ function claimToStrings(claim: CentralClaim): string[] {
   ].filter((value): value is string => Boolean(value));
 }
 
-function addClaim(
-  values: Set<string>,
-  value: string | null | undefined,
-  options: { splitTokens?: boolean } = { splitTokens: true },
-) {
+// Whole-value only, deliberately never split on "-" into sub-word claims -
+// see the matching comment on apps-service.ts's addAccessTag (the token-
+// derivation twin of this function, used for the relay token's `tags`
+// rather than Hub's own access decision here) for why: a compound label
+// can be a broader role that should admit a narrower rule just as easily as
+// a distinct, unrelated one that only shares a word, and the string alone
+// can't tell those apart.
+function addClaim(values: Set<string>, value: string | null | undefined) {
   if (!value) return;
 
   const normalized = normalizeAccessToken(value);
   if (!normalized) return;
 
   values.add(normalized);
-  if (options.splitTokens === false) return;
-
-  normalized
-    .split("-")
-    .filter(Boolean)
-    .forEach((token) => values.add(token));
 }
 
 function namedValue(
@@ -233,7 +236,7 @@ export function userMatchesAccessRule(rule: string, user: HubUser): boolean {
     namedValue(user.job_position),
     namedValue(user.job_level),
     user.employment_type,
-  ].forEach((value) => addClaim(centralIdentityLabels, value, { splitTokens: false }));
+  ].forEach((value) => addClaim(centralIdentityLabels, value));
 
   return centralIdentityLabels.has(normalizedRule);
 }

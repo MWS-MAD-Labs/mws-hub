@@ -76,7 +76,10 @@ export function useAccessControl({
       ...accessOptions.central.jobLevels,
     ];
     const chosen = allOptions.filter((group) => allowedSources.includes(group.value));
-    if (chosen.some((group) => group.value === "public")) return "Everyone";
+    // "Everyone" here still means every signed-in Central member (employee
+    // + student), never an unauthenticated visitor - see the "public"
+    // option's label/hint in access-rules.ts for the full reasoning.
+    if (chosen.some((group) => group.value === "public")) return "Everyone (Central members)";
     const knownLabels = chosen.map((group) => group.label);
     const customLabels = allowedSources.filter(
       (source) => !allOptions.some((group) => group.value === source),

@@ -1,9 +1,10 @@
 import type { Context } from "hono";
 import { AppsService } from "../service/apps-service";
 import { mintRelayToken } from "../lib/sso-relay";
+import { createSsoCode } from "../lib/sso-code-store";
 import {
   listUpcomingEmployeeBirthdays,
-  resolveCentralIdentity,
+  resolveCentralIdentityById,
 } from "../lib/central-client";
 import { ResponseError } from "../error/response-error";
 import { logger } from "../lib/logger";
@@ -96,10 +97,14 @@ export class AppsController {
     // than that: someone deactivated in Central mid-session would otherwise
     // keep letting themselves into every app until their cookie expired.
     // Central's lookups already filter on ACTIVE, so a resigned employee or
-    // a departed student resolves to null here.
+    // a departed student resolves to null here. Re-resolved by id, not
+    // email - email is editable in Central, so looking this back up by
+    // whatever email happened to be in the session snapshot would wrongly
+    // read as "account_inactive" the moment it changes there, even though
+    // the same person, same id, is still perfectly active.
     let user: HubUser | null;
     try {
-      user = await resolveCentralIdentity(c.var.user.email);
+      user = await resolveCentralIdentityById(c.var.user.id, c.var.user.source);
     } catch (error) {
       // Fail closed. A Central outage means we cannot say who this is, and
       // "cannot say" must never be treated as "allowed".
@@ -169,10 +174,16 @@ export class AppsController {
     }
 
     if (entry.sso) {
-      const token = await mintRelayToken(user.email, entry.sso, {
-        source: user.source,
-        tags: AppsService.accessTagsFor(user),
-      });
+      const token = await mintRelayToken(
+        { id: user.person_id, email: user.email },
+        entry.sso,
+        { source: user.source, tags: AppsService.accessTagsFor(user) },
+      );
+      // The browser only ever carries a short opaque, single-use code - the
+      // actual token is fetched by the receiving app's own backend calling
+      // Hub back directly (see sso-route.ts). Nothing sensitive sits in a
+      // URL, server access log, or browser history anymore.
+      const code = createSsoCode(token, entry.sso.appId);
 
       logger.info(`Launch redirected to SSO: ${entry.id}`, user.email);
       await recordLaunchAudit({
@@ -183,7 +194,7 @@ export class AppsController {
         target: "sso",
       });
       return c.redirect(
-        `${entry.sso.entryUrl}?token=${encodeURIComponent(token)}`,
+        `${entry.sso.entryUrl}?code=${encodeURIComponent(code)}`,
         302,
       );
     }

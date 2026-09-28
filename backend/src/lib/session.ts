@@ -12,12 +12,13 @@ export type SessionPayload = {
 
 // Bumping on every mint (not just logout) is what makes a fresh login
 // elsewhere invalidate this session - verifySession() below rejects any
-// token whose sessionVersion doesn't match the current row.
+// token whose sessionVersion doesn't match the current row. Keyed by
+// Central's own id (see the UserSession model comment for why, not email).
 export async function signSession(user: HubUser): Promise<string> {
   const { session_version } = await prisma.userSession.upsert({
-    where: { email: user.email },
-    create: { email: user.email, session_version: 1 },
-    update: { session_version: { increment: 1 } },
+    where: { central_id: user.id },
+    create: { central_id: user.id, email: user.email, session_version: 1 },
+    update: { email: user.email, session_version: { increment: 1 } },
   });
 
   const payload: SessionPayload = {
@@ -31,7 +32,7 @@ export async function signSession(user: HubUser): Promise<string> {
 export async function verifySession(token: string): Promise<SessionPayload | null> {
   try {
     const payload = (await verify(token, process.env.JWT_SECRET!, "HS256")) as unknown as SessionPayload;
-    const current = await prisma.userSession.findUnique({ where: { email: payload.user.email } });
+    const current = await prisma.userSession.findUnique({ where: { central_id: payload.user.id } });
     if (!current || current.session_version !== payload.sessionVersion) return null;
     return payload;
   } catch {

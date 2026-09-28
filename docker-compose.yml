@@ -2,7 +2,6 @@
 services:
   db:
     image: postgres:16-alpine
-    container_name: mws-hub-db
     restart: unless-stopped
     env_file:
       - path: ./.env
@@ -28,7 +27,6 @@ services:
       - internal
 
   backend:
-    container_name: mws-hub-be
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -75,7 +73,6 @@ services:
         max-file: "3"
 
   frontend:
-    container_name: mws-hub-fe
     build:
       context: ./frontend
       dockerfile: Dockerfile
@@ -89,7 +86,7 @@ services:
     expose:
       - "80"
     ports:
-      - "5175:80" 
+      - "${FRONTEND_PORT:-5175}:80"
 
     environment:
       HUB_API_BASE_URL: ""
@@ -106,7 +103,7 @@ services:
       internal:
       mws-unified:
         aliases:
-          - mws-hub-fe
+          - ${GATEWAY_ALIAS:-mws-hub-fe}
     healthcheck:
       test:
         [
@@ -128,7 +125,7 @@ networks:
     driver: bridge
   mws-unified:
     external: true
-    name: mws-unified
+    name: ${GATEWAY_NETWORK:-mws-unified}
 
 volumes:
   hubdata:

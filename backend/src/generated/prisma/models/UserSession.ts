@@ -35,18 +35,21 @@ export type UserSessionSumAggregateOutputType = {
 }
 
 export type UserSessionMinAggregateOutputType = {
+  central_id: string | null
   email: string | null
   session_version: number | null
   updated_at: Date | null
 }
 
 export type UserSessionMaxAggregateOutputType = {
+  central_id: string | null
   email: string | null
   session_version: number | null
   updated_at: Date | null
 }
 
 export type UserSessionCountAggregateOutputType = {
+  central_id: number
   email: number
   session_version: number
   updated_at: number
@@ -63,18 +66,21 @@ export type UserSessionSumAggregateInputType = {
 }
 
 export type UserSessionMinAggregateInputType = {
+  central_id?: true
   email?: true
   session_version?: true
   updated_at?: true
 }
 
 export type UserSessionMaxAggregateInputType = {
+  central_id?: true
   email?: true
   session_version?: true
   updated_at?: true
 }
 
 export type UserSessionCountAggregateInputType = {
+  central_id?: true
   email?: true
   session_version?: true
   updated_at?: true
@@ -168,6 +174,7 @@ export type UserSessionGroupByArgs<ExtArgs extends runtime.Types.Extensions.Inte
 }
 
 export type UserSessionGroupByOutputType = {
+  central_id: string
   email: string
   session_version: number
   updated_at: Date
@@ -197,27 +204,31 @@ export type UserSessionWhereInput = {
   AND?: Prisma.UserSessionWhereInput | Prisma.UserSessionWhereInput[]
   OR?: Prisma.UserSessionWhereInput[]
   NOT?: Prisma.UserSessionWhereInput | Prisma.UserSessionWhereInput[]
+  central_id?: Prisma.StringFilter<"UserSession"> | string
   email?: Prisma.StringFilter<"UserSession"> | string
   session_version?: Prisma.IntFilter<"UserSession"> | number
   updated_at?: Prisma.DateTimeFilter<"UserSession"> | Date | string
 }
 
 export type UserSessionOrderByWithRelationInput = {
+  central_id?: Prisma.SortOrder
   email?: Prisma.SortOrder
   session_version?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
 }
 
 export type UserSessionWhereUniqueInput = Prisma.AtLeast<{
-  email?: string
+  central_id?: string
   AND?: Prisma.UserSessionWhereInput | Prisma.UserSessionWhereInput[]
   OR?: Prisma.UserSessionWhereInput[]
   NOT?: Prisma.UserSessionWhereInput | Prisma.UserSessionWhereInput[]
+  email?: Prisma.StringFilter<"UserSession"> | string
   session_version?: Prisma.IntFilter<"UserSession"> | number
   updated_at?: Prisma.DateTimeFilter<"UserSession"> | Date | string
-}, "email">
+}, "central_id">
 
 export type UserSessionOrderByWithAggregationInput = {
+  central_id?: Prisma.SortOrder
   email?: Prisma.SortOrder
   session_version?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
@@ -232,54 +243,63 @@ export type UserSessionScalarWhereWithAggregatesInput = {
   AND?: Prisma.UserSessionScalarWhereWithAggregatesInput | Prisma.UserSessionScalarWhereWithAggregatesInput[]
   OR?: Prisma.UserSessionScalarWhereWithAggregatesInput[]
   NOT?: Prisma.UserSessionScalarWhereWithAggregatesInput | Prisma.UserSessionScalarWhereWithAggregatesInput[]
+  central_id?: Prisma.StringWithAggregatesFilter<"UserSession"> | string
   email?: Prisma.StringWithAggregatesFilter<"UserSession"> | string
   session_version?: Prisma.IntWithAggregatesFilter<"UserSession"> | number
   updated_at?: Prisma.DateTimeWithAggregatesFilter<"UserSession"> | Date | string
 }
 
 export type UserSessionCreateInput = {
+  central_id: string
   email: string
   session_version?: number
   updated_at?: Date | string
 }
 
 export type UserSessionUncheckedCreateInput = {
+  central_id: string
   email: string
   session_version?: number
   updated_at?: Date | string
 }
 
 export type UserSessionUpdateInput = {
+  central_id?: Prisma.StringFieldUpdateOperationsInput | string
   email?: Prisma.StringFieldUpdateOperationsInput | string
   session_version?: Prisma.IntFieldUpdateOperationsInput | number
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type UserSessionUncheckedUpdateInput = {
+  central_id?: Prisma.StringFieldUpdateOperationsInput | string
   email?: Prisma.StringFieldUpdateOperationsInput | string
   session_version?: Prisma.IntFieldUpdateOperationsInput | number
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type UserSessionCreateManyInput = {
+  central_id: string
   email: string
   session_version?: number
   updated_at?: Date | string
 }
 
 export type UserSessionUpdateManyMutationInput = {
+  central_id?: Prisma.StringFieldUpdateOperationsInput | string
   email?: Prisma.StringFieldUpdateOperationsInput | string
   session_version?: Prisma.IntFieldUpdateOperationsInput | number
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type UserSessionUncheckedUpdateManyInput = {
+  central_id?: Prisma.StringFieldUpdateOperationsInput | string
   email?: Prisma.StringFieldUpdateOperationsInput | string
   session_version?: Prisma.IntFieldUpdateOperationsInput | number
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type UserSessionCountOrderByAggregateInput = {
+  central_id?: Prisma.SortOrder
   email?: Prisma.SortOrder
   session_version?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
@@ -290,12 +310,14 @@ export type UserSessionAvgOrderByAggregateInput = {
 }
 
 export type UserSessionMaxOrderByAggregateInput = {
+  central_id?: Prisma.SortOrder
   email?: Prisma.SortOrder
   session_version?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
 }
 
 export type UserSessionMinOrderByAggregateInput = {
+  central_id?: Prisma.SortOrder
   email?: Prisma.SortOrder
   session_version?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
@@ -308,35 +330,40 @@ export type UserSessionSumOrderByAggregateInput = {
 
 
 export type UserSessionSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
+  central_id?: boolean
   email?: boolean
   session_version?: boolean
   updated_at?: boolean
 }, ExtArgs["result"]["userSession"]>
 
 export type UserSessionSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
+  central_id?: boolean
   email?: boolean
   session_version?: boolean
   updated_at?: boolean
 }, ExtArgs["result"]["userSession"]>
 
 export type UserSessionSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
+  central_id?: boolean
   email?: boolean
   session_version?: boolean
   updated_at?: boolean
 }, ExtArgs["result"]["userSession"]>
 
 export type UserSessionSelectScalar = {
+  central_id?: boolean
   email?: boolean
   session_version?: boolean
   updated_at?: boolean
 }
 
-export type UserSessionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"email" | "session_version" | "updated_at", ExtArgs["result"]["userSession"]>
+export type UserSessionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"central_id" | "email" | "session_version" | "updated_at", ExtArgs["result"]["userSession"]>
 
 export type $UserSessionPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "UserSession"
   objects: {}
   scalars: runtime.Types.Extensions.GetPayloadResult<{
+    central_id: string
     email: string
     session_version: number
     updated_at: Date
@@ -423,8 +450,8 @@ export interface UserSessionDelegate<ExtArgs extends runtime.Types.Extensions.In
    * // Get first 10 UserSessions
    * const userSessions = await prisma.userSession.findMany({ take: 10 })
    * 
-   * // Only select the `email`
-   * const userSessionWithEmailOnly = await prisma.userSession.findMany({ select: { email: true } })
+   * // Only select the `central_id`
+   * const userSessionWithCentral_idOnly = await prisma.userSession.findMany({ select: { central_id: true } })
    * 
    */
   findMany<T extends UserSessionFindManyArgs>(args?: Prisma.SelectSubset<T, UserSessionFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UserSessionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
@@ -468,9 +495,9 @@ export interface UserSessionDelegate<ExtArgs extends runtime.Types.Extensions.In
    *   ]
    * })
    * 
-   * // Create many UserSessions and only return the `email`
-   * const userSessionWithEmailOnly = await prisma.userSession.createManyAndReturn({
-   *   select: { email: true },
+   * // Create many UserSessions and only return the `central_id`
+   * const userSessionWithCentral_idOnly = await prisma.userSession.createManyAndReturn({
+   *   select: { central_id: true },
    *   data: [
    *     // ... provide data here
    *   ]
@@ -559,9 +586,9 @@ export interface UserSessionDelegate<ExtArgs extends runtime.Types.Extensions.In
    *   ]
    * })
    * 
-   * // Update zero or more UserSessions and only return the `email`
-   * const userSessionWithEmailOnly = await prisma.userSession.updateManyAndReturn({
-   *   select: { email: true },
+   * // Update zero or more UserSessions and only return the `central_id`
+   * const userSessionWithCentral_idOnly = await prisma.userSession.updateManyAndReturn({
+   *   select: { central_id: true },
    *   where: {
    *     // ... provide filter here
    *   },
@@ -763,6 +790,7 @@ export interface Prisma__UserSessionClient<T, Null = never, ExtArgs extends runt
  * Fields of the UserSession model
  */
 export interface UserSessionFieldRefs {
+  readonly central_id: Prisma.FieldRef<"UserSession", 'String'>
   readonly email: Prisma.FieldRef<"UserSession", 'String'>
   readonly session_version: Prisma.FieldRef<"UserSession", 'Int'>
   readonly updated_at: Prisma.FieldRef<"UserSession", 'DateTime'>
