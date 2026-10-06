@@ -62,6 +62,16 @@ Routes:
   URL or mints an RS256 relay token for that app's SSO endpoint. Needs
   `HUB_SSO_PRIVATE_KEY`; each satellite app needs the matching public key for
   verification, not any shared signing secret.
+- Apps with `sso_central_entitlement_app_id` also require an active Central
+  application entitlement. Missing/inactive entitlements deny launch, and any
+  Central error fails closed. The entitlement snapshot is included in the
+  relay token for the receiving app.
+- `state` is optional on `/apps/:appId/launch`. Valid URL-safe state survives
+  Google login, is bound to the one-time code, is appended to the app callback,
+  and must be supplied to `/sso/exchange` for state-bound codes.
+- Set `SSO_CODE_STORE=postgres` for a shared, multi-instance one-time-code
+  store (recommended in production). `memory` remains the default for local
+  development and tests.
 
 The application catalog lives in Hub's database and is managed through the
 admin routes.

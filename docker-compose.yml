@@ -42,6 +42,7 @@ services:
       PORT: 4001
       SESSION_COOKIE_NAME: ${SESSION_COOKIE_NAME:-hub_session}
       CENTRAL_API_BASE_URL: ${CENTRAL_API_BASE_URL:-http://host.docker.internal:5173/api/internal}
+      SSO_CODE_STORE: ${SSO_CODE_STORE:-postgres}
     command: sh -c "export DATABASE_URL=\"postgresql://$${POSTGRES_USER:-hub}:$${POSTGRES_PASSWORD:-postgress123Abc}@db:5432/$${POSTGRES_DB:-mws-hub}?schema=public\" && bun run db:migrate && bun run src/index.ts"
 
     depends_on:
