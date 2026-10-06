@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from "bun:test";
+import { describe, it, expect, afterEach, beforeAll } from "bun:test";
 import {
   listActiveEmployees,
   lookupApplicationEntitlement,
@@ -7,6 +7,11 @@ import {
 } from "../lib/central-client";
 
 const originalFetch = global.fetch;
+
+beforeAll(() => {
+  process.env.CENTRAL_API_BASE_URL ??= "http://central.test/api/internal";
+  process.env.CENTRAL_API_TOKEN ??= "test-token";
+});
 
 afterEach(() => {
   global.fetch = originalFetch;

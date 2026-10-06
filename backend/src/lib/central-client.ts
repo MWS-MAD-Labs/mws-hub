@@ -6,8 +6,9 @@ import type {
 } from "../type/central-type";
 import { logger } from "./logger";
 
-const BASE_URL = process.env.CENTRAL_API_BASE_URL;
-const TOKEN = process.env.CENTRAL_API_TOKEN;
+// Read when used, not once at load, so tests (and a late-set env) see the real value.
+const baseUrl = () => process.env.CENTRAL_API_BASE_URL;
+const apiToken = () => process.env.CENTRAL_API_TOKEN;
 
 // Without this, a Central that's slow (not fully down/erroring) hangs
 // sign-in, launch(), and the admin middleware indefinitely - the existing
@@ -146,8 +147,8 @@ async function lookup<T>(
   query: Record<string, string>,
 ): Promise<T | null> {
   const params = new URLSearchParams(query);
-  const res = await fetch(`${BASE_URL}${path}?${params.toString()}`, {
-    headers: { Authorization: `Bearer ${TOKEN}` },
+  const res = await fetch(`${baseUrl()}${path}?${params.toString()}`, {
+    headers: { Authorization: `Bearer ${apiToken()}` },
     signal: AbortSignal.timeout(CALL_TIMEOUT_MS),
   });
 
@@ -211,8 +212,8 @@ export async function lookupApplicationEntitlement(
 }
 
 async function listPage<T>(path: string): Promise<CentralPage<T>> {
-  const res = await fetch(`${BASE_URL}${path}`, {
-    headers: { Authorization: `Bearer ${TOKEN}` },
+  const res = await fetch(`${baseUrl()}${path}`, {
+    headers: { Authorization: `Bearer ${apiToken()}` },
     signal: AbortSignal.timeout(CALL_TIMEOUT_MS),
   });
 
