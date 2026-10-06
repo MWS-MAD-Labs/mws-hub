@@ -398,6 +398,7 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 
 export const ModelName = {
   Application: 'Application',
+  SsoCode: 'SsoCode',
   AppReport: 'AppReport',
   AccessRequest: 'AccessRequest',
   AuditLog: 'AuditLog',
@@ -417,7 +418,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "application" | "appReport" | "accessRequest" | "auditLog" | "userSession"
+    modelProps: "application" | "ssoCode" | "appReport" | "accessRequest" | "auditLog" | "userSession"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -492,6 +493,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.ApplicationCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.ApplicationCountAggregateOutputType> | number
+        }
+      }
+    }
+    SsoCode: {
+      payload: Prisma.$SsoCodePayload<ExtArgs>
+      fields: Prisma.SsoCodeFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.SsoCodeFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SsoCodePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.SsoCodeFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SsoCodePayload>
+        }
+        findFirst: {
+          args: Prisma.SsoCodeFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SsoCodePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.SsoCodeFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SsoCodePayload>
+        }
+        findMany: {
+          args: Prisma.SsoCodeFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SsoCodePayload>[]
+        }
+        create: {
+          args: Prisma.SsoCodeCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SsoCodePayload>
+        }
+        createMany: {
+          args: Prisma.SsoCodeCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.SsoCodeCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SsoCodePayload>[]
+        }
+        delete: {
+          args: Prisma.SsoCodeDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SsoCodePayload>
+        }
+        update: {
+          args: Prisma.SsoCodeUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SsoCodePayload>
+        }
+        deleteMany: {
+          args: Prisma.SsoCodeDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.SsoCodeUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.SsoCodeUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SsoCodePayload>[]
+        }
+        upsert: {
+          args: Prisma.SsoCodeUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SsoCodePayload>
+        }
+        aggregate: {
+          args: Prisma.SsoCodeAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateSsoCode>
+        }
+        groupBy: {
+          args: Prisma.SsoCodeGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SsoCodeGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.SsoCodeCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SsoCodeCountAggregateOutputType> | number
         }
       }
     }
@@ -846,6 +921,7 @@ export const ApplicationScalarFieldEnum = {
   sso_app_id: 'sso_app_id',
   sso_entry_url: 'sso_entry_url',
   sso_logout_url: 'sso_logout_url',
+  sso_central_entitlement_app_id: 'sso_central_entitlement_app_id',
   sort_order: 'sort_order',
   created_at: 'created_at',
   updated_at: 'updated_at',
@@ -853,6 +929,18 @@ export const ApplicationScalarFieldEnum = {
 } as const
 
 export type ApplicationScalarFieldEnum = (typeof ApplicationScalarFieldEnum)[keyof typeof ApplicationScalarFieldEnum]
+
+
+export const SsoCodeScalarFieldEnum = {
+  code: 'code',
+  token: 'token',
+  app_id: 'app_id',
+  state: 'state',
+  expires_at: 'expires_at',
+  created_at: 'created_at'
+} as const
+
+export type SsoCodeScalarFieldEnum = (typeof SsoCodeScalarFieldEnum)[keyof typeof SsoCodeScalarFieldEnum]
 
 
 export const AppReportScalarFieldEnum = {
@@ -1228,6 +1316,7 @@ export interface PrismaClientOptionsWithAdapter extends PrismaClientBaseOptions 
 export type PrismaClientOptions = PrismaClientOptionsWithAccelerateUrl | PrismaClientOptionsWithAdapter
 export type GlobalOmitConfig = {
   application?: Prisma.ApplicationOmit
+  ssoCode?: Prisma.SsoCodeOmit
   appReport?: Prisma.AppReportOmit
   accessRequest?: Prisma.AccessRequestOmit
   auditLog?: Prisma.AuditLogOmit

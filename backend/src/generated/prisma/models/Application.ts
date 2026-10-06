@@ -48,6 +48,7 @@ export type ApplicationMinAggregateOutputType = {
   sso_app_id: string | null
   sso_entry_url: string | null
   sso_logout_url: string | null
+  sso_central_entitlement_app_id: string | null
   sort_order: number | null
   created_at: Date | null
   updated_at: Date | null
@@ -68,6 +69,7 @@ export type ApplicationMaxAggregateOutputType = {
   sso_app_id: string | null
   sso_entry_url: string | null
   sso_logout_url: string | null
+  sso_central_entitlement_app_id: string | null
   sort_order: number | null
   created_at: Date | null
   updated_at: Date | null
@@ -90,6 +92,7 @@ export type ApplicationCountAggregateOutputType = {
   sso_app_id: number
   sso_entry_url: number
   sso_logout_url: number
+  sso_central_entitlement_app_id: number
   sort_order: number
   created_at: number
   updated_at: number
@@ -120,6 +123,7 @@ export type ApplicationMinAggregateInputType = {
   sso_app_id?: true
   sso_entry_url?: true
   sso_logout_url?: true
+  sso_central_entitlement_app_id?: true
   sort_order?: true
   created_at?: true
   updated_at?: true
@@ -140,6 +144,7 @@ export type ApplicationMaxAggregateInputType = {
   sso_app_id?: true
   sso_entry_url?: true
   sso_logout_url?: true
+  sso_central_entitlement_app_id?: true
   sort_order?: true
   created_at?: true
   updated_at?: true
@@ -162,6 +167,7 @@ export type ApplicationCountAggregateInputType = {
   sso_app_id?: true
   sso_entry_url?: true
   sso_logout_url?: true
+  sso_central_entitlement_app_id?: true
   sort_order?: true
   created_at?: true
   updated_at?: true
@@ -271,6 +277,7 @@ export type ApplicationGroupByOutputType = {
   sso_app_id: string | null
   sso_entry_url: string | null
   sso_logout_url: string | null
+  sso_central_entitlement_app_id: string | null
   sort_order: number
   created_at: Date
   updated_at: Date
@@ -316,6 +323,7 @@ export type ApplicationWhereInput = {
   sso_app_id?: Prisma.StringNullableFilter<"Application"> | string | null
   sso_entry_url?: Prisma.StringNullableFilter<"Application"> | string | null
   sso_logout_url?: Prisma.StringNullableFilter<"Application"> | string | null
+  sso_central_entitlement_app_id?: Prisma.StringNullableFilter<"Application"> | string | null
   sort_order?: Prisma.IntFilter<"Application"> | number
   created_at?: Prisma.DateTimeFilter<"Application"> | Date | string
   updated_at?: Prisma.DateTimeFilter<"Application"> | Date | string
@@ -340,6 +348,7 @@ export type ApplicationOrderByWithRelationInput = {
   sso_app_id?: Prisma.SortOrderInput | Prisma.SortOrder
   sso_entry_url?: Prisma.SortOrderInput | Prisma.SortOrder
   sso_logout_url?: Prisma.SortOrderInput | Prisma.SortOrder
+  sso_central_entitlement_app_id?: Prisma.SortOrderInput | Prisma.SortOrder
   sort_order?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
@@ -367,6 +376,7 @@ export type ApplicationWhereUniqueInput = Prisma.AtLeast<{
   allowed_sources?: Prisma.StringNullableListFilter<"Application">
   sso_entry_url?: Prisma.StringNullableFilter<"Application"> | string | null
   sso_logout_url?: Prisma.StringNullableFilter<"Application"> | string | null
+  sso_central_entitlement_app_id?: Prisma.StringNullableFilter<"Application"> | string | null
   sort_order?: Prisma.IntFilter<"Application"> | number
   created_at?: Prisma.DateTimeFilter<"Application"> | Date | string
   updated_at?: Prisma.DateTimeFilter<"Application"> | Date | string
@@ -391,6 +401,7 @@ export type ApplicationOrderByWithAggregationInput = {
   sso_app_id?: Prisma.SortOrderInput | Prisma.SortOrder
   sso_entry_url?: Prisma.SortOrderInput | Prisma.SortOrder
   sso_logout_url?: Prisma.SortOrderInput | Prisma.SortOrder
+  sso_central_entitlement_app_id?: Prisma.SortOrderInput | Prisma.SortOrder
   sort_order?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
@@ -421,6 +432,7 @@ export type ApplicationScalarWhereWithAggregatesInput = {
   sso_app_id?: Prisma.StringNullableWithAggregatesFilter<"Application"> | string | null
   sso_entry_url?: Prisma.StringNullableWithAggregatesFilter<"Application"> | string | null
   sso_logout_url?: Prisma.StringNullableWithAggregatesFilter<"Application"> | string | null
+  sso_central_entitlement_app_id?: Prisma.StringNullableWithAggregatesFilter<"Application"> | string | null
   sort_order?: Prisma.IntWithAggregatesFilter<"Application"> | number
   created_at?: Prisma.DateTimeWithAggregatesFilter<"Application"> | Date | string
   updated_at?: Prisma.DateTimeWithAggregatesFilter<"Application"> | Date | string
@@ -443,6 +455,7 @@ export type ApplicationCreateInput = {
   sso_app_id?: string | null
   sso_entry_url?: string | null
   sso_logout_url?: string | null
+  sso_central_entitlement_app_id?: string | null
   sort_order?: number
   created_at?: Date | string
   updated_at?: Date | string
@@ -467,6 +480,7 @@ export type ApplicationUncheckedCreateInput = {
   sso_app_id?: string | null
   sso_entry_url?: string | null
   sso_logout_url?: string | null
+  sso_central_entitlement_app_id?: string | null
   sort_order?: number
   created_at?: Date | string
   updated_at?: Date | string
@@ -491,6 +505,7 @@ export type ApplicationUpdateInput = {
   sso_app_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sso_entry_url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sso_logout_url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sso_central_entitlement_app_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sort_order?: Prisma.IntFieldUpdateOperationsInput | number
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -515,6 +530,7 @@ export type ApplicationUncheckedUpdateInput = {
   sso_app_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sso_entry_url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sso_logout_url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sso_central_entitlement_app_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sort_order?: Prisma.IntFieldUpdateOperationsInput | number
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -539,6 +555,7 @@ export type ApplicationCreateManyInput = {
   sso_app_id?: string | null
   sso_entry_url?: string | null
   sso_logout_url?: string | null
+  sso_central_entitlement_app_id?: string | null
   sort_order?: number
   created_at?: Date | string
   updated_at?: Date | string
@@ -561,6 +578,7 @@ export type ApplicationUpdateManyMutationInput = {
   sso_app_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sso_entry_url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sso_logout_url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sso_central_entitlement_app_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sort_order?: Prisma.IntFieldUpdateOperationsInput | number
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -583,6 +601,7 @@ export type ApplicationUncheckedUpdateManyInput = {
   sso_app_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sso_entry_url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sso_logout_url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sso_central_entitlement_app_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sort_order?: Prisma.IntFieldUpdateOperationsInput | number
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -613,6 +632,7 @@ export type ApplicationCountOrderByAggregateInput = {
   sso_app_id?: Prisma.SortOrder
   sso_entry_url?: Prisma.SortOrder
   sso_logout_url?: Prisma.SortOrder
+  sso_central_entitlement_app_id?: Prisma.SortOrder
   sort_order?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
@@ -637,6 +657,7 @@ export type ApplicationMaxOrderByAggregateInput = {
   sso_app_id?: Prisma.SortOrder
   sso_entry_url?: Prisma.SortOrder
   sso_logout_url?: Prisma.SortOrder
+  sso_central_entitlement_app_id?: Prisma.SortOrder
   sort_order?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
@@ -657,6 +678,7 @@ export type ApplicationMinOrderByAggregateInput = {
   sso_app_id?: Prisma.SortOrder
   sso_entry_url?: Prisma.SortOrder
   sso_logout_url?: Prisma.SortOrder
+  sso_central_entitlement_app_id?: Prisma.SortOrder
   sort_order?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
@@ -766,6 +788,7 @@ export type ApplicationCreateWithoutReportsInput = {
   sso_app_id?: string | null
   sso_entry_url?: string | null
   sso_logout_url?: string | null
+  sso_central_entitlement_app_id?: string | null
   sort_order?: number
   created_at?: Date | string
   updated_at?: Date | string
@@ -789,6 +812,7 @@ export type ApplicationUncheckedCreateWithoutReportsInput = {
   sso_app_id?: string | null
   sso_entry_url?: string | null
   sso_logout_url?: string | null
+  sso_central_entitlement_app_id?: string | null
   sort_order?: number
   created_at?: Date | string
   updated_at?: Date | string
@@ -828,6 +852,7 @@ export type ApplicationUpdateWithoutReportsInput = {
   sso_app_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sso_entry_url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sso_logout_url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sso_central_entitlement_app_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sort_order?: Prisma.IntFieldUpdateOperationsInput | number
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -851,6 +876,7 @@ export type ApplicationUncheckedUpdateWithoutReportsInput = {
   sso_app_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sso_entry_url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sso_logout_url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sso_central_entitlement_app_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sort_order?: Prisma.IntFieldUpdateOperationsInput | number
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -874,6 +900,7 @@ export type ApplicationCreateWithoutAccess_requestsInput = {
   sso_app_id?: string | null
   sso_entry_url?: string | null
   sso_logout_url?: string | null
+  sso_central_entitlement_app_id?: string | null
   sort_order?: number
   created_at?: Date | string
   updated_at?: Date | string
@@ -897,6 +924,7 @@ export type ApplicationUncheckedCreateWithoutAccess_requestsInput = {
   sso_app_id?: string | null
   sso_entry_url?: string | null
   sso_logout_url?: string | null
+  sso_central_entitlement_app_id?: string | null
   sort_order?: number
   created_at?: Date | string
   updated_at?: Date | string
@@ -936,6 +964,7 @@ export type ApplicationUpdateWithoutAccess_requestsInput = {
   sso_app_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sso_entry_url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sso_logout_url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sso_central_entitlement_app_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sort_order?: Prisma.IntFieldUpdateOperationsInput | number
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -959,6 +988,7 @@ export type ApplicationUncheckedUpdateWithoutAccess_requestsInput = {
   sso_app_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sso_entry_url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sso_logout_url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sso_central_entitlement_app_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sort_order?: Prisma.IntFieldUpdateOperationsInput | number
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1022,6 +1052,7 @@ export type ApplicationSelect<ExtArgs extends runtime.Types.Extensions.InternalA
   sso_app_id?: boolean
   sso_entry_url?: boolean
   sso_logout_url?: boolean
+  sso_central_entitlement_app_id?: boolean
   sort_order?: boolean
   created_at?: boolean
   updated_at?: boolean
@@ -1047,6 +1078,7 @@ export type ApplicationSelectCreateManyAndReturn<ExtArgs extends runtime.Types.E
   sso_app_id?: boolean
   sso_entry_url?: boolean
   sso_logout_url?: boolean
+  sso_central_entitlement_app_id?: boolean
   sort_order?: boolean
   created_at?: boolean
   updated_at?: boolean
@@ -1069,6 +1101,7 @@ export type ApplicationSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.E
   sso_app_id?: boolean
   sso_entry_url?: boolean
   sso_logout_url?: boolean
+  sso_central_entitlement_app_id?: boolean
   sort_order?: boolean
   created_at?: boolean
   updated_at?: boolean
@@ -1091,13 +1124,14 @@ export type ApplicationSelectScalar = {
   sso_app_id?: boolean
   sso_entry_url?: boolean
   sso_logout_url?: boolean
+  sso_central_entitlement_app_id?: boolean
   sort_order?: boolean
   created_at?: boolean
   updated_at?: boolean
   deleted_at?: boolean
 }
 
-export type ApplicationOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "icon" | "description" | "audience" | "category" | "keywords" | "href" | "external" | "status" | "discoverable" | "allowed_sources" | "sso_app_id" | "sso_entry_url" | "sso_logout_url" | "sort_order" | "created_at" | "updated_at" | "deleted_at", ExtArgs["result"]["application"]>
+export type ApplicationOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "icon" | "description" | "audience" | "category" | "keywords" | "href" | "external" | "status" | "discoverable" | "allowed_sources" | "sso_app_id" | "sso_entry_url" | "sso_logout_url" | "sso_central_entitlement_app_id" | "sort_order" | "created_at" | "updated_at" | "deleted_at", ExtArgs["result"]["application"]>
 export type ApplicationInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   reports?: boolean | Prisma.Application$reportsArgs<ExtArgs>
   access_requests?: boolean | Prisma.Application$access_requestsArgs<ExtArgs>
@@ -1128,6 +1162,7 @@ export type $ApplicationPayload<ExtArgs extends runtime.Types.Extensions.Interna
     sso_app_id: string | null
     sso_entry_url: string | null
     sso_logout_url: string | null
+    sso_central_entitlement_app_id: string | null
     sort_order: number
     created_at: Date
     updated_at: Date
@@ -1572,6 +1607,7 @@ export interface ApplicationFieldRefs {
   readonly sso_app_id: Prisma.FieldRef<"Application", 'String'>
   readonly sso_entry_url: Prisma.FieldRef<"Application", 'String'>
   readonly sso_logout_url: Prisma.FieldRef<"Application", 'String'>
+  readonly sso_central_entitlement_app_id: Prisma.FieldRef<"Application", 'String'>
   readonly sort_order: Prisma.FieldRef<"Application", 'Int'>
   readonly created_at: Prisma.FieldRef<"Application", 'DateTime'>
   readonly updated_at: Prisma.FieldRef<"Application", 'DateTime'>

@@ -47,6 +47,11 @@ export { Prisma }
  */
 export type Application = Prisma.ApplicationModel
 /**
+ * Model SsoCode
+ * 
+ */
+export type SsoCode = Prisma.SsoCodeModel
+/**
  * Model AppReport
  * 
  */
