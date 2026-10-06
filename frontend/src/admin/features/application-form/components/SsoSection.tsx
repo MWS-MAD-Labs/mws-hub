@@ -16,6 +16,7 @@ type SsoSectionProps = {
   setSsoBase: (value: string) => void;
   appId: string;
   formSsoAppId: AdminApplicationInput["ssoAppId"];
+  centralEntitlementAppId: AdminApplicationInput["centralEntitlementAppId"];
   update: <K extends keyof AdminApplicationInput>(
     key: K,
     value: AdminApplicationInput[K],
@@ -32,6 +33,7 @@ export default function SsoSection({
   setSsoBase,
   appId,
   formSsoAppId,
+  centralEntitlementAppId,
   update,
 }: SsoSectionProps) {
   const ssoAppId = resolveSsoAppId(appId, formSsoAppId ?? "");
@@ -96,6 +98,23 @@ export default function SsoSection({
                 placeholder="https://..."
                 value={ssoBase}
                 onChange={(event) => setSsoBase(event.target.value)}
+              />
+            </label>
+
+            <label className={labelClass}>
+              Central entitlement app id
+              <span className={helperTextClass}>
+                Opsional. Jika diisi, Hub hanya meluncurkan app untuk pengguna
+                dengan entitlement Central yang aktif.
+              </span>
+              <input
+                className={inputClass}
+                type="text"
+                placeholder={ssoAppId || appId || "exima"}
+                value={centralEntitlementAppId ?? ""}
+                onChange={(event) =>
+                  update("centralEntitlementAppId", event.target.value)
+                }
               />
             </label>
 

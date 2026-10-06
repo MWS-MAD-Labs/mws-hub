@@ -25,6 +25,8 @@ export function formFromApplication(
     ssoAppId: application.sso_app_id ?? "",
     ssoEntryUrl: application.sso_entry_url ?? "",
     ssoLogoutUrl: application.sso_logout_url ?? "",
+    centralEntitlementAppId:
+      application.sso_central_entitlement_app_id ?? "",
     sortOrder: application.sort_order,
   };
 }

@@ -21,15 +21,26 @@ export function useSsoConfig(application: AdminApplication | null | undefined) {
     setSsoBase(baseFromSsoEntry(application?.sso_entry_url ?? ""));
   }, [application]);
 
-  function resolve(appId: string, rawSsoAppId?: string | null) {
+  function resolve(
+    appId: string,
+    rawSsoAppId?: string | null,
+    centralEntitlementAppId?: string | null,
+  ) {
     if (!usesSso) {
-      return { usesSso: false as const, ssoAppId: null, ssoEntryUrl: null, ssoLogoutUrl: null };
+      return {
+        usesSso: false as const,
+        ssoAppId: null,
+        ssoEntryUrl: null,
+        ssoLogoutUrl: null,
+        centralEntitlementAppId: null,
+      };
     }
     return {
       usesSso: true as const,
       ssoAppId: resolveSsoAppId(appId, rawSsoAppId),
       ssoEntryUrl: ssoEntryFromBase(ssoBase),
       ssoLogoutUrl: ssoLogoutFromBase(ssoBase) || null,
+      centralEntitlementAppId: centralEntitlementAppId?.trim() || null,
     };
   }
 

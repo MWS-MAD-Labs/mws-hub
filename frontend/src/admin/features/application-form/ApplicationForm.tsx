@@ -82,7 +82,11 @@ export default function ApplicationForm({
     }
 
     setFormError("");
-    const sso = resolveSso(appId, form.ssoAppId);
+    const sso = resolveSso(
+      appId,
+      form.ssoAppId,
+      form.centralEntitlementAppId,
+    );
     await onSubmit({
       ...form,
       name: form.name.trim(),
@@ -96,6 +100,7 @@ export default function ApplicationForm({
       ssoAppId: sso.ssoAppId,
       ssoEntryUrl: sso.ssoEntryUrl,
       ssoLogoutUrl: sso.ssoLogoutUrl,
+      centralEntitlementAppId: sso.centralEntitlementAppId,
       sortOrder: Number(form.sortOrder) || 0,
     });
   }
@@ -149,6 +154,7 @@ export default function ApplicationForm({
             setSsoBase={setSsoBase}
             appId={appId}
             formSsoAppId={form.ssoAppId}
+            centralEntitlementAppId={form.centralEntitlementAppId}
             update={update}
           />
         </div>

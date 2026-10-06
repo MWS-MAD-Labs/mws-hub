@@ -36,6 +36,7 @@ export const emptyForm: AdminApplicationInput = {
   ssoAppId: "",
   ssoEntryUrl: "",
   ssoLogoutUrl: "",
+  centralEntitlementAppId: "",
   sortOrder: 0,
 };
 
