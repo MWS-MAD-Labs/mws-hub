@@ -12,6 +12,7 @@ import { frontendOrigin } from "../lib/frontend-origin";
 import { recordAuditLog } from "../service/audit-log-service";
 import type { HubUser } from "../type/central-type";
 import type { SessionVariables } from "../type/hono-context";
+import { optionalSsoState } from "../lib/sso-state";
 
 // Launch is a browser navigation, not an XHR, so a failure here has to land
 // somewhere a person can read. Same shape the satellite apps already use for
@@ -78,6 +79,7 @@ export class AppsController {
   static async launch(c: Context<{ Variables: SessionVariables }>) {
     const appId = c.req.param("appId");
     const entry = appId ? await AppsService.findByLaunchId(appId) : null;
+    const state = optionalSsoState(c.req.query("state"));
     if (!entry) {
       logger.info("Launch refused, unknown app:", {
         appId,
@@ -183,7 +185,7 @@ export class AppsController {
       // actual token is fetched by the receiving app's own backend calling
       // Hub back directly (see sso-route.ts). Nothing sensitive sits in a
       // URL, server access log, or browser history anymore.
-      const code = createSsoCode(token, entry.sso.appId);
+      const code = await createSsoCode(token, entry.sso.appId, state);
 
       logger.info(`Launch redirected to SSO: ${entry.id}`, user.email);
       await recordLaunchAudit({
@@ -193,10 +195,10 @@ export class AppsController {
         outcome: "redirected",
         target: "sso",
       });
-      return c.redirect(
-        `${entry.sso.entryUrl}?code=${encodeURIComponent(code)}`,
-        302,
-      );
+      const target = new URL(entry.sso.entryUrl);
+      target.searchParams.set("code", code);
+      if (state) target.searchParams.set("state", state);
+      return c.redirect(target.toString(), 302);
     }
 
     if (!entry.href) {

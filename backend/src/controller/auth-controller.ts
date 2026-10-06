@@ -12,6 +12,7 @@ import { revokeSessionsForUser } from "../lib/session-revocation";
 import { recordAuditLog } from "../service/audit-log-service";
 import { getUserUnitId, isMadLabsUser } from "../lib/admin-access";
 import type { SessionVariables } from "../type/hono-context";
+import { sanitizeLaunchRedirect } from "../lib/sso-state";
 
 const OAUTH_STATE_COOKIE = "hub_google_oauth_state";
 
@@ -26,12 +27,6 @@ const RESPONSE_ERROR_CODES: Record<number, string> = {
 // Only ever an app-launch bounce-back (see apps-route.ts), never an arbitrary
 // URL - this is what stands between "resume the app you came from" and an
 // open redirect, so keep it narrow rather than accepting any relative path.
-const APP_LAUNCH_REDIRECT = /^\/apps\/[a-z0-9_-]+\/launch$/;
-
-function sanitizeLaunchRedirect(raw: string | undefined | null): string | null {
-  return raw && APP_LAUNCH_REDIRECT.test(raw) ? raw : null;
-}
-
 // crypto.randomUUID() never contains ':', so packing "nonce:redirect" into
 // the one state cookie/param is unambiguous to split back apart - no need
 // for a second cookie just to carry the redirect through Google's round trip.

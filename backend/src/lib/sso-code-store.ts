@@ -1,55 +1,115 @@
 import { randomUUID } from "node:crypto";
 
-// A bit more headroom than the relay token's own 30s exp, since exchanging
-// a code costs one extra network hop (the receiving app's backend calling
-// Hub back) that a browser redirect alone doesn't.
-const CODE_TTL_MS = 60_000;
+const CODE_TTL_MS = 25_000;
 
 type StoredExchange = {
   token: string;
   appId: string;
-  expiresAt: number;
+  state: string | null;
+  expiresAt: Date;
 };
 
-// In-memory, single-instance - same tradeoff InMemoryReplayStore in
-// mws-central-auth documents: fine as long as Hub runs one instance, but a
-// horizontally-scaled Hub needs this backed by Redis/a DB row instead, or a
-// code minted on one instance can't be redeemed against another.
-const pending = new Map<string, StoredExchange>();
+export interface SsoCodeStore {
+  create(token: string, appId: string, state?: string | null): Promise<string>;
+  consume(code: string, appId: string, state?: string | null): Promise<string | null>;
+}
 
-function sweep(): void {
-  const now = Date.now();
-  for (const [code, entry] of pending) {
-    if (entry.expiresAt <= now) pending.delete(code);
+export class MemorySsoCodeStore implements SsoCodeStore {
+  private readonly pending = new Map<string, StoredExchange>();
+
+  private sweep() {
+    const now = Date.now();
+    for (const [code, entry] of this.pending) {
+      if (entry.expiresAt.getTime() <= now) this.pending.delete(code);
+    }
+  }
+
+  async create(token: string, appId: string, state: string | null = null) {
+    this.sweep();
+    const code = randomUUID();
+    this.pending.set(code, {
+      token,
+      appId,
+      state,
+      expiresAt: new Date(Date.now() + CODE_TTL_MS),
+    });
+    return code;
+  }
+
+  async consume(code: string, appId: string, state: string | null = null) {
+    this.sweep();
+    const entry = this.pending.get(code);
+    this.pending.delete(code);
+
+    if (!entry || entry.appId !== appId || entry.expiresAt.getTime() <= Date.now()) {
+      return null;
+    }
+    if (entry.state !== null && entry.state !== state) return null;
+    return entry.token;
   }
 }
 
-// Called by AppsController.launch() right after minting a relay token:
-// hands back a short opaque code for the browser redirect instead of
-// putting the token itself in a URL, where it would sit in server access
-// logs, browser history, and any referrer header a page on the receiving
-// origin sends. Only the receiving app's own backend ever sees the real
-// token, via consumeSsoCode() below over a trusted server-to-server call
-// (see the /sso/exchange route) - never the browser.
-export function createSsoCode(token: string, appId: string): string {
-  sweep();
-  const code = randomUUID();
-  pending.set(code, { token, appId, expiresAt: Date.now() + CODE_TTL_MS });
-  return code;
+export class PostgresSsoCodeStore implements SsoCodeStore {
+  async create(token: string, appId: string, state: string | null = null) {
+    const { prisma } = await import("./prisma");
+    const code = randomUUID();
+    await prisma.ssoCode.deleteMany({ where: { expires_at: { lte: new Date() } } });
+    await prisma.ssoCode.create({
+      data: {
+        code,
+        token,
+        app_id: appId,
+        state,
+        expires_at: new Date(Date.now() + CODE_TTL_MS),
+      },
+    });
+    return code;
+  }
+
+  async consume(code: string, appId: string, state: string | null = null) {
+    const { prisma } = await import("./prisma");
+    const rows = await prisma.$queryRaw<StoredExchange[]>`
+      DELETE FROM "sso_codes"
+      WHERE "code" = ${code}
+      RETURNING
+        "token",
+        "app_id" AS "appId",
+        "state",
+        "expires_at" AS "expiresAt"
+    `;
+    const entry = rows[0];
+    if (!entry || entry.appId !== appId || entry.expiresAt.getTime() <= Date.now()) {
+      return null;
+    }
+    if (entry.state !== null && entry.state !== state) return null;
+    return entry.token;
+  }
 }
 
-// Single-use: deleted the moment it's looked up, valid or not - so a code
-// that somehow does leak (the same exposure surface a bearer token in a URL
-// used to have) is only ever worth one redemption attempt, and only by the
-// specific app it was minted for.
-export function consumeSsoCode(code: string, appId: string): string | null {
-  sweep();
-  const entry = pending.get(code);
-  pending.delete(code);
+let configuredStore: { mode: string; store: SsoCodeStore } | null = null;
 
-  if (!entry) return null;
-  if (entry.appId !== appId) return null;
-  if (entry.expiresAt <= Date.now()) return null;
+export function getSsoCodeStore(): SsoCodeStore {
+  const mode = process.env.SSO_CODE_STORE || "memory";
+  if (configuredStore?.mode === mode) return configuredStore.store;
+  if (mode !== "memory" && mode !== "postgres") {
+    throw new Error('SSO_CODE_STORE must be either "memory" or "postgres"');
+  }
 
-  return entry.token;
+  configuredStore = {
+    mode,
+    store: mode === "postgres" ? new PostgresSsoCodeStore() : new MemorySsoCodeStore(),
+  };
+  return configuredStore.store;
+}
+
+export function createSsoCode(token: string, appId: string, state?: string | null) {
+  return getSsoCodeStore().create(token, appId, state);
+}
+
+export function consumeSsoCode(
+  code: string,
+  appId: string,
+  state?: string | null,
+) {
+  return getSsoCodeStore().consume(code, appId, state);
 }
