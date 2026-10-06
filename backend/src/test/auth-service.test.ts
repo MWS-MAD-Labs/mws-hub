@@ -69,6 +69,21 @@ afterEach(() => {
   process.env.ALLOWED_DOMAIN = "millennia21.id";
 });
 
+describe("AuthService.loginWithGoogle and the Central access gate", () => {
+  it("refuses a person without Hub access before any session or revocation happens", async () => {
+    process.env.HUB_CENTRAL_ACCESS_MODE = "enforce";
+    spyOn(GoogleAuth, "verifyCode").mockResolvedValue(googlePayload);
+    spyOn(centralClient, "resolveCentralIdentity").mockResolvedValue({ ...centralUser, person_id: "person-gate" } as HubUser);
+    spyOn(centralClient, "lookupApplicationEntitlement").mockResolvedValue(null);
+
+    const error = await AuthService.loginWithGoogle("code").catch((caught) => caught);
+    expect(error.status).toBe(403);
+    expect(error.code).toBe("hub_access_denied");
+    expect(sessionVersions.has("employee@millennia21.id")).toBe(false);
+    delete process.env.HUB_CENTRAL_ACCESS_MODE;
+  });
+});
+
 describe("AuthService.loginWithGoogle", () => {
   it("rejects when Google can't verify the auth code", async () => {
     spyOn(GoogleAuth, "verifyCode").mockResolvedValue(null);

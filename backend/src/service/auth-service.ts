@@ -2,6 +2,7 @@ import { GoogleAuth } from "../lib/google-auth";
 import { resolveCentralIdentity } from "../lib/central-client";
 import { signSession } from "../lib/session";
 import { revokeSessionsForUser } from "../lib/session-revocation";
+import { enforceHubAccessOnLogin } from "../lib/hub-access-gate";
 import { ResponseError } from "../error/response-error";
 import type { HubUser } from "../type/central-type";
 
@@ -24,6 +25,9 @@ export class AuthService {
         "This account isn't registered in the Central database yet.",
       );
     }
+
+    // Before a session exists, so a refused person never ends anyone else's session.
+    await enforceHubAccessOnLogin(user);
 
     const token = await signSession(user);
     // Single-session policy: a fresh login here also ends this person's

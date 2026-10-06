@@ -1,6 +1,7 @@
 import type { Context, Next } from "hono";
 import { getCookie } from "hono/cookie";
 import { verifySession } from "../lib/session";
+import { ensureHubAccessForSession } from "../lib/hub-access-gate";
 import { ResponseError } from "../error/response-error";
 import type { SessionVariables } from "../type/hono-context";
 
@@ -18,6 +19,8 @@ export async function sessionAuthMiddleware(
   if (!session) {
     throw new ResponseError(401, "Session expired or invalid.");
   }
+
+  await ensureHubAccessForSession(session.user);
 
   c.set("user", session.user);
   await next();

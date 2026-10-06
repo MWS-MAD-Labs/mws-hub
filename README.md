@@ -69,6 +69,15 @@ Routes:
 - `state` is optional on `/apps/:appId/launch`. Valid URL-safe state survives
   Google login, is bound to the one-time code, is appended to the app callback,
   and must be supplied to `/sso/exchange` for state-bound codes.
+- Signing in to Hub itself can require an active access to the `hub` application
+  in Central's Application Access. `HUB_CENTRAL_ACCESS_MODE` is `off` (default,
+  not checked), `warn` (checked and logged, nobody turned away) or `enforce`
+  (turned away without access, signed out within 5 minutes when it is taken
+  away). `HUB_CENTRAL_ACCESS_APP_ID` changes the application (default `hub`).
+  `HUB_CENTRAL_ACCESS_BYPASS_EMAILS` lists accounts that always get in. Roll out
+  as `warn`, read the `hub.login_would_deny` audit entries until nobody is left
+  out, then switch to `enforce`. Only turn it on where Central has Application
+  Access groups for `hub`, otherwise everyone is turned away.
 - Set `SSO_CODE_STORE=postgres` for a shared, multi-instance one-time-code
   store (recommended in production). `memory` remains the default for local
   development and tests.

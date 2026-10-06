@@ -47,6 +47,14 @@ const LOGIN_ERRORS: Record<string, { title: string; description: string }> = {
     title: "Account not found",
     description: "This account isn't registered yet. Contact an admin for access.",
   },
+  hub_access_denied: {
+    title: "No access to Hub yet",
+    description: "Your account is registered, but it doesn't have access to Hub. Ask a Super Admin to give you access.",
+  },
+  central_unavailable: {
+    title: "Central isn't reachable",
+    description: "We couldn't check your access right now. Please try again in a moment.",
+  },
   login_failed: {
     title: "Couldn't sign you in",
     description: "Something went wrong on our end. Please try again in a moment.",
