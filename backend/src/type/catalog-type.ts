@@ -22,6 +22,8 @@ export type HubAppSso = {
   // every app the person opened, not just Hub itself. Optional: an app
   // without one just doesn't get included in the logout fan-out.
   logoutUrl?: string;
+  // Central application id whose active entitlement is required at launch.
+  centralEntitlementAppId?: string;
 };
 
 export type HubCatalogEntry = {

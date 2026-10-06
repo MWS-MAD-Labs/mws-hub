@@ -61,6 +61,12 @@ export function toCatalogEntry(row: Application): HubCatalogEntry {
             appId: row.sso_app_id,
             entryUrl: row.sso_entry_url,
             ...(row.sso_logout_url ? { logoutUrl: row.sso_logout_url } : {}),
+            ...(row.sso_central_entitlement_app_id
+              ? {
+                  centralEntitlementAppId:
+                    row.sso_central_entitlement_app_id,
+                }
+              : {}),
           },
         }
       : {}),
@@ -83,6 +89,7 @@ export type ApplicationInput = {
   ssoAppId?: string | null;
   ssoEntryUrl?: string | null;
   ssoLogoutUrl?: string | null;
+  centralEntitlementAppId?: string | null;
   sortOrder?: number;
 };
 
@@ -172,6 +179,7 @@ function toRow(input: ApplicationInput) {
     sso_app_id: input.ssoAppId ?? null,
     sso_entry_url: input.ssoEntryUrl ?? null,
     sso_logout_url: input.ssoLogoutUrl ?? null,
+    sso_central_entitlement_app_id: input.centralEntitlementAppId ?? null,
     sort_order: input.sortOrder ?? 0,
   };
 }

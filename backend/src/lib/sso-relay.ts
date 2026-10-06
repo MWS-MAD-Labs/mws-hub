@@ -1,5 +1,6 @@
 import { createPublicKey } from "node:crypto";
 import type { HubAccessSource, HubAppSso, IdentitySource } from "../type/catalog-type";
+import type { RelayEntitlement } from "../type/central-type";
 
 const ISSUER = "mws-hub";
 const RELAY_TTL_SECONDS = 30;
@@ -131,6 +132,7 @@ export async function mintRelayToken(
   user: { id: string; email: string },
   sso: HubAppSso,
   identity: { source: IdentitySource; tags: HubAccessSource[] },
+  entitlement?: RelayEntitlement,
 ): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
   const header = {
@@ -152,6 +154,7 @@ export async function mintRelayToken(
     email: user.email,
     source: identity.source,
     tags: identity.tags,
+    ...(entitlement ? { entitlement } : {}),
     jti: crypto.randomUUID(),
     iat: now,
     exp: now + RELAY_TTL_SECONDS,

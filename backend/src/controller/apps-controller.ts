@@ -4,6 +4,7 @@ import { mintRelayToken } from "../lib/sso-relay";
 import { createSsoCode } from "../lib/sso-code-store";
 import {
   listUpcomingEmployeeBirthdays,
+  lookupApplicationEntitlement,
   resolveCentralIdentityById,
 } from "../lib/central-client";
 import { ResponseError } from "../error/response-error";
@@ -11,6 +12,7 @@ import { logger } from "../lib/logger";
 import { frontendOrigin } from "../lib/frontend-origin";
 import { recordAuditLog } from "../service/audit-log-service";
 import type { HubUser } from "../type/central-type";
+import type { RelayEntitlement } from "../type/central-type";
 import type { SessionVariables } from "../type/hono-context";
 import { optionalSsoState } from "../lib/sso-state";
 
@@ -36,12 +38,14 @@ async function recordLaunchAudit({
   appName,
   outcome,
   target,
+  entitlement,
 }: {
   actor: HubUser;
   appId: string;
   appName?: string;
   outcome: string;
   target?: "sso" | "url" | "hub";
+  entitlement?: RelayEntitlement;
 }) {
   await recordAuditLog({
     actor,
@@ -53,6 +57,15 @@ async function recordLaunchAudit({
       application_name: appName ?? null,
       outcome,
       target: target ?? null,
+      entitlement: entitlement
+        ? {
+            id: entitlement.id,
+            application_id: entitlement.application_id,
+            organization_id: entitlement.organization_id,
+            role: entitlement.role,
+            version: entitlement.version,
+          }
+        : null,
     },
   });
 }
@@ -151,6 +164,52 @@ export class AppsController {
       return launchFailure(c, "app_access_denied", entry.name);
     }
 
+    let relayEntitlement: RelayEntitlement | undefined;
+    if (entry.sso?.centralEntitlementAppId) {
+      try {
+        const entitlement = await lookupApplicationEntitlement(
+          user.person_id,
+          entry.sso.centralEntitlementAppId,
+        );
+        if (!entitlement?.is_active) {
+          await recordLaunchAudit({
+            actor: user,
+            appId: entry.id,
+            appName: entry.name,
+            outcome: "entitlement_denied",
+            target: "hub",
+          });
+          return launchFailure(c, "app_entitlement_denied", entry.name);
+        }
+        const {
+          id,
+          application_id,
+          organization_id,
+          role,
+          permissions,
+          version,
+        } = entitlement;
+        relayEntitlement = {
+          id,
+          application_id,
+          organization_id,
+          role,
+          permissions,
+          version,
+        };
+      } catch (error) {
+        logger.error("Central entitlement lookup failed during launch:", error);
+        await recordLaunchAudit({
+          actor: user,
+          appId: entry.id,
+          appName: entry.name,
+          outcome: "central_unavailable",
+          target: "hub",
+        });
+        return launchFailure(c, "central_unavailable", entry.name);
+      }
+    }
+
     if (entry.status === "maintenance") {
       logger.info(`Launch refused, app under maintenance: ${entry.id}`, user.email);
       await recordLaunchAudit({
@@ -180,6 +239,7 @@ export class AppsController {
         { id: user.person_id, email: user.email },
         entry.sso,
         { source: user.source, tags: AppsService.accessTagsFor(user) },
+        relayEntitlement,
       );
       // The browser only ever carries a short opaque, single-use code - the
       // actual token is fetched by the receiving app's own backend calling
@@ -194,6 +254,7 @@ export class AppsController {
         appName: entry.name,
         outcome: "redirected",
         target: "sso",
+        entitlement: relayEntitlement,
       });
       const target = new URL(entry.sso.entryUrl);
       target.searchParams.set("code", code);

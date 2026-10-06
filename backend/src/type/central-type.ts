@@ -81,3 +81,21 @@ export type StudentLookupResponse = {
 export type HubUser =
   | ({ source: "employee" } & EmployeeLookupResponse)
   | ({ source: "student" } & StudentLookupResponse);
+
+export type CentralApplicationEntitlement = {
+  id: string;
+  person_id: string;
+  application_id: string;
+  organization_id: string;
+  role: string;
+  permissions: string[];
+  version: number;
+  is_active: boolean;
+  granted_at: string;
+  updated_at: string;
+};
+
+export type RelayEntitlement = Pick<
+  CentralApplicationEntitlement,
+  "id" | "application_id" | "organization_id" | "role" | "permissions" | "version"
+>;

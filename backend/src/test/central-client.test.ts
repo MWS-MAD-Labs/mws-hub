@@ -1,6 +1,7 @@
 import { describe, it, expect, afterEach } from "bun:test";
 import {
   listActiveEmployees,
+  lookupApplicationEntitlement,
   resolveCentralIdentity,
   resolveCentralIdentityById,
 } from "../lib/central-client";
@@ -17,6 +18,65 @@ function jsonResponse(status: number, body: unknown): Response {
     headers: { "Content-Type": "application/json" },
   });
 }
+
+describe("lookupApplicationEntitlement", () => {
+  const entitlement = {
+    id: "ent-1",
+    person_id: "person-1",
+    application_id: "exima",
+    organization_id: "org-1",
+    role: "resource-admin",
+    permissions: ["inventory:read", "inventory:write"],
+    version: 3,
+    is_active: true,
+    granted_at: "2026-09-01T00:00:00.000Z",
+    updated_at: "2026-09-29T00:00:00.000Z",
+  };
+
+  it("looks up by person_id/application_id and strictly returns valid data", async () => {
+    let requestedUrl = "";
+    global.fetch = (async (input: string | URL | Request) => {
+      requestedUrl = String(input);
+      return jsonResponse(200, { data: entitlement });
+    }) as unknown as typeof fetch;
+
+    expect(await lookupApplicationEntitlement("person-1", "exima")).toEqual(entitlement);
+    const url = new URL(requestedUrl);
+    expect(url.pathname).toEndWith("/application-entitlements/lookup");
+    expect(url.searchParams.get("person_id")).toBe("person-1");
+    expect(url.searchParams.get("application_id")).toBe("exima");
+  });
+
+  it("returns null only for a 404", async () => {
+    global.fetch = (async () =>
+      jsonResponse(404, { errors: "Not found" })) as unknown as typeof fetch;
+    expect(await lookupApplicationEntitlement("person-1", "exima")).toBeNull();
+  });
+
+  it("fails closed for mismatched identifiers, malformed data, and non-404 errors", async () => {
+    global.fetch = (async () =>
+      jsonResponse(200, {
+        data: { ...entitlement, application_id: "other" },
+      })) as unknown as typeof fetch;
+    await expect(lookupApplicationEntitlement("person-1", "exima")).rejects.toThrow(
+      "Central entitlement response data is invalid",
+    );
+
+    global.fetch = (async () =>
+      jsonResponse(200, {
+        data: { ...entitlement, permissions: ["ok", 1] },
+      })) as unknown as typeof fetch;
+    await expect(lookupApplicationEntitlement("person-1", "exima")).rejects.toThrow(
+      "Central entitlement response data is invalid",
+    );
+
+    global.fetch = (async () =>
+      jsonResponse(503, { errors: "down" })) as unknown as typeof fetch;
+    await expect(lookupApplicationEntitlement("person-1", "exima")).rejects.toThrow(
+      "Central lookup failed with status 503",
+    );
+  });
+});
 
 // A slow-but-not-erroring Central must not hang Hub's sign-in/launch/admin
 // flows forever - both the id/email-based lookup() and the paginated

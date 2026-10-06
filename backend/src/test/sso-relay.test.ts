@@ -122,4 +122,25 @@ describe("hubSsoJwks / mintRelayToken with a valid key", () => {
 
     expect(isValid).toBe(true);
   });
+
+  it("includes the optional Central entitlement snapshot", async () => {
+    const entitlement = {
+      id: "ent-1",
+      application_id: "exima",
+      organization_id: "org-1",
+      role: "resource-admin",
+      permissions: ["inventory:read"],
+      version: 2,
+    };
+    const token = await mintRelayToken(
+      { id: "person-1", email: "someone@millennia21.id" },
+      { appId: "exima", entryUrl: "https://exima.mws.web.id/auth/sso" },
+      { source: "employee", tags: ["employee", "resource"] },
+      entitlement,
+    );
+    const payload = JSON.parse(
+      base64UrlDecode(token.split(".")[1]!).toString("utf8"),
+    );
+    expect(payload.entitlement).toEqual(entitlement);
+  });
 });

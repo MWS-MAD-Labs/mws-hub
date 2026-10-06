@@ -144,6 +144,12 @@ export const HUB_CATALOG: HubCatalogEntry[] = [
     category: "operations", audience: "Resource", keywords: ["inventory", "accurate", "kiosk", "peminjaman", "barang"],
     href: "https://exima.mws.web.id/", external: true,
     status: "active", discoverable: true, allowedSources: ["resource"],
+    sso: {
+      appId: "exima",
+      entryUrl: "https://exima.mws.web.id/auth/sso",
+      logoutUrl: "https://exima.mws.web.id/auth/logout-silent",
+      centralEntitlementAppId: "exima",
+    },
   },
   {
     id: "ticket-scanner", name: "Ticket Scanner", icon: "QrCode",

@@ -1,4 +1,5 @@
 import type {
+  CentralApplicationEntitlement,
   EmployeeLookupResponse,
   HubUser,
   StudentLookupResponse,
@@ -158,6 +159,55 @@ async function lookup<T>(
 
   const body = (await res.json()) as { data: T };
   return body.data;
+}
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === "string" && value.length > 0;
+}
+
+function parseApplicationEntitlement(
+  value: unknown,
+  personId: string,
+  applicationId: string,
+): CentralApplicationEntitlement {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("Central entitlement response data is invalid");
+  }
+
+  const data = value as Record<string, unknown>;
+  const permissions = data.permissions;
+  const valid =
+    isNonEmptyString(data.id) &&
+    data.person_id === personId &&
+    data.application_id === applicationId &&
+    isNonEmptyString(data.organization_id) &&
+    isNonEmptyString(data.role) &&
+    Array.isArray(permissions) &&
+    permissions.every((permission) => isNonEmptyString(permission)) &&
+    typeof data.version === "number" &&
+    Number.isInteger(data.version) &&
+    data.version >= 0 &&
+    typeof data.is_active === "boolean" &&
+    isNonEmptyString(data.granted_at) &&
+    !Number.isNaN(Date.parse(data.granted_at)) &&
+    isNonEmptyString(data.updated_at) &&
+    !Number.isNaN(Date.parse(data.updated_at));
+
+  if (!valid) throw new Error("Central entitlement response data is invalid");
+  return data as CentralApplicationEntitlement;
+}
+
+export async function lookupApplicationEntitlement(
+  personId: string,
+  applicationId: string,
+): Promise<CentralApplicationEntitlement | null> {
+  const data = await lookup<unknown>("/application-entitlements/lookup", {
+    person_id: personId,
+    application_id: applicationId,
+  });
+  return data === null
+    ? null
+    : parseApplicationEntitlement(data, personId, applicationId);
 }
 
 async function listPage<T>(path: string): Promise<CentralPage<T>> {
