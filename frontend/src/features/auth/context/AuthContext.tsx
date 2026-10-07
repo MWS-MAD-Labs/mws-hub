@@ -64,6 +64,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("storage", handleStorage);
   }, []);
 
+  // Access can be taken away in Central while a tab is open. Re-check when the tab
+  // comes back and once a minute, so the person is sent to login without a click.
+  const signedIn = Boolean(user);
+  useEffect(() => {
+    if (!signedIn) return;
+    const recheck = () => {
+      if (document.visibilityState !== "visible") return;
+      authApi
+        .currentUser()
+        .then((current) => {
+          if (!current) setUser(null);
+        })
+        .catch(() => {});
+    };
+    const timer = window.setInterval(recheck, 60_000);
+    document.addEventListener("visibilitychange", recheck);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", recheck);
+    };
+  }, [signedIn]);
+
   const loginWithGoogle = useCallback(async (code: string) => {
     setIsLoggingIn(true);
     try {

@@ -193,3 +193,28 @@ describe("Hub admin from Central permission", () => {
     expect(await isHubAdmin(null)).toBe(false);
   });
 });
+
+describe("Hub access cache", () => {
+  it("does not keep a denial, so granting access is seen at once", async () => {
+    process.env.HUB_CENTRAL_ACCESS_MODE = "enforce";
+    const lookup = spyOn(centralClient, "lookupApplicationEntitlement").mockResolvedValue(null);
+    expect((await failure(gate.enforceHubAccessOnLogin(user)))?.status).toBe(403);
+    lookup.mockResolvedValue(entitlement());
+    await gate.enforceHubAccessOnLogin(user);
+  });
+
+  it("sees access taken away once the cached entry is older than the cache time", async () => {
+    process.env.HUB_CENTRAL_ACCESS_MODE = "enforce";
+    process.env.HUB_CENTRAL_ACCESS_CACHE_SECONDS = "30";
+    const now = Date.now();
+    const clock = spyOn(Date, "now").mockReturnValue(now);
+    const lookup = spyOn(centralClient, "lookupApplicationEntitlement").mockResolvedValue(entitlement());
+    await gate.ensureHubAccessForSession(user);
+    lookup.mockResolvedValue(null);
+    clock.mockReturnValue(now + 10_000);
+    await gate.ensureHubAccessForSession(user);
+    clock.mockReturnValue(now + 31_000);
+    expect((await failure(gate.ensureHubAccessForSession(user)))?.status).toBe(401);
+    delete process.env.HUB_CENTRAL_ACCESS_CACHE_SECONDS;
+  });
+});

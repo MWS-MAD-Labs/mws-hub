@@ -85,7 +85,7 @@ function postLogoutRedirectCookieOptions() {
 }
 
 async function hubAccessSummary(user: SessionVariables["user"]) {
-  const access = await resolveHubAccess(user, 5 * 60_000);
+  const access = await resolveHubAccess(user, Number(process.env.HUB_CENTRAL_ACCESS_CACHE_SECONDS || 30) * 1000);
   return {
     hubAccess:
       access.status === "granted" ? { role: access.role, permissions: access.permissions } : null,

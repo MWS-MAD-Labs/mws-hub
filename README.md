@@ -83,7 +83,12 @@ Routes:
   `mad-labs`, which keeps MAD Labs members as admins too. Set it to `off` once
   the Central role carries `hub.admin` for every admin.
 - App cards for apps with a `centralEntitlementAppId` are left out for people
-  Central gives no access to. Apps without it follow Hub's own rules.
+  Central gives no access to. In `enforce`, apps without it are left out too
+  (and cannot be launched), so link an app to Central before anyone can open it.
+  In `off` and `warn` they follow Hub's own rules.
+- Only active access is cached. `HUB_CENTRAL_ACCESS_CACHE_SECONDS` (default 30)
+  is how long it can take for taking access away to show for someone signed in.
+  Giving access shows at the next sign-in. Open tabs re-check once a minute.
 - Set `SSO_CODE_STORE=postgres` for a shared, multi-instance one-time-code
   store (recommended in production). `memory` remains the default for local
   development and tests.

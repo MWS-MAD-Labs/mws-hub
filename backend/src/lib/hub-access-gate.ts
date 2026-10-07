@@ -10,8 +10,12 @@ import type { CentralApplicationEntitlement, HubUser } from "../type/central-typ
 //   enforce - turned away without access
 export type HubAccessMode = "off" | "warn" | "enforce";
 
-const LOGIN_CACHE_MS = 60_000;
-const SESSION_CACHE_MS = 5 * 60_000;
+// Only active access is cached, so a denial never lingers and granting is seen at once.
+// Taking access away is seen once the cached entry is older than this.
+function cacheMs(): number {
+  const seconds = Number(process.env.HUB_CENTRAL_ACCESS_CACHE_SECONDS);
+  return (Number.isFinite(seconds) && seconds >= 0 ? seconds : 30) * 1000;
+}
 
 export function hubAccessMode(): HubAccessMode {
   const raw = (process.env.HUB_CENTRAL_ACCESS_MODE || "off").trim().toLowerCase();
@@ -63,7 +67,7 @@ export async function resolveHubAccess(user: HubUser, maxAgeMs: number): Promise
       logger.error("Central access lookup failed for Hub:", error);
       return { status: "central_unavailable", role: null, permissions: [] };
     }
-    cache.set(key, { at: Date.now(), entitlement });
+    if (entitlement?.is_active) cache.set(key, { at: Date.now(), entitlement });
   }
 
   if (!entitlement?.is_active) return { status: "no_access", role: null, permissions: [] };
@@ -81,11 +85,11 @@ export function clearAppAccessCacheForTest() {
 export async function centralAccessForApp(user: HubUser, appId: string): Promise<"granted" | "denied" | "unknown"> {
   const key = `${appId}:${user.person_id}`;
   const cached = appCache.get(key);
-  if (cached && Date.now() - cached.at < LOGIN_CACHE_MS) return cached.active ? "granted" : "denied";
+  if (cached && Date.now() - cached.at < cacheMs()) return "granted";
   try {
     const entitlement = await lookupApplicationEntitlement(user.person_id, appId);
     const active = Boolean(entitlement?.is_active);
-    appCache.set(key, { at: Date.now(), active });
+    if (active) appCache.set(key, { at: Date.now(), active });
     return active ? "granted" : "denied";
   } catch (error) {
     logger.error(`Central access lookup failed for card ${appId}:`, error);
@@ -110,7 +114,7 @@ export const HUB_ADMIN_PERMISSION = "hub.admin";
 
 export async function userHasHubPermission(user: HubUser, permission: string): Promise<boolean> {
   if (hubAccessMode() === "off") return false;
-  const access = await resolveHubAccess(user, SESSION_CACHE_MS);
+  const access = await resolveHubAccess(user, cacheMs());
   return access.status === "granted" && access.permissions.includes(permission);
 }
 
@@ -119,7 +123,7 @@ export async function enforceHubAccessOnLogin(user: HubUser): Promise<void> {
   const mode = hubAccessMode();
   if (mode === "off") return;
 
-  const access = await resolveHubAccess(user, LOGIN_CACHE_MS);
+  const access = await resolveHubAccess(user, cacheMs());
   if (access.status === "granted" || access.status === "bypass") return;
 
   if (access.status === "central_unavailable") {
@@ -143,7 +147,7 @@ export async function enforceHubAccessOnLogin(user: HubUser): Promise<void> {
 // does not sign anyone out: they already passed the check at sign-in.
 export async function ensureHubAccessForSession(user: HubUser): Promise<void> {
   if (hubAccessMode() !== "enforce") return;
-  const access = await resolveHubAccess(user, SESSION_CACHE_MS);
+  const access = await resolveHubAccess(user, cacheMs());
   if (access.status === "no_access") {
     throw new ResponseError(401, "Access to Hub was removed.");
   }
