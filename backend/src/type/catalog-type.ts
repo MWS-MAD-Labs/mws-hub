@@ -54,5 +54,7 @@ export type HubCatalogEntry = {
 // open the card or should see the request-access path.
 export type HubAppResponse = Omit<HubCatalogEntry, "allowedSources" | "sso"> & {
   access: "granted" | "locked";
+  // Set when Central Application Access, not Hub rules, is why the card is locked.
+  lockedBy?: "central";
   ssoAppId?: string;
 };

@@ -3,6 +3,7 @@ import {
   normalizeAccessToken,
   userMatchesAccessRule,
 } from "../lib/access-rules";
+import { centralAccessForApp } from "../lib/hub-access-gate";
 import { ApplicationService } from "./application-service";
 import type { CentralClaim, HubUser } from "../type/central-type";
 import type { HubAccessSource, HubAppResponse, HubCatalogEntry } from "../type/catalog-type";
@@ -189,9 +190,21 @@ export class AppsService {
       effectiveCatalog(),
       approvedApplicationIdsFor(user),
     ]);
-    return catalog
-      .filter((entry) => isVisibleTo(entry, user))
-      .map((entry) => toResponse(entry, user, approvedApplicationIds));
+    const visible = catalog.filter((entry) => isVisibleTo(entry, user));
+    // Central decides who may open an app it gates. Hub still owns its status.
+    const central = await Promise.all(
+      visible.map((entry) =>
+        entry.sso?.centralEntitlementAppId
+          ? centralAccessForApp(user, entry.sso.centralEntitlementAppId)
+          : Promise.resolve(null),
+      ),
+    );
+    return visible.map((entry, index) => {
+      const response = toResponse(entry, user, approvedApplicationIds);
+      return central[index] === "denied"
+        ? { ...response, access: "locked" as const, lockedBy: "central" as const }
+        : response;
+    });
   }
 
   static async findByLaunchId(appId: string): Promise<HubCatalogEntry | null> {

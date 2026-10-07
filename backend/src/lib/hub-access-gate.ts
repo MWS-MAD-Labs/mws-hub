@@ -70,6 +70,29 @@ export async function resolveHubAccess(user: HubUser, maxAgeMs: number): Promise
   return { status: "granted", role: entitlement.role, permissions: entitlement.permissions };
 }
 
+// For the app cards: does Central give this person access to a gated app?
+// "unknown" when Central cannot be reached, so the card falls back to Hub's own rules.
+const appCache = new Map<string, { at: number; active: boolean }>();
+
+export function clearAppAccessCacheForTest() {
+  appCache.clear();
+}
+
+export async function centralAccessForApp(user: HubUser, appId: string): Promise<"granted" | "denied" | "unknown"> {
+  const key = `${appId}:${user.person_id}`;
+  const cached = appCache.get(key);
+  if (cached && Date.now() - cached.at < LOGIN_CACHE_MS) return cached.active ? "granted" : "denied";
+  try {
+    const entitlement = await lookupApplicationEntitlement(user.person_id, appId);
+    const active = Boolean(entitlement?.is_active);
+    appCache.set(key, { at: Date.now(), active });
+    return active ? "granted" : "denied";
+  } catch (error) {
+    logger.error(`Central access lookup failed for card ${appId}:`, error);
+    return "unknown";
+  }
+}
+
 async function audit(user: HubUser, action: string, summary: string) {
   // Loaded here so importing the gate (for admin checks) does not pull in the database client.
   const { recordAuditLog } = await import("../service/audit-log-service");

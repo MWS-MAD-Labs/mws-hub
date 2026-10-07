@@ -13,6 +13,7 @@ export type HubApplication = {
   external: boolean;
   status: HubApplicationStatus;
   access: HubApplicationAccess;
+  lockedBy?: "central";
   discoverable: boolean;
   // Set only for apps with a token-relay SSO exchange endpoint. AppCard
   // routes every click through Hub's own /apps/:id/launch; this value tells
