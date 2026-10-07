@@ -10,7 +10,7 @@ import { verifySession } from "../lib/session";
 import { AppsService } from "../service/apps-service";
 import { revokeSessionsForUser } from "../lib/session-revocation";
 import { recordAuditLog } from "../service/audit-log-service";
-import { getUserUnitId, isMadLabsUser } from "../lib/admin-access";
+import { getUserUnitId, isHubAdmin } from "../lib/admin-access";
 import { hubAccessMode, resolveHubAccess } from "../lib/hub-access-gate";
 import type { SessionVariables } from "../type/hono-context";
 import { sanitizeLaunchRedirect } from "../lib/sso-state";
@@ -97,7 +97,7 @@ async function authUserResponse(user: SessionVariables["user"]) {
     ...user,
     unitId: getUserUnitId(user),
     unit_id: getUserUnitId(user),
-    isAdmin: await isMadLabsUser(user),
+    isAdmin: await isHubAdmin(user),
     // What Central says about this person's access to Hub, only when it is being checked.
     ...(hubAccessMode() === "off"
       ? {}

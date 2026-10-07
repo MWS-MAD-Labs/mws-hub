@@ -1,7 +1,6 @@
 import { lookupApplicationEntitlement } from "./central-client";
 import { logger } from "./logger";
 import { ResponseError } from "../error/response-error";
-import { recordAuditLog } from "../service/audit-log-service";
 import type { CentralApplicationEntitlement, HubUser } from "../type/central-type";
 
 // Whether signing in to Hub itself needs an active access in Central's
@@ -72,6 +71,8 @@ export async function resolveHubAccess(user: HubUser, maxAgeMs: number): Promise
 }
 
 async function audit(user: HubUser, action: string, summary: string) {
+  // Loaded here so importing the gate (for admin checks) does not pull in the database client.
+  const { recordAuditLog } = await import("../service/audit-log-service");
   await recordAuditLog({
     actor: user,
     action,
@@ -79,6 +80,15 @@ async function audit(user: HubUser, action: string, summary: string) {
     summary,
     metadata: { application_id: accessAppId() },
   });
+}
+
+// What Hub authorizes on is the permission the role carries, not the role's name.
+export const HUB_ADMIN_PERMISSION = "hub.admin";
+
+export async function userHasHubPermission(user: HubUser, permission: string): Promise<boolean> {
+  if (hubAccessMode() === "off") return false;
+  const access = await resolveHubAccess(user, SESSION_CACHE_MS);
+  return access.status === "granted" && access.permissions.includes(permission);
 }
 
 // Called at sign-in, before a session exists.

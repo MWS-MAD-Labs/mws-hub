@@ -78,6 +78,10 @@ Routes:
   as `warn`, read the `hub.login_would_deny` audit entries until nobody is left
   out, then switch to `enforce`. Only turn it on where Central has Application
   Access groups for `hub`, otherwise everyone is turned away.
+- With the gate on, Admin Dashboard access comes from the `hub.admin` permission
+  on the person's Hub role in Central. `HUB_ADMIN_FALLBACK` defaults to
+  `mad-labs`, which keeps MAD Labs members as admins too. Set it to `off` once
+  the Central role carries `hub.admin` for every admin.
 - Set `SSO_CODE_STORE=postgres` for a shared, multi-instance one-time-code
   store (recommended in production). `memory` remains the default for local
   development and tests.

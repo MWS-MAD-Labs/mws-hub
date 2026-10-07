@@ -1,6 +1,6 @@
 import type { Context, Next } from "hono";
 import { ResponseError } from "../error/response-error";
-import { isMadLabsUser } from "../lib/admin-access";
+import { isHubAdmin } from "../lib/admin-access";
 import { resolveCentralIdentityById } from "../lib/central-client";
 import { logger } from "../lib/logger";
 import type { SessionVariables } from "../type/hono-context";
@@ -27,7 +27,7 @@ export async function adminAuthMiddleware(
     throw new ResponseError(503, "Cannot verify Central identity right now.");
   }
 
-  if (!(await isMadLabsUser(user))) {
+  if (!(await isHubAdmin(user))) {
     throw new ResponseError(
       403,
       "Access denied. Only MAD Labs members can access the Admin Dashboard.",
