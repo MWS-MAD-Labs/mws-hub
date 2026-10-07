@@ -230,3 +230,52 @@ describe("Removing Hub access ends app sessions", () => {
     expect(revoke).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("The permission to use Hub", () => {
+  const withoutUse = () => entitlement({ role: "ADMIN", permissions: ["hub.admin"] });
+
+  it("turns away an active role that does not carry hub.use, and says why", async () => {
+    process.env.HUB_CENTRAL_ACCESS_MODE = "enforce";
+    spyOn(centralClient, "lookupApplicationEntitlement").mockResolvedValue(withoutUse());
+    const refused = await failure(gate.enforceHubAccessOnLogin(user));
+    expect(refused?.status).toBe(403);
+    expect(refused?.code).toBe("hub_use_missing");
+    expect(refused?.message).toContain("Your role does not include Hub access");
+    expect(audits.map((entry) => entry.action)).toEqual(["hub.login_denied"]);
+  });
+
+  it("lets such a role in while warning, and writes it down", async () => {
+    process.env.HUB_CENTRAL_ACCESS_MODE = "warn";
+    spyOn(centralClient, "lookupApplicationEntitlement").mockResolvedValue(withoutUse());
+    await gate.enforceHubAccessOnLogin(user);
+    expect(audits.map((entry) => entry.action)).toEqual(["hub.login_would_deny"]);
+  });
+
+  it("signs out someone already in when their role loses hub.use", async () => {
+    process.env.HUB_CENTRAL_ACCESS_MODE = "enforce";
+    spyOn(centralClient, "lookupApplicationEntitlement").mockResolvedValue(withoutUse());
+    const removed = await failure(gate.ensureHubAccessForSession(user));
+    expect(removed?.status).toBe(401);
+  });
+
+  it("lets a bypass account in without it, and a complete admin stays admin", async () => {
+    process.env.HUB_CENTRAL_ACCESS_MODE = "enforce";
+    process.env.HUB_CENTRAL_ACCESS_BYPASS_EMAILS = "employee@millennia21.id";
+    spyOn(centralClient, "lookupApplicationEntitlement").mockResolvedValue(withoutUse());
+    await gate.enforceHubAccessOnLogin(user);
+
+    delete process.env.HUB_CENTRAL_ACCESS_BYPASS_EMAILS;
+    gate.clearHubAccessCacheForTest();
+    spyOn(centralClient, "lookupApplicationEntitlement").mockResolvedValue(
+      entitlement({ role: "ADMIN", permissions: ["hub.use", "hub.admin"] }),
+    );
+    await gate.enforceHubAccessOnLogin(user);
+    expect(await gate.userHasHubPermission(user, "hub.admin")).toBe(true);
+  });
+
+  it("does not make an admin of a role that has hub.admin but not hub.use", async () => {
+    process.env.HUB_CENTRAL_ACCESS_MODE = "enforce";
+    spyOn(centralClient, "lookupApplicationEntitlement").mockResolvedValue(withoutUse());
+    expect(await gate.userHasHubPermission(user, "hub.admin")).toBe(false);
+  });
+});

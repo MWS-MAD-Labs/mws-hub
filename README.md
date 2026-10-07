@@ -86,6 +86,7 @@ Routes:
   Central gives no access to. In `enforce`, apps without it are left out too
   (and cannot be launched), so link an app to Central before anyone can open it.
   In `off` and `warn` they follow Hub's own rules.
+- Signing in also needs the `hub.use` permission on the person's role. An active access whose role does not carry it is turned away (`hub_use_missing`), or only logged as `hub.login_would_deny` in `warn`. Add `hub.use` to every Hub role in Central before `enforce`.
 - Only active access is cached. `HUB_CENTRAL_ACCESS_CACHE_SECONDS` (default 30)
   is how long it can take for taking access away to show for someone signed in.
   Giving access shows at the next sign-in. Open tabs re-check once a minute.

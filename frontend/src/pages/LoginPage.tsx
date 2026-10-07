@@ -51,6 +51,10 @@ const LOGIN_ERRORS: Record<string, { title: string; description: string }> = {
     title: "No access to Hub yet",
     description: "Your account is registered, but it doesn't have access to Hub. Ask a Super Admin to give you access.",
   },
+  hub_use_missing: {
+    title: "Your role can't use Hub",
+    description: "Your account has access, but its role doesn't include Hub. Ask a Super Admin to add Hub access to your role.",
+  },
   central_unavailable: {
     title: "Central isn't reachable",
     description: "We couldn't check your access right now. Please try again in a moment.",

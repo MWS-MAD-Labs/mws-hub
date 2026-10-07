@@ -1,5 +1,5 @@
 import { lookupApplicationEntitlement } from "./central-client";
-import { HUB_ADMIN_PERMISSION } from "./hub-permissions";
+import { HUB_ADMIN_PERMISSION, HUB_USE_PERMISSION } from "./hub-permissions";
 import { logger } from "./logger";
 import { revokeSessionsForUser } from "./session-revocation";
 import { ResponseError } from "../error/response-error";
@@ -41,7 +41,7 @@ function bypassEmails(): Set<string> {
 }
 
 export type HubAccess = {
-  status: "granted" | "bypass" | "no_access" | "central_unavailable";
+  status: "granted" | "bypass" | "no_access" | "no_permission" | "central_unavailable";
   role: string | null;
   permissions: string[];
 };
@@ -74,6 +74,10 @@ export async function resolveHubAccess(user: HubUser, maxAgeMs: number): Promise
   }
 
   if (!entitlement?.is_active) return { status: "no_access", role: null, permissions: [] };
+  // An active access whose role does not carry the permission to use Hub does not get in.
+  if (!entitlement.permissions.includes(HUB_USE_PERMISSION)) {
+    return { status: "no_permission", role: entitlement.role, permissions: entitlement.permissions };
+  }
   return { status: "granted", role: entitlement.role, permissions: entitlement.permissions };
 }
 
@@ -137,12 +141,27 @@ export async function enforceHubAccessOnLogin(user: HubUser): Promise<void> {
     return;
   }
 
+  const missingPermission = access.status === "no_permission";
   if (mode === "enforce") {
-    await audit(user, "hub.login_denied", `${user.email} was turned away: no Hub access in Central`);
-    throw new ResponseError(403, "You don't have access to Hub yet. Ask a Super Admin.", "hub_access_denied");
+    await audit(
+      user,
+      "hub.login_denied",
+      missingPermission
+        ? `${user.email} was turned away: role ${access.role} has no ${HUB_USE_PERMISSION} permission`
+        : `${user.email} was turned away: no Hub access in Central`,
+    );
+    throw missingPermission
+      ? new ResponseError(403, "Your role does not include Hub access. Ask a Super Admin.", "hub_use_missing")
+      : new ResponseError(403, "You don't have access to Hub yet. Ask a Super Admin.", "hub_access_denied");
   }
   logger.info(`Hub access would be denied: ${user.email}`);
-  await audit(user, "hub.login_would_deny", `${user.email} has no Hub access in Central (warn mode, let in)`);
+  await audit(
+    user,
+    "hub.login_would_deny",
+    missingPermission
+      ? `${user.email} has role ${access.role} without ${HUB_USE_PERMISSION} (warn mode, let in)`
+      : `${user.email} has no Hub access in Central (warn mode, let in)`,
+  );
 }
 
 const REVOKE_AGAIN_MS = 5 * 60_000;
@@ -154,7 +173,7 @@ const revoked = new Map<string, number>();
 export async function ensureHubAccessForSession(user: HubUser): Promise<void> {
   if (hubAccessMode() !== "enforce") return;
   const access = await resolveHubAccess(user, cacheMs());
-  if (access.status === "no_access") {
+  if (access.status === "no_access" || access.status === "no_permission") {
     // Also end their sessions in the apps opened through Hub, once per removal.
     const last = revoked.get(user.person_id);
     if (!last || Date.now() - last > REVOKE_AGAIN_MS) {
