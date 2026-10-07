@@ -89,6 +89,10 @@ Routes:
 - Only active access is cached. `HUB_CENTRAL_ACCESS_CACHE_SECONDS` (default 30)
   is how long it can take for taking access away to show for someone signed in.
   Giving access shows at the next sign-in. Open tabs re-check once a minute.
+- Taking away Hub access also ends the person's sessions in the apps opened
+  through Hub (once). Taking away access to one app only hides it and refuses
+  Launch; Hub and the other apps are untouched. An app's Central id must match
+  the application id in Central exactly, a typo hides the app for everyone.
 - Set `SSO_CODE_STORE=postgres` for a shared, multi-instance one-time-code
   store (recommended in production). `memory` remains the default for local
   development and tests.

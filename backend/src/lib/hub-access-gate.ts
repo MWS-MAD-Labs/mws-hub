@@ -1,5 +1,6 @@
 import { lookupApplicationEntitlement } from "./central-client";
 import { logger } from "./logger";
+import { revokeSessionsForUser } from "./session-revocation";
 import { ResponseError } from "../error/response-error";
 import type { CentralApplicationEntitlement, HubUser } from "../type/central-type";
 
@@ -48,6 +49,7 @@ const cache = new Map<string, { at: number; entitlement: CentralApplicationEntit
 
 export function clearHubAccessCacheForTest() {
   cache.clear();
+  revoked.clear();
 }
 
 export async function resolveHubAccess(user: HubUser, maxAgeMs: number): Promise<HubAccess> {
@@ -142,6 +144,9 @@ export async function enforceHubAccessOnLogin(user: HubUser): Promise<void> {
   await audit(user, "hub.login_would_deny", `${user.email} has no Hub access in Central (warn mode, let in)`);
 }
 
+const REVOKE_AGAIN_MS = 5 * 60_000;
+const revoked = new Map<string, number>();
+
 // Called on every authenticated request in enforce mode, so taking the access
 // away in Central reaches people who are already signed in. A Central outage
 // does not sign anyone out: they already passed the check at sign-in.
@@ -149,6 +154,12 @@ export async function ensureHubAccessForSession(user: HubUser): Promise<void> {
   if (hubAccessMode() !== "enforce") return;
   const access = await resolveHubAccess(user, cacheMs());
   if (access.status === "no_access") {
+    // Also end their sessions in the apps opened through Hub, once per removal.
+    const last = revoked.get(user.person_id);
+    if (!last || Date.now() - last > REVOKE_AGAIN_MS) {
+      revoked.set(user.person_id, Date.now());
+      void revokeSessionsForUser(user.email, user.person_id).catch(() => {});
+    }
     throw new ResponseError(401, "Access to Hub was removed.");
   }
 }

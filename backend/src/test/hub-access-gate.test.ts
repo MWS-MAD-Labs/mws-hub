@@ -218,3 +218,15 @@ describe("Hub access cache", () => {
     delete process.env.HUB_CENTRAL_ACCESS_CACHE_SECONDS;
   });
 });
+
+describe("Removing Hub access ends app sessions", () => {
+  it("revokes satellite sessions once, not on every request", async () => {
+    const revocation = await import("../lib/session-revocation");
+    const revoke = spyOn(revocation, "revokeSessionsForUser").mockResolvedValue(undefined);
+    process.env.HUB_CENTRAL_ACCESS_MODE = "enforce";
+    spyOn(centralClient, "lookupApplicationEntitlement").mockResolvedValue(null);
+    await failure(gate.ensureHubAccessForSession(user));
+    await failure(gate.ensureHubAccessForSession(user));
+    expect(revoke).toHaveBeenCalledTimes(1);
+  });
+});
