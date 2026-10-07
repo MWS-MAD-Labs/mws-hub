@@ -87,6 +87,13 @@ Routes:
   (and cannot be launched), so link an app to Central before anyone can open it.
   In `off` and `warn` they follow Hub's own rules.
 - Signing in also needs the `hub.use` permission on the person's role. An active access whose role does not carry it is turned away (`hub_use_missing`), or only logged as `hub.login_would_deny` in `warn`. Add `hub.use` to every Hub role in Central before `enforce`.
+- How fresh things are: access and role for the sign-in gate, admin and gated cards
+  are at most `HUB_CENTRAL_ACCESS_CACHE_SECONDS` (30) old. The copy of the person in
+  the session (name, unit, position, level) is asked of Central again once it is
+  `HUB_IDENTITY_REFRESH_MINUTES` (10, `0` turns it off) old, on the next request, and
+  the session keeps its version and end time. If Central cannot be reached the
+  old copy stays, and someone Central no longer lists as active is signed out.
+  Daily Check-in polls rosters every 2 minutes and class assignments every 15.
 - Only active access is cached. `HUB_CENTRAL_ACCESS_CACHE_SECONDS` (default 30)
   is how long it can take for taking access away to show for someone signed in.
   Giving access shows at the next sign-in. Open tabs re-check once a minute.

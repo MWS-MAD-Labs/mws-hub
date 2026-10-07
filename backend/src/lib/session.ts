@@ -8,6 +8,9 @@ export type SessionPayload = {
   user: HubUser;
   sessionVersion: number;
   exp: number;
+  // When the copy of the person in `user` was taken from Central (epoch seconds).
+  // A token from before this field existed counts as old and is refreshed.
+  identityAt?: number;
 };
 
 // Bumping on every mint (not just logout) is what makes a fresh login
@@ -25,8 +28,20 @@ export async function signSession(user: HubUser): Promise<string> {
     user,
     sessionVersion: session_version,
     exp: Math.floor(Date.now() / 1000) + SESSION_EXP_SECONDS,
+    identityAt: Math.floor(Date.now() / 1000),
   };
   return sign(payload, process.env.JWT_SECRET!, "HS256");
+}
+
+// The same session with a newer copy of the person: same version, same end time.
+export async function signRefreshedSession(payload: SessionPayload, user: HubUser): Promise<string> {
+  const refreshed: SessionPayload = {
+    user,
+    sessionVersion: payload.sessionVersion,
+    exp: payload.exp,
+    identityAt: Math.floor(Date.now() / 1000),
+  };
+  return sign(refreshed, process.env.JWT_SECRET!, "HS256");
 }
 
 export async function verifySession(token: string): Promise<SessionPayload | null> {

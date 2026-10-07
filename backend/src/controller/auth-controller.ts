@@ -7,6 +7,7 @@ import { resolveLogoutRedirect } from "../lib/logout-redirect";
 import { frontendOrigin } from "../lib/frontend-origin";
 import { logger } from "../lib/logger";
 import { verifySession } from "../lib/session";
+import { sessionCookieOptions } from "../lib/session-cookie";
 import { AppsService } from "../service/apps-service";
 import { revokeSessionsForUser } from "../lib/session-revocation";
 import { recordAuditLog } from "../service/audit-log-service";
@@ -51,12 +52,7 @@ function redirectFromState(state: string): string | null {
 // redirect while continuing to block the cookie from cross-site POST/embed
 // requests - the CSRF vector Strict vs. Lax actually differs on.
 function cookieOptions() {
-  return {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "Lax" as const,
-    path: "/",
-  };
+  return sessionCookieOptions();
 }
 
 function oauthStateCookieOptions() {
