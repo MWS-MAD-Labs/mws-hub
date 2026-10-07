@@ -3,7 +3,7 @@ import {
   normalizeAccessToken,
   userMatchesAccessRule,
 } from "../lib/access-rules";
-import { centralAccessForApp } from "../lib/hub-access-gate";
+import { centralAccessForApp, hubAccessMode } from "../lib/hub-access-gate";
 import { ApplicationService } from "./application-service";
 import type { CentralClaim, HubUser } from "../type/central-type";
 import type { HubAccessSource, HubAppResponse, HubCatalogEntry } from "../type/catalog-type";
@@ -190,7 +190,10 @@ export class AppsService {
       effectiveCatalog(),
       approvedApplicationIdsFor(user),
     ]);
-    const visible = catalog.filter((entry) => isVisibleTo(entry, user));
+    // In enforce an app not linked to Central has nobody who could be given access.
+    const visible = catalog
+      .filter((entry) => isVisibleTo(entry, user))
+      .filter((entry) => hubAccessMode() !== "enforce" || Boolean(entry.sso?.centralEntitlementAppId));
     // An app Central gates is left out for people without access. Hub still owns its status.
     const central = await Promise.all(
       visible.map((entry) =>
@@ -221,7 +224,8 @@ export class AppsService {
     return Array.from(getUserAccessTags(user));
   }
 
-  static canLaunch(entry: HubCatalogEntry, user: HubUser): Promise<boolean> {
+  static async canLaunch(entry: HubCatalogEntry, user: HubUser): Promise<boolean> {
+    if (hubAccessMode() === "enforce" && !entry.sso?.centralEntitlementAppId) return false;
     return canAccessWithApprovedRequest(entry, user);
   }
 
