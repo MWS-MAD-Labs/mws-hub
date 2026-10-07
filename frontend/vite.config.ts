@@ -10,6 +10,14 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: "autoUpdate",
+      // The plugin disables its service worker during `vite dev` by default.
+      // Enable it so localhost can satisfy Chrome's PWA installability checks
+      // and emit `beforeinstallprompt` for the custom Install App button.
+      devOptions: {
+        enabled: true,
+        type: "module",
+        navigateFallback: "index.html",
+      },
       manifest: {
         // Stable app identity: without it Chrome derives the id from
         // start_url, so changing start_url would register a different app.
