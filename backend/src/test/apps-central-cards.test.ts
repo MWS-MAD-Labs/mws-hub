@@ -60,12 +60,10 @@ afterEach(() => {
 });
 
 describe("cards for apps gated by Central", () => {
-  it("locks the card by Central when the person has no access", async () => {
+  it("leaves the card out when the person has no access in Central", async () => {
     spyOn(centralClient, "lookupApplicationEntitlement").mockResolvedValue(null);
     const listing = await AppsService.listFor(user);
-    const card = listing.find((app) => app.id === "daily-checkin");
-    expect(card?.access).toBe("locked");
-    expect(card?.lockedBy).toBe("central");
+    expect(listing.some((app) => app.id === "daily-checkin")).toBe(false);
     expect(listing.find((app) => app.id === "plain")?.access).toBe("granted");
   });
 
@@ -75,14 +73,12 @@ describe("cards for apps gated by Central", () => {
     } as never);
     const card = (await AppsService.listFor(user)).find((app) => app.id === "daily-checkin");
     expect(card?.access).toBe("granted");
-    expect(card?.lockedBy).toBeUndefined();
   });
 
   it("falls back to Hub rules when Central is down", async () => {
     spyOn(centralClient, "lookupApplicationEntitlement").mockRejectedValue(new Error("down"));
     const card = (await AppsService.listFor(user)).find((app) => app.id === "daily-checkin");
     expect(card?.access).toBe("granted");
-    expect(card?.lockedBy).toBeUndefined();
   });
 
   it("keeps the maintenance status on a card the person can open", async () => {

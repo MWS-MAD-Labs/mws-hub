@@ -27,10 +27,7 @@ type BlockedConfig = {
 const BLOCKED: Record<BlockedKey, BlockedConfig> = {
   locked: {
     icon: Lock,
-    text: (app) =>
-      app.lockedBy === "central"
-        ? "No access. Ask a Super Admin"
-        : `Available to ${app.audience}`,
+    text: (app) => `Available to ${app.audience}`,
   },
   maintenance: {
     icon: Wrench,
@@ -47,8 +44,6 @@ const BLOCKED: Record<BlockedKey, BlockedConfig> = {
 };
 
 const blockedKeyOf = (app: HubApplication): BlockedKey | null => {
-  // No access in Central shows as locked, not as maintenance.
-  if (app.lockedBy === "central") return "locked";
   if (app.status === "maintenance") return "maintenance";
   if (app.status === "coming_soon") return "coming_soon";
   if (!app.href) return "no_link";
@@ -76,9 +71,7 @@ const AppCard = memo(
 
     const BlockedIcon = blocked?.icon;
     const canRequestAccess =
-      blockedKey === "locked" &&
-      app.lockedBy !== "central" &&
-      Boolean(onRequestAccess);
+      blockedKey === "locked" && Boolean(onRequestAccess);
     const canReportProblem =
       Boolean(onReportProblem) && (isOpenable || blockedKey === "no_link");
 

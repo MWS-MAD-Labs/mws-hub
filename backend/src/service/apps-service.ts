@@ -191,7 +191,7 @@ export class AppsService {
       approvedApplicationIdsFor(user),
     ]);
     const visible = catalog.filter((entry) => isVisibleTo(entry, user));
-    // Central decides who may open an app it gates. Hub still owns its status.
+    // An app Central gates is left out for people without access. Hub still owns its status.
     const central = await Promise.all(
       visible.map((entry) =>
         entry.sso?.centralEntitlementAppId
@@ -199,12 +199,9 @@ export class AppsService {
           : Promise.resolve(null),
       ),
     );
-    return visible.map((entry, index) => {
-      const response = toResponse(entry, user, approvedApplicationIds);
-      return central[index] === "denied"
-        ? { ...response, access: "locked" as const, lockedBy: "central" as const }
-        : response;
-    });
+    return visible
+      .filter((_, index) => central[index] !== "denied")
+      .map((entry) => toResponse(entry, user, approvedApplicationIds));
   }
 
   static async findByLaunchId(appId: string): Promise<HubCatalogEntry | null> {

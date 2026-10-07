@@ -82,6 +82,8 @@ Routes:
   on the person's Hub role in Central. `HUB_ADMIN_FALLBACK` defaults to
   `mad-labs`, which keeps MAD Labs members as admins too. Set it to `off` once
   the Central role carries `hub.admin` for every admin.
+- App cards for apps with a `centralEntitlementAppId` are left out for people
+  Central gives no access to. Apps without it follow Hub's own rules.
 - Set `SSO_CODE_STORE=postgres` for a shared, multi-instance one-time-code
   store (recommended in production). `memory` remains the default for local
   development and tests.
