@@ -1,71 +1,95 @@
-export type Theme = "light" | "dark";
+export type ThemePreference = "light" | "dark" | "system";
+export type ResolvedTheme = "light" | "dark";
 
 const THEME_STORAGE_KEY = "theme";
+const THEME_CHANGE_EVENT = "mws:theme-change";
 export const THEME_SPELL_EVENT = "mws:theme-spell";
 
-const getSystemTheme = (): Theme => {
+const isThemePreference = (value: string | null): value is ThemePreference =>
+  value === "light" || value === "dark" || value === "system";
+
+export const getSystemTheme = (): ResolvedTheme => {
   if (typeof window === "undefined") return "light";
-  return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
-    ? "dark"
-    : "light";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 };
 
-export const getStoredTheme = (): Theme => {
-  if (typeof window === "undefined") return "light";
+export const getStoredTheme = (): ThemePreference => {
+  if (typeof window === "undefined") return "system";
   try {
     const stored = localStorage.getItem(THEME_STORAGE_KEY);
-    if (stored === "dark" || stored === "light") {
-      return stored;
-    }
+    return isThemePreference(stored) ? stored : "system";
   } catch {
-    // ignore storage access errors
+    return "system";
   }
-  return getSystemTheme();
 };
 
-export const persistTheme = (theme: Theme): void => {
+export const resolveTheme = (preference: ThemePreference): ResolvedTheme =>
+  preference === "system" ? getSystemTheme() : preference;
+
+export const applyThemePreference = (preference: ThemePreference): ResolvedTheme => {
+  const resolved = resolveTheme(preference);
+  if (typeof document === "undefined") return resolved;
+
+  const root = document.documentElement;
+  root.classList.toggle("dark", resolved === "dark");
+  root.dataset.theme = resolved;
+  root.dataset.themePreference = preference;
+  root.style.colorScheme = resolved;
+
+  const themeColor = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+  themeColor?.setAttribute("content", resolved === "dark" ? "#171112" : "#FFFAF4");
+  return resolved;
+};
+
+export const persistTheme = (preference: ThemePreference): void => {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(THEME_STORAGE_KEY, theme);
+    localStorage.setItem(THEME_STORAGE_KEY, preference);
   } catch {
-    // ignore persistence errors
+    // Theme persistence is a convenience; applying it in this tab still works.
   }
 };
 
-export const applyThemePreference = (theme: Theme): void => {
-  if (typeof document === "undefined") return;
-  const root = document.documentElement;
-  const next: Theme = theme === "dark" ? "dark" : "light";
-  root.classList.toggle("dark", next === "dark");
-  root.dataset.theme = next;
-  root.style.setProperty("color-scheme", next === "dark" ? "dark" : "light");
+export const setThemePreference = (preference: ThemePreference): ResolvedTheme => {
+  persistTheme(preference);
+  const resolved = applyThemePreference(preference);
+  window.dispatchEvent(new CustomEvent(THEME_CHANGE_EVENT));
+  return resolved;
 };
 
-export const getThemeIncantation = (theme: Theme): string => (theme === "dark" ? "Nox" : "Lumos Maxima");
-
-type ThemeSpellOptions = {
-  theme: Theme;
-  x?: number | null;
-  y?: number | null;
-  trigger?: string;
-};
-
-export const emitThemeSpell = ({ theme, x = null, y = null, trigger = "user" }: ThemeSpellOptions): void => {
-  if (typeof window === "undefined") return;
-  const next: Theme = theme === "dark" ? "dark" : "light";
-  const detail = {
-    theme: next,
-    incantation: getThemeIncantation(next),
-    x: typeof x === "number" ? x : null,
-    y: typeof y === "number" ? y : null,
-    trigger,
-    timestamp: Date.now(),
+export const subscribeToTheme = (listener: () => void): (() => void) => {
+  if (typeof window === "undefined") return () => undefined;
+  const media = window.matchMedia("(prefers-color-scheme: dark)");
+  const handleStorage = (event: StorageEvent) => {
+    if (event.key !== THEME_STORAGE_KEY) return;
+    applyThemePreference(getStoredTheme());
+    listener();
   };
-  window.dispatchEvent(new CustomEvent(THEME_SPELL_EVENT, { detail }));
+  const handleSystemChange = () => {
+    if (getStoredTheme() !== "system") return;
+    applyThemePreference("system");
+    listener();
+  };
+
+  window.addEventListener(THEME_CHANGE_EVENT, listener);
+  window.addEventListener("storage", handleStorage);
+  media.addEventListener("change", handleSystemChange);
+  return () => {
+    window.removeEventListener(THEME_CHANGE_EVENT, listener);
+    window.removeEventListener("storage", handleStorage);
+    media.removeEventListener("change", handleSystemChange);
+  };
 };
 
-export const syncInitialTheme = (): Theme => {
-  const initial = getStoredTheme();
-  applyThemePreference(initial);
-  return initial;
+export const emitThemeSpell = (theme: ResolvedTheme, x?: number, y?: number): void => {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent(THEME_SPELL_EVENT, {
+    detail: { theme, x: x ?? null, y: y ?? null, trigger: "theme-toggle", timestamp: Date.now() },
+  }));
+};
+
+export const syncInitialTheme = (): ThemePreference => {
+  const preference = getStoredTheme();
+  applyThemePreference(preference);
+  return preference;
 };

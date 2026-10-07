@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { getAppIcon, getCategoryTone } from "@/data/hubCategories";
+import { getAppIcon, getCategoryLabel, getCategoryTone } from "@/data/hubCategories";
 import { env } from "@/config/env";
 import { loadHiddenIframe } from "@/lib/hiddenIframe";
 import { probeAuthenticated } from "@/lib/authProbe";
@@ -54,12 +54,13 @@ const blockedKeyOf = (app: HubApplication): BlockedKey | null => {
 
 type AppCardProps = {
   app: HubApplication;
+  variant?: "list" | "pinned";
   onRequestAccess?: (app: HubApplication) => void;
   onReportProblem?: (app: HubApplication) => void;
 };
 
 const AppCard = memo(
-  ({ app, onRequestAccess, onReportProblem }: AppCardProps) => {
+  ({ app, variant = "list", onRequestAccess, onReportProblem }: AppCardProps) => {
     const navigate = useNavigate();
     const { refreshUser } = useAuth();
     const Icon = getAppIcon(app.icon);
@@ -184,261 +185,49 @@ const AppCard = memo(
       });
     };
 
-    return (
-      <article
-        className={cn(
-          // ============================================================
-          // MOBILE
-          // ============================================================
-          "group relative flex w-full min-w-0 max-w-[6.75rem]",
-          "flex-col items-center justify-start",
-          "text-center",
-          "transition-transform duration-150",
-
-          isOpenable ? "active:scale-[0.94]" : "opacity-50",
-
-          // ============================================================
-          // DESKTOP
-          // ============================================================
-          "sm:h-auto sm:max-w-none sm:flex-row sm:items-start",
-          "sm:justify-start sm:gap-3",
-          "sm:overflow-visible sm:rounded-xl",
-          "sm:border sm:border-border/50",
-          "sm:bg-card/40 sm:p-3.5",
-          "sm:text-left sm:transition-colors",
-
-          isOpenable
-            ? "sm:active:scale-100 sm:hover:border-border sm:hover:bg-card"
-            : "sm:opacity-70",
-
-          "sm:focus-within:border-ring",
-          "sm:focus-within:bg-card",
-        )}
-      >
-        {/* ============================================================
-            APP ICON
-            ============================================================ */}
-        <span className="relative shrink-0">
-          {app.status === "new" && isOpenable && (
-            <span
-              className="
-                absolute
-                -top-1.5
-                left-1/2
-                z-10
-                -translate-x-1/2
-                rounded-full
-                bg-primary
-                px-1.5
-                py-0.5
-                text-[8px]
-                font-semibold
-                uppercase
-                leading-none
-                text-primary-foreground
-                shadow-sm
-                sm:hidden
-              "
-            >
-              New
-            </span>
-          )}
-          <span
-            className={cn(
-              "flex h-12 w-12 shrink-0",
-              "items-center justify-center",
-              "overflow-hidden",
-              "rounded-xl",
-
-              "ring-1 ring-border/55",
-              "shadow-[0_2px_8px_rgba(15,23,42,0.08)]",
-
-              getCategoryTone(app.category),
-
-              !isOpenable && "grayscale opacity-60",
-
-              // Desktop
-              "sm:h-10 sm:w-10",
-              "sm:rounded-lg",
-              "sm:ring-black/[0.04]",
-              "sm:shadow-none",
-            )}
-          >
-            <Icon
-              className="
-                h-5 w-5
-                sm:h-[18px] sm:w-[18px]
-              "
-              strokeWidth={1.8}
-            />
+    if (variant === "pinned") {
+      return (
+        <article className={cn("group relative min-w-[5.25rem] text-center sm:min-w-0 sm:text-left", !isOpenable && "opacity-60")}>
+          <span className={cn("mx-auto flex h-12 w-12 items-center justify-center rounded-2xl ring-1 ring-border/60 sm:mx-0 sm:h-14 sm:w-14", getCategoryTone(app.category), !isOpenable && "grayscale")}>
+            <Icon className="h-5 w-5 sm:h-6 sm:w-6" strokeWidth={1.8} />
           </span>
+          <h3 className="font-heading mt-2 line-clamp-2 text-[10px] font-bold leading-tight text-foreground sm:mt-3 sm:text-xs">{app.name}</h3>
+          <p className="mt-1 hidden truncate text-[10px] text-muted-foreground sm:block">{getCategoryLabel(app.category)}</p>
+          {isOpenable ? (
+            <a href={launchHref} target={launchWindowName} rel="noopener noreferrer" onClick={handleLaunchClick} className="absolute inset-0 rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              <span className="sr-only">{`Open ${app.name} in a new tab`}</span>
+            </a>
+          ) : canRequestAccess ? (
+            <button type="button" onClick={() => onRequestAccess?.(app)} className="absolute inset-0 rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"><span className="sr-only">{`Request access to ${app.name}`}</span></button>
+          ) : null}
+        </article>
+      );
+    }
+
+    return (
+      <article className={cn("group relative flex min-w-0 items-center gap-3 border-b border-border py-3.5 transition-colors hover:bg-card/50 sm:px-1", !isOpenable && "opacity-65")}>
+        <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ring-1 ring-border/60", getCategoryTone(app.category), !isOpenable && "grayscale")}>
+          <Icon className="h-[18px] w-[18px]" strokeWidth={1.8} />
         </span>
 
-        {/* ============================================================
-            APP NAME
-            ============================================================ */}
-        <div
-          className="
-            mt-1
-            flex
-            flex-col
-            items-center
-            w-full
-            min-w-0
-            justify-center
-            gap-0.5
-
-            sm:mt-0
-            sm:block
-            sm:w-auto
-            sm:flex-1
-          "
-        >
-          <div
-            className="
-              flex
-              min-w-0
-              w-full
-              items-center
-              justify-center
-              gap-1
-
-              sm:justify-start
-            "
-          >
-            <h3
-              className="
-                min-w-0
-                max-w-full
-                overflow-hidden
-
-                text-[11px]
-                font-semibold
-                leading-[14px]
-                tracking-normal
-                text-foreground
-
-                sm:max-w-full
-                sm:truncate
-                sm:text-sm
-                sm:font-medium
-                sm:leading-normal
-                sm:tracking-[-0.01em]
-              "
-            >
-              <span className="line-clamp-2">{app.name}</span>
-            </h3>
-
-            {/* New */}
-            {app.status === "new" && isOpenable && (
-              <span
-                className="
-                  hidden
-                  shrink-0
-                  text-[10px]
-                  font-semibold
-                  uppercase
-                  tracking-wide
-                  text-primary
-                  sm:inline
-                "
-              >
-                New
-              </span>
-            )}
-
-            {/* External — desktop only */}
-            {isOpenable && app.external && (
-              <ArrowUpRight
-                className="
-                  ml-auto
-                  hidden
-                  h-3.5
-                  w-3.5
-                  shrink-0
-                  text-muted-foreground
-                  opacity-0
-                  transition-opacity
-                  group-hover:opacity-100
-                  sm:block
-                "
-                aria-hidden="true"
-              />
-            )}
+        <div className="min-w-0 flex-1">
+          <div className="flex min-w-0 items-center gap-2">
+            <h3 className="font-heading truncate text-sm font-bold text-foreground">{app.name}</h3>
+            {app.status === "new" && isOpenable ? <span className="shrink-0 text-[9px] font-bold text-primary">New</span> : null}
           </div>
-
-          {/* ============================================================
-              BLOCKED — DESKTOP ONLY
-              ============================================================ */}
-          {blocked && BlockedIcon && (
-            <p
-              className="
-                mt-1
-                hidden
-                items-center
-                gap-1.5
-                text-[11px]
-                text-muted-foreground/80
-                sm:flex
-              "
-            >
+          <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{app.description}</p>
+          {blocked && BlockedIcon ? (
+            <p className="mt-1 flex items-center gap-1.5 text-[10px] text-muted-foreground">
               <BlockedIcon className="h-3 w-3 shrink-0" aria-hidden="true" />
-
               <span className="truncate">{blocked.text(app)}</span>
-
-              {canRequestAccess && (
-                <button
-                  type="button"
-                  onClick={() => onRequestAccess?.(app)}
-                  className="
-                    relative
-                    z-10
-                    ml-auto
-                    shrink-0
-                    font-medium
-                    text-foreground
-                    underline-offset-2
-                    hover:underline
-                    focus-visible:outline-none
-                    focus-visible:ring-2
-                    focus-visible:ring-ring
-                  "
-                >
-                  Request
-                </button>
-              )}
             </p>
-          )}
+          ) : null}
+        </div>
 
-          {canRequestAccess && (
-            <button
-              type="button"
-              onClick={() => onRequestAccess?.(app)}
-              className="relative z-10 mt-1 rounded-full border border-border/60 bg-background/70 px-2 py-0.5 text-[9px] font-medium leading-none text-muted-foreground shadow-sm sm:hidden"
-            >
-              Request Access
-            </button>
-          )}
-
-          {canReportProblem && (
-            <button
-              type="button"
-              onClick={() => onReportProblem?.(app)}
-              className="relative z-10 mt-0.5 text-[9px] font-medium leading-none text-muted-foreground/70 underline-offset-2 hover:text-foreground hover:underline sm:hidden"
-            >
-              Report
-            </button>
-          )}
-
-          {canReportProblem && (
-            <button
-              type="button"
-              onClick={() => onReportProblem?.(app)}
-              className="relative z-10 mt-2 hidden text-[11px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline sm:block"
-            >
-              Report a problem
-            </button>
-          )}
+        <div className="relative z-10 flex shrink-0 items-center gap-2">
+          {canRequestAccess ? <button type="button" onClick={() => onRequestAccess?.(app)} className="rounded-full border border-border px-3 py-1.5 text-[10px] font-bold text-foreground hover:bg-muted">Request</button> : null}
+          {canReportProblem ? <button type="button" onClick={() => onReportProblem?.(app)} className="hidden text-[10px] font-semibold text-muted-foreground hover:text-foreground sm:block">Report</button> : null}
+          {isOpenable ? <ArrowUpRight className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" aria-hidden="true" /> : null}
         </div>
 
         {/* ============================================================
@@ -460,12 +249,11 @@ const AppCard = memo(
             className="
               absolute
               inset-0
-              rounded-xl
+              rounded-lg
               focus:outline-none
               focus-visible:ring-2
               focus-visible:ring-ring
 
-              sm:rounded-xl
             "
           >
             <span className="sr-only">{`Open ${app.name} in a new tab`}</span>

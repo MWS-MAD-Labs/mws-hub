@@ -27,6 +27,7 @@ export type UseHubCatalogResult = {
   query: string;
   isFiltering: boolean;
   visibleApplications: HubApplication[];
+  availableApplications: HubApplication[];
   hasCatalog: boolean;
   categories: HubCategoryFilterOption[];
   activeCategory: string;
@@ -116,6 +117,11 @@ export default function useHubCatalog(): UseHubCatalogResult {
       .filter((app) => matchesQuery(app, query));
   }, [applications, isLoading, hasError, query]);
 
+  const availableApplications = useMemo(
+    () => applications.filter((app) => app.discoverable !== false),
+    [applications],
+  );
+
   // Counts follow the search but ignore the selected category, so the row
   // keeps saying how much is behind each tab. Counting after the category
   // filter would zero out every tab except the open one, which turns the
@@ -154,6 +160,7 @@ export default function useHubCatalog(): UseHubCatalogResult {
     query: rawQuery,
     isFiltering,
     visibleApplications,
+    availableApplications,
     hasCatalog,
     categories,
     activeCategory,

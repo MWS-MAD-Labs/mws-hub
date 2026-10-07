@@ -96,7 +96,10 @@ function monthDayOf(value: string): MonthDay | null {
   };
 }
 
-function daysUntilBirthday({ month, day }: MonthDay, today = new Date()): number {
+function daysUntilBirthday(
+  { month, day }: MonthDay,
+  today = new Date(),
+): number {
   const todayUtc = Date.UTC(
     today.getFullYear(),
     today.getMonth(),
@@ -119,9 +122,14 @@ function namedRefNameOf(
   return null;
 }
 
-function namedRefIdOf(record: {
-  [key: string]: unknown;
-}, snakeKey: string, camelKey: string, objectKey: string): string | null {
+function namedRefIdOf(
+  record: {
+    [key: string]: unknown;
+  },
+  snakeKey: string,
+  camelKey: string,
+  objectKey: string,
+): string | null {
   const snakeValue = record[snakeKey];
   if (typeof snakeValue === "string" && snakeValue) return snakeValue;
 
@@ -154,7 +162,11 @@ async function lookup<T>(
 
   if (res.status === 404) return null;
   if (!res.ok) {
-    logger.error(`Central lookup failed (${path}):`, res.status, await res.text());
+    logger.error(
+      `Central lookup failed (${path}):`,
+      res.status,
+      await res.text(),
+    );
     throw new Error(`Central lookup failed with status ${res.status}`);
   }
 
@@ -274,7 +286,11 @@ async function listPage<T>(path: string): Promise<CentralPage<T>> {
   });
 
   if (!res.ok) {
-    logger.error(`Central list failed (${path}):`, res.status, await res.text());
+    logger.error(
+      `Central list failed (${path}):`,
+      res.status,
+      await res.text(),
+    );
     throw new Error(`Central list failed with status ${res.status}`);
   }
 
@@ -348,8 +364,12 @@ function normalizeEmployee(
 // Central id (a re-check on an existing session) should prefer
 // resolveCentralIdentityById below instead, which stays on the precise
 // per-source endpoint since it already knows which one to ask.
-export async function resolveCentralIdentity(email: string): Promise<HubUser | null> {
-  const person = await lookup<PersonLookupResponse>("/persons/lookup", { email });
+export async function resolveCentralIdentity(
+  email: string,
+): Promise<HubUser | null> {
+  const person = await lookup<PersonLookupResponse>("/persons/lookup", {
+    email,
+  });
   if (!person) return null;
 
   return person.source === "employee"
@@ -371,11 +391,15 @@ export async function resolveCentralIdentityById(
   source: "employee" | "student",
 ): Promise<HubUser | null> {
   if (source === "employee") {
-    const employee = await lookup<EmployeeLookupResponse>("/employees/lookup", { id });
+    const employee = await lookup<EmployeeLookupResponse>("/employees/lookup", {
+      id,
+    });
     return employee ? normalizeEmployee(employee) : null;
   }
 
-  const student = await lookup<StudentLookupResponse>("/students/lookup", { id });
+  const student = await lookup<StudentLookupResponse>("/students/lookup", {
+    id,
+  });
   return student ? normalizeStudent(student) : null;
 }
 
@@ -422,10 +446,9 @@ export async function listUpcomingEmployeeBirthdays(
         is_today: daysUntil === 0,
       };
     })
-    .filter((birthday): birthday is CentralBirthdayResponse => Boolean(birthday))
-    .sort(
-      (a, b) =>
-        a.days_until - b.days_until || a.name.localeCompare(b.name),
+    .filter((birthday): birthday is CentralBirthdayResponse =>
+      Boolean(birthday),
     )
+    .sort((a, b) => a.days_until - b.days_until || a.name.localeCompare(b.name))
     .slice(0, limit);
 }

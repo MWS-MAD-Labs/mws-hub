@@ -6,12 +6,17 @@ import { RequireAuth } from "@/features/auth/components/RequireAuth";
 import { RequireAdmin } from "@/features/auth/components/RequireAdmin";
 
 const SupportHubPage = lazy(() => import("@/pages/SupportHubPage"));
+const SupportHubConceptsPage = lazy(
+  () => import("@/pages/SupportHubConceptsPage"),
+);
 const ProfilePage = lazy(() => import("@/pages/ProfilePage"));
 const LoginPage = lazy(() => import("@/pages/LoginPage"));
 const LogoutRelayPage = lazy(() => import("@/pages/LogoutRelayPage"));
 const Dashboard = lazy(() => import("@/admin/pages/Dashboard"));
 const ApplicationsPage = lazy(() => import("@/admin/pages/ApplicationsPage"));
-const ApplicationEditorPage = lazy(() => import("@/admin/pages/ApplicationEditorPage"));
+const ApplicationEditorPage = lazy(
+  () => import("@/admin/pages/ApplicationEditorPage"),
+);
 const FeedbackPage = lazy(() => import("@/admin/pages/FeedbackPage"));
 const AccessRequest = lazy(() => import("@/admin/pages/AccessRequest"));
 const BrokenTools = lazy(() => import("@/admin/pages/BrokenTools"));
@@ -60,6 +65,14 @@ export default function App() {
                 <RequireAuth>
                   <SupportHubPage />
                 </RequireAuth>
+              </PageLoader>
+            }
+          />
+          <Route
+            path="/support-hub/concepts"
+            element={
+              <PageLoader>
+                <SupportHubConceptsPage />
               </PageLoader>
             }
           />
@@ -115,9 +128,7 @@ export default function App() {
           />
           <Route
             path="/admin/applications"
-            element={
-              <Navigate to="/admin/catalog" replace />
-            }
+            element={<Navigate to="/admin/catalog" replace />}
           />
           <Route
             path="/admin/feedback"

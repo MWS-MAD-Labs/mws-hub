@@ -1,0 +1,68 @@
+@import url("https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap");
+
+.mws-concept {
+  --mws-base: #fffaf4;
+  --mws-card: #ffffff;
+  --mws-elevated: #ffffff;
+  --mws-sunken: #fbf2df;
+  --mws-brand-soft: #f5e7e8;
+  --mws-sky-soft: #eff8fe;
+  --mws-sage-soft: #edf3eb;
+  --mws-navy-soft: #e9edf6;
+  --mws-rose-soft: #f8eaeb;
+  --mws-text: #241718;
+  --mws-text-secondary: #5d4b4c;
+  --mws-text-tertiary: #6f6061;
+  --mws-border: #eadfda;
+  --mws-border-strong: #d8c9c3;
+  --mws-brand: #7e1518;
+  --mws-brand-hover: #681114;
+  --mws-gold: #d6a13a;
+  --mws-gold-text: #7a5311;
+  --mws-rose: #b94a4e;
+  --mws-sage: #6f8b6a;
+  --mws-sage-text: #486142;
+  --mws-navy: #1f2a44;
+  --mws-sky: #b8ddf8;
+  --mws-sky-text: #25638e;
+  --mws-shadow-sm: 0 4px 12px rgb(36 23 24 / 6%);
+  --mws-shadow-md: 0 12px 30px rgb(36 23 24 / 6%);
+  --mws-shadow-lg: 0 18px 45px rgb(36 23 24 / 8%);
+  background: var(--mws-base);
+  color: var(--mws-text);
+  font-family: "Nunito Sans", ui-sans-serif, system-ui, sans-serif;
+}
+
+.mws-concept.dark {
+  --mws-base: #171112;
+  --mws-card: #211718;
+  --mws-elevated: #2c2021;
+  --mws-sunken: #2a211b;
+  --mws-brand-soft: #351719;
+  --mws-sky-soft: #142536;
+  --mws-sage-soft: #1f2b20;
+  --mws-navy-soft: #202538;
+  --mws-rose-soft: #35191b;
+  --mws-text: #fff7f1;
+  --mws-text-secondary: #dfcfca;
+  --mws-text-tertiary: #bdaaa5;
+  --mws-border: #463638;
+  --mws-border-strong: #5c484a;
+  --mws-brand: #ffb2b6;
+  --mws-brand-hover: #ffd1d3;
+  --mws-gold: #e4bc67;
+  --mws-gold-text: #f0cf82;
+  --mws-rose: #e69397;
+  --mws-sage: #a8c4a0;
+  --mws-sage-text: #d6ebd0;
+  --mws-navy: #b9c7ee;
+  --mws-sky: #9fd1f4;
+  --mws-sky-text: #d4ecff;
+  --mws-shadow-sm: 0 4px 12px rgb(0 0 0 / 24%);
+  --mws-shadow-md: 0 12px 30px rgb(0 0 0 / 30%);
+  --mws-shadow-lg: 0 18px 45px rgb(0 0 0 / 34%);
+}
+
+.mws-heading { font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif; }
+.mws-card { background: var(--mws-card); border: 1px solid var(--mws-border); box-shadow: var(--mws-shadow-sm); }
+.mws-focus { outline: 3px solid color-mix(in srgb, var(--mws-gold) 70%, transparent); outline-offset: 2px; }
