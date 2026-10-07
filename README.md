@@ -92,7 +92,9 @@ Routes:
 - Taking away Hub access also ends the person's sessions in the apps opened
   through Hub (once). Taking away access to one app only hides it and refuses
   Launch; Hub and the other apps are untouched. An app's Central id must match
-  the application id in Central exactly, a typo hides the app for everyone.
+  the application id in Central exactly. The admin screen checks it against Central
+  on save (Central needs the `/application-entitlements/applications` endpoint) and
+  refuses an unknown id.
 - Set `SSO_CODE_STORE=postgres` for a shared, multi-instance one-time-code
   store (recommended in production). `memory` remains the default for local
   development and tests.

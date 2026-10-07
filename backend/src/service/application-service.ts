@@ -1,5 +1,6 @@
 import { prisma } from "../lib/prisma";
 import { isValidAccessRule } from "../lib/access-rules";
+import { listCentralApplicationIds } from "../lib/central-client";
 import { ResponseError } from "../error/response-error";
 import type {
   HubAccessSource,
@@ -161,6 +162,28 @@ function assertApplicationInput(input: ApplicationInput) {
   }
 }
 
+// The id is free text, and a wrong one hides the app from everybody. Check it
+// against Central when it is set or changed.
+async function assertCentralApplicationId(input: ApplicationInput, current?: string | null) {
+  const id = input.centralEntitlementAppId;
+  if (!id || id === current) return;
+  let known: string[];
+  try {
+    known = await listCentralApplicationIds();
+  } catch {
+    throw new ResponseError(
+      503,
+      "Central could not be reached to check the Central application id. Try again in a moment.",
+    );
+  }
+  if (!known.includes(id)) {
+    throw new ResponseError(
+      400,
+      `Central has no application "${id}". Set it up in Application Access first, or fix the id.`,
+    );
+  }
+}
+
 function toRow(input: ApplicationInput) {
   return {
     name: input.name,
@@ -217,6 +240,7 @@ export class ApplicationService {
   static async create(input: ApplicationInput): Promise<Application> {
     assertApplicationInput(input);
     assertSsoPairIsComplete(input);
+    await assertCentralApplicationId(input);
 
     const id = (input.id || input.name)
       .toLowerCase()
@@ -273,6 +297,8 @@ export class ApplicationService {
     if (!existing) {
       throw new ResponseError(404, `Unknown application: ${id}`);
     }
+
+    await assertCentralApplicationId(input, existing.sso_central_entitlement_app_id);
 
     if (input.ssoAppId) {
       const existingSsoApp = await prisma.application.findFirst({
