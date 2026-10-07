@@ -220,6 +220,53 @@ export async function listCentralApplicationIds(): Promise<string[]> {
   return data;
 }
 
+export type PermissionManifestEntry = { key: string; description?: string; requires?: string[] };
+export type RegisteredPermission = {
+  key: string;
+  description: string | null;
+  requires: string[];
+  source: "MANIFEST" | "MANUAL";
+  deprecated: boolean;
+};
+export type PermissionSyncResult = {
+  application_id: string;
+  total: number;
+  added: number;
+  deprecated: string[];
+  affected_roles: { role: string; permissions: string[] }[];
+};
+
+async function permissionCall<T>(path: string, init: { method: "GET" | "PUT"; body?: unknown } = { method: "GET" }): Promise<T> {
+  const res = await fetch(`${baseUrl()}/application-permissions${path}`, {
+    method: init.method,
+    headers: {
+      Authorization: `Bearer ${apiToken()}`,
+      ...(init.body !== undefined ? { "Content-Type": "application/json" } : {}),
+    },
+    ...(init.body !== undefined ? { body: JSON.stringify(init.body) } : {}),
+    signal: AbortSignal.timeout(CALL_TIMEOUT_MS),
+  });
+  const body = (await res.json().catch(() => null)) as { data?: T; errors?: string } | null;
+  if (!res.ok) throw new Error(body?.errors || `Central permission call failed with status ${res.status}`);
+  return body?.data as T;
+}
+
+// Sent on deploy: what Hub's code understands. The token has to be the API client made for Hub.
+export function publishPermissions(applicationId: string, permissions: PermissionManifestEntry[], confirmRemovals = false) {
+  return permissionCall<PermissionSyncResult>(`/${encodeURIComponent(applicationId)}`, {
+    method: "PUT",
+    body: { permissions, confirm_removals: confirmRemovals || undefined },
+  });
+}
+
+export function listRegisteredPermissions(applicationId: string) {
+  return permissionCall<RegisteredPermission[]>(`/${encodeURIComponent(applicationId)}`);
+}
+
+export function permissionUsage(applicationId: string) {
+  return permissionCall<string[]>(`/${encodeURIComponent(applicationId)}/usage`);
+}
+
 async function listPage<T>(path: string): Promise<CentralPage<T>> {
   const res = await fetch(`${baseUrl()}${path}`, {
     headers: { Authorization: `Bearer ${apiToken()}` },

@@ -89,6 +89,14 @@ Routes:
 - Only active access is cached. `HUB_CENTRAL_ACCESS_CACHE_SECONDS` (default 30)
   is how long it can take for taking access away to show for someone signed in.
   Giving access shows at the next sign-in. Open tabs re-check once a minute.
+- Hub sends the permissions its code understands to Central on every deploy:
+  `bun run permissions:sync` (add `--confirm-removals` when a send drops most of
+  the list). Roles of the `hub` application can only carry those. `bun run
+  permissions:check` changes nothing and exits 1 when Central and the code
+  disagree, for CI. The list lives in `backend/src/lib/hub-permissions.ts`.
+  The token needs the `application_permissions:write` scope and the `hub`
+  integration profile. A permission is dropped in two releases: move the roles
+  off it in Central first, then remove it from the list.
 - Taking away Hub access also ends the person's sessions in the apps opened
   through Hub (once). Taking away access to one app only hides it and refuses
   Launch; Hub and the other apps are untouched. An app's Central id must match

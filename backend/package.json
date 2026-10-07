@@ -12,7 +12,9 @@
     "db:migrate:dev": "prisma migrate dev",
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
-    "seed:applications": "bun run seed/seed-applications.ts"
+    "seed:applications": "bun run seed/seed-applications.ts",
+    "permissions:sync": "bun run scripts/sync-permissions.ts sync",
+    "permissions:check": "bun run scripts/sync-permissions.ts check"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",

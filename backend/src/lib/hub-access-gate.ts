@@ -1,4 +1,5 @@
 import { lookupApplicationEntitlement } from "./central-client";
+import { HUB_ADMIN_PERMISSION } from "./hub-permissions";
 import { logger } from "./logger";
 import { revokeSessionsForUser } from "./session-revocation";
 import { ResponseError } from "../error/response-error";
@@ -112,7 +113,7 @@ async function audit(user: HubUser, action: string, summary: string) {
 }
 
 // What Hub authorizes on is the permission the role carries, not the role's name.
-export const HUB_ADMIN_PERMISSION = "hub.admin";
+export { HUB_ADMIN_PERMISSION };
 
 export async function userHasHubPermission(user: HubUser, permission: string): Promise<boolean> {
   if (hubAccessMode() === "off") return false;
