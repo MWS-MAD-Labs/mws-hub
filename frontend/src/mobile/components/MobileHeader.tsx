@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import type { HubUser } from "@/model/hub-model";
 import { getGreeting } from "@/mobile/utils/Greeting";
+import InstallAppButton from "@/features/fragments/InstallAppButton";
 
 const initialsOf = (user?: HubUser): string =>
   String(user?.name || "?")
@@ -39,6 +40,8 @@ const MobileHeader = memo(({ user }: MobileHeaderProps) => (
           Welcome back to MWS Hub
         </p>
       </div>
+
+      <InstallAppButton variant="compact" />
     </div>
   </header>
 ));

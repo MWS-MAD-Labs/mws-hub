@@ -11,6 +11,9 @@ export default defineConfig({
     VitePWA({
       registerType: "autoUpdate",
       manifest: {
+        // Stable app identity: without it Chrome derives the id from
+        // start_url, so changing start_url would register a different app.
+        id: "/",
         name: "MWS Hub | App Launcher",
         short_name: "MWS Hub",
         description: "Millennia World School app launcher and support hub.",
@@ -21,12 +24,40 @@ export default defineConfig({
         theme_color: "#101827",
         background_color: "#f8fafc",
         categories: ["education", "productivity"],
+        // "any" and "maskable" are separate files on purpose: the rounded
+        // "any" icon gets cropped badly when a launcher applies its own mask,
+        // so the maskable ones are full-bleed with the logo inside the 80%
+        // safe zone. PNGs cover launchers that don't render SVG icons.
         icons: [
+          {
+            src: "/pwa-192x192.png",
+            sizes: "192x192",
+            type: "image/png",
+            purpose: "any",
+          },
+          {
+            src: "/pwa-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "any",
+          },
           {
             src: "/pwa-icon.svg",
             sizes: "any",
             type: "image/svg+xml",
-            purpose: "any maskable",
+            purpose: "any",
+          },
+          {
+            src: "/pwa-maskable-192x192.png",
+            sizes: "192x192",
+            type: "image/png",
+            purpose: "maskable",
+          },
+          {
+            src: "/pwa-maskable-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "maskable",
           },
         ],
       },
