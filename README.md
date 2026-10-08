@@ -111,6 +111,10 @@ Routes:
   the application id in Central exactly. The admin screen checks it against Central
   on save (Central needs the `/application-entitlements/applications` endpoint) and
   refuses an unknown id.
+- In development the frontend dev server (5175) forwards `/auth`, `/apps`, `/sso`, `/admin/api`,
+  `/admin/dashboard-data` and `/.well-known` to the backend (4001), so an app can use
+  `HUB_BASE_URL=http://localhost:5175` for both the launch and the code exchange. After signing in,
+  a launch (`/apps/...`) continues with a full page load, not inside the single page app.
 - Set `SSO_CODE_STORE=postgres` for a shared, multi-instance one-time-code
   store (recommended in production). `memory` remains the default for local
   development and tests.

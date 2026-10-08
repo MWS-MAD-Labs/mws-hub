@@ -113,6 +113,7 @@ export default defineConfig({
     proxy: {
       "/auth": { target: "http://localhost:4001", changeOrigin: true },
       "/apps": { target: "http://localhost:4001", changeOrigin: true },
+      "/sso": { target: "http://localhost:4001", changeOrigin: true },
       "/admin/dashboard-data": { target: "http://localhost:4001", changeOrigin: true },
       "/admin/api": { target: "http://localhost:4001", changeOrigin: true },
       "/.well-known": { target: "http://localhost:4001", changeOrigin: true },
