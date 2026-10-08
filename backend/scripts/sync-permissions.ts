@@ -1,5 +1,7 @@
 // Deploy step: tells Central which permissions Hub's code understands.
-//   bun run permissions:sync [--confirm-removals]
+//   bun run permissions:sync [--confirm-removals] [--retries 5 --wait 20]
+//     --retries/--wait: asks again when Central cannot be reached (it may be deploying). A no from
+//     Central, or an endpoint it does not have yet, fails at once.
 //   bun run permissions:check [--allow-removals]   (changes nothing, exits 1 on a mismatch)
 import "dotenv/config";
 import {
@@ -7,14 +9,30 @@ import {
   permissionUsage,
   publishPermissions,
 } from "../src/lib/central-client";
+import { asFailure } from "../src/lib/central-failure";
 import { HUB_PERMISSIONS } from "../src/lib/hub-permissions";
+import { withRetries } from "../src/lib/retry";
 import { comparePermissions, permissionCheckFailed } from "../src/lib/permission-check";
 
 const APPLICATION_ID = "hub";
 const [mode, ...flags] = process.argv.slice(2);
 
+function flagNumber(name: string, fallback: number) {
+  const index = flags.indexOf(name);
+  const value = index >= 0 ? Number(flags[index + 1]) : NaN;
+  return Number.isFinite(value) && value >= 0 ? value : fallback;
+}
+
 async function sync() {
-  const result = await publishPermissions(APPLICATION_ID, HUB_PERMISSIONS, flags.includes("--confirm-removals"));
+  const result = await withRetries(
+    () => publishPermissions(APPLICATION_ID, HUB_PERMISSIONS, flags.includes("--confirm-removals")),
+    {
+      retries: flagNumber("--retries", 0),
+      waitMs: flagNumber("--wait", 20) * 1000,
+      shouldRetry: (error) => asFailure(error).kind === "unreachable",
+      onRetry: (error, attempt) => console.warn(`attempt ${attempt} failed (${error instanceof Error ? error.message : error}), asking again`),
+    },
+  );
   console.log(`hub permissions published: ${result.total} total, ${result.added} new`);
   if (result.deprecated.length > 0) {
     console.warn(`dropped from the list: ${result.deprecated.join(", ")}`);

@@ -97,14 +97,26 @@ Routes:
 - Only active access is cached. `HUB_CENTRAL_ACCESS_CACHE_SECONDS` (default 30)
   is how long it can take for taking access away to show for someone signed in.
   Giving access shows at the next sign-in. Open tabs re-check once a minute.
-- Hub sends the permissions its code understands to Central on every deploy:
-  `bun run permissions:sync` (add `--confirm-removals` when a send drops most of
-  the list). Roles of the `hub` application can only carry those. `bun run
-  permissions:check` changes nothing and exits 1 when Central and the code
-  disagree, for CI. The list lives in `backend/src/lib/hub-permissions.ts`.
-  The token needs the `application_permissions:write` scope and the `hub`
-  integration profile. A permission is dropped in two releases: move the roles
-  off it in Central first, then remove it from the list.
+- Hub sends the permissions its code understands to Central on every deploy, and
+  the pipeline enforces it. In `.github/workflows/ci-cd.yml` the jobs
+  `sync-permissions-staging` and `sync-permissions-production` run `bun run
+  scripts/sync-permissions.ts sync --retries 5 --wait 20` with the secrets
+  `CENTRAL_API_BASE_URL` and `CENTRAL_API_TOKEN` (or the `_STAGING` / `_PRODUCTION`
+  variants); the Komodo deploy job needs them. If Central cannot be reached after the
+  retries, does not have the endpoints yet ("deploy Central first"), refuses the list
+  (it would drop a permission roles still carry), or the secrets are missing, the
+  pipeline fails, the webhook is not called and the running version stays. Removals
+  are never confirmed from CI: run `bun run permissions:sync -- --confirm-removals`
+  by hand when a send drops most of the list. Deploy Central first, then Hub.
+- While running, Hub compares its list with Central when it starts and sends it only
+  if they differ; if Central is down or not deployed yet it asks again every minute
+  until it is there (`HUB_PERMISSION_SYNC=off` turns this off). A no from Central is
+  logged as `[permissions]` and not repeated. `bun run permissions:check` changes
+  nothing and exits 1 when Central and the code disagree. The list lives in
+  `backend/src/lib/hub-permissions.ts`. The token needs the
+  `application_permissions:write` scope and the `hub` integration profile. A
+  permission is dropped in two releases: move the roles off it in Central first,
+  then remove it from the list.
 - Taking away Hub access also ends the person's sessions in the apps opened
   through Hub (once). Taking away access to one app only hides it and refuses
   Launch; Hub and the other apps are untouched. An app's Central id must match

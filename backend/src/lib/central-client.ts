@@ -1,3 +1,4 @@
+import { failureForNetwork, failureForResponse } from "./central-failure";
 import type {
   CentralApplicationEntitlement,
   EmployeeLookupResponse,
@@ -249,17 +250,22 @@ export type PermissionSyncResult = {
 };
 
 async function permissionCall<T>(path: string, init: { method: "GET" | "PUT"; body?: unknown } = { method: "GET" }): Promise<T> {
-  const res = await fetch(`${baseUrl()}/application-permissions${path}`, {
-    method: init.method,
-    headers: {
-      Authorization: `Bearer ${apiToken()}`,
-      ...(init.body !== undefined ? { "Content-Type": "application/json" } : {}),
-    },
-    ...(init.body !== undefined ? { body: JSON.stringify(init.body) } : {}),
-    signal: AbortSignal.timeout(CALL_TIMEOUT_MS),
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${baseUrl()}/application-permissions${path}`, {
+      method: init.method,
+      headers: {
+        Authorization: `Bearer ${apiToken()}`,
+        ...(init.body !== undefined ? { "Content-Type": "application/json" } : {}),
+      },
+      ...(init.body !== undefined ? { body: JSON.stringify(init.body) } : {}),
+      signal: AbortSignal.timeout(CALL_TIMEOUT_MS),
+    });
+  } catch (error) {
+    throw failureForNetwork(error);
+  }
   const body = (await res.json().catch(() => null)) as { data?: T; errors?: string } | null;
-  if (!res.ok) throw new Error(body?.errors || `Central permission call failed with status ${res.status}`);
+  if (!res.ok) throw failureForResponse(res.status, body?.errors);
   return body?.data as T;
 }
 

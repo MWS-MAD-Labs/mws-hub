@@ -9,6 +9,7 @@ import { ResponseError } from "./error/response-error";
 import { logger } from "./lib/logger";
 import { frontendOrigin } from "./lib/frontend-origin";
 import { hubSsoJwks } from "./lib/sso-relay";
+import { startPermissionSync } from "./lib/permission-sync";
 
 const app = new Hono();
 
@@ -72,6 +73,9 @@ app.onError((err, c) => {
   logger.error(err);
   return c.json({ errors: "Internal server error" }, 500);
 });
+
+// Not while the tests import the app.
+if (process.env.NODE_ENV !== "test") startPermissionSync();
 
 const port = Number(process.env.PORT) || 4001;
 logger.info(`listening on :${port}`);
