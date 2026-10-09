@@ -5,7 +5,6 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import Logo from "@/assets/logo.webp";
 import type { HubUser } from "@/model/hub-model";
 import InstallAppButton from "./InstallAppButton";
-import ThemeToggle from "./ThemeToggle";
 
 const initialsOf = (user?: HubUser): string =>
   String(user?.name || "?")
@@ -21,23 +20,23 @@ type HubHeaderProps = {
 };
 
 const HubHeader = memo(({ user, isAdmin }: HubHeaderProps) => (
-  <header className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur-xl">
-    <div className="mx-auto flex h-16 max-w-[1440px] items-center px-4 sm:px-6 lg:px-8">
+  <header className="sticky top-0 z-[var(--layer-sticky)] border-b border-border/50 bg-background/85 backdrop-blur-xl">
+    <div className="mx-auto flex h-14 max-w-[1600px] items-center px-4 sm:px-6">
       <Link
         to="/support-hub"
         className="flex items-center gap-2.5 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <img src={Logo} alt="" className="h-6 w-6 object-contain" loading="lazy" />
-        <span className="font-heading text-sm font-bold tracking-tight text-foreground">MWS Hub</span>
+        <span className="text-sm font-semibold tracking-tight text-foreground">MWS Hub</span>
       </Link>
 
       <div className="ml-auto flex items-center gap-2">
         <InstallAppButton />
-        <ThemeToggle variant="compact" />
+
         {isAdmin ? (
           <Link
             to="/admin"
-            className="hidden items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted sm:flex"
+            className="hidden items-center gap-1.5 rounded-md border border-border/60 px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-card sm:flex"
           >
             <LayoutDashboard className="h-3.5 w-3.5" />
             Admin Dashboard

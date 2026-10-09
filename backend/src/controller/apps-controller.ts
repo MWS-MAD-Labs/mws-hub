@@ -149,27 +149,12 @@ export class AppsController {
     // Same predicate the catalog filters on, so an app can never be openable
     // by someone it was hidden from, or hidden from someone who could open
     // it by pasting the URL.
-    if (!(await AppsService.canLaunch(entry, user))) {
-      logger.info(
-        `Launch refused, ${user.source} not admitted by ${entry.id}:`,
-        user.email,
-      );
-      await recordLaunchAudit({
-        actor: user,
-        appId: entry.id,
-        appName: entry.name,
-        outcome: "access_denied",
-        target: "hub",
-      });
-      return launchFailure(c, "app_access_denied", entry.name);
-    }
-
     let relayEntitlement: RelayEntitlement | undefined;
-    if (entry.sso?.centralEntitlementAppId) {
+    if (entry.centralEntitlementAppId) {
       try {
         const entitlement = await lookupApplicationEntitlement(
           user.person_id,
-          entry.sso.centralEntitlementAppId,
+          entry.centralEntitlementAppId,
         );
         if (!entitlement?.is_active) {
           await recordLaunchAudit({

@@ -4,6 +4,7 @@ import type {
   AdminApplicationStatus,
 } from "@/admin/api/adminApi";
 import { emptyForm } from "../constants";
+import { displayApplicationUrl } from "./applicationUrls";
 
 export function formFromApplication(
   application?: AdminApplication | null,
@@ -17,7 +18,7 @@ export function formFromApplication(
     audience: application.audience,
     category: application.category,
     keywords: application.keywords,
-    href: application.href ?? "",
+    href: displayApplicationUrl(application.href),
     external: application.external,
     status: application.status.toLowerCase() as Lowercase<AdminApplicationStatus>,
     discoverable: application.discoverable,

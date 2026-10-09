@@ -17,4 +17,6 @@ export const env = {
   // the app, so requests go to /auth and /apps with no host prefix.
   hubApiBaseUrl: readEnv("VITE_HUB_API_BASE_URL"),
   googleClientId: readEnv("VITE_GOOGLE_CLIENT_ID"),
+  deployEnvironment:
+    readEnv("VITE_DEPLOY_ENV") || (import.meta.env.DEV ? "development" : "production"),
 };

@@ -6,6 +6,7 @@ import {
   ssoEntryFromBase,
   ssoLogoutFromBase,
 } from "../utils/ssoUrls";
+import { displayApplicationUrl } from "../utils/applicationUrls";
 
 // Owns the "login lewat Hub" toggle and the single backend-base-URL field it
 // exposes, and knows how to turn that base URL into the three values the
@@ -13,12 +14,12 @@ import {
 export function useSsoConfig(application: AdminApplication | null | undefined) {
   const [usesSso, setUsesSso] = useState(Boolean(application?.sso_app_id));
   const [ssoBase, setSsoBase] = useState(
-    baseFromSsoEntry(application?.sso_entry_url ?? ""),
+    displayApplicationUrl(baseFromSsoEntry(application?.sso_entry_url ?? "")),
   );
 
   useEffect(() => {
     setUsesSso(Boolean(application?.sso_app_id));
-    setSsoBase(baseFromSsoEntry(application?.sso_entry_url ?? ""));
+    setSsoBase(displayApplicationUrl(baseFromSsoEntry(application?.sso_entry_url ?? "")));
   }, [application]);
 
   function resolve(

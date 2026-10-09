@@ -33,11 +33,11 @@ export function useAccessControl({
   const accessGroups = useMemo<AccessGroup[]>(
     () =>
       [
-        { key: "base", title: "Umum", options: accessOptions.base },
+        { key: "base", title: "General", options: accessOptions.base },
         { key: "units", title: "Unit", options: accessOptions.central.units },
         {
           key: "jobPositions",
-          title: "Jabatan",
+          title: "Position",
           options: accessOptions.central.jobPositions,
         },
         {
@@ -48,6 +48,13 @@ export function useAccessControl({
       ].filter((group) => group.options.length > 0),
     [accessOptions],
   );
+
+  useEffect(() => {
+    if (!accessGroups.length) return;
+    if (!accessGroups.some((group) => group.key === activeAccessGroup)) {
+      setActiveAccessGroup(accessGroups[0].key);
+    }
+  }, [accessGroups, activeAccessGroup]);
 
   const activeAccessOptions = useMemo(
     () =>

@@ -49,28 +49,30 @@ export default function AccessControlSection({
     <section className={sectionClass}>
       <SectionHeading
         step={2}
-        title="Siapa yang boleh memakai"
-        subtitle="Pakai identity dan ID master data dari Central. Wajib pilih minimal satu."
+        title="Access control"
+        subtitle="Choose Central identities or rules. At least one access rule is required."
       />
       <div className={sectionBodyClass}>
         {accessGroups.length > 1 ? (
-          <div className="grid grid-cols-2 gap-1 rounded-md border border-slate-200 bg-slate-50 p-1 text-sm md:grid-cols-4">
+          <div className="grid grid-cols-2 gap-1 rounded-lg border border-[var(--admin-border)] bg-[var(--admin-card-subtle)] p-1 text-sm md:grid-cols-4" role="tablist" aria-label="Access rule groups">
             {accessGroups.map((group) => (
               <button
                 key={group.key}
                 type="button"
+                role="tab"
+                aria-selected={activeAccessGroup === group.key}
                 onClick={() => {
                   setActiveAccessGroup(group.key);
                   setAccessQuery("");
                 }}
-                className={`rounded px-3 py-2 text-sm font-medium transition-colors ${
+                className={`admin-focus rounded-md px-3 py-2 text-sm font-semibold transition-colors ${
                   activeAccessGroup === group.key
-                    ? "bg-white text-slate-900 shadow-sm"
-                    : "text-slate-500 hover:text-slate-900"
+                    ? "bg-[var(--admin-card)] text-[var(--admin-text)] shadow-sm"
+                    : "text-[var(--admin-text-tertiary)] hover:text-[var(--admin-text)]"
                 }`}
               >
                 {group.title}
-                <span className="ml-1 text-xs text-slate-400">
+                <span className="ml-1 text-xs text-[var(--admin-text-tertiary)]">
                   {group.options.length}
                 </span>
               </button>
@@ -83,61 +85,59 @@ export default function AccessControlSection({
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <input
                 className={`${inputClass} mt-0`}
-                placeholder="Cari nama, ID, role, atau permission"
+                placeholder="Search name, ID, role, or permission"
                 value={accessQuery}
                 onChange={(event) => setAccessQuery(event.target.value)}
               />
-              <span className="shrink-0 text-xs font-medium text-slate-500">
-                {filteredAccessOptions.length} pilihan
+              <span className="shrink-0 text-xs font-medium text-[var(--admin-text-tertiary)]">
+                {filteredAccessOptions.length} options
               </span>
             </div>
 
-            <div className="mt-3 grid max-h-72 grid-cols-1 gap-1 overflow-y-auto rounded-md border border-slate-200 p-2 text-sm md:grid-cols-2">
+            <div className="mt-3 grid max-h-72 grid-cols-1 gap-1 overflow-y-auto rounded-lg border border-[var(--admin-border)] p-2 text-sm md:grid-cols-2">
               {filteredAccessOptions.map((option) => (
                 <label
                   key={option.value}
                   className={`flex cursor-pointer items-start gap-3 rounded-md border p-2.5 transition-colors ${
                     allowedSources.includes(option.value)
-                      ? "border-primary/30 bg-primary/5"
-                      : "border-transparent hover:bg-slate-50"
+                      ? "border-[var(--admin-brand)]/30 bg-[var(--admin-brand-soft)]"
+                      : "border-transparent hover:bg-[var(--admin-card-subtle)]"
                   }`}
                 >
                   <input
                     type="checkbox"
-                    className="mt-1 h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary/20"
+                    className="mt-1 h-4 w-4 rounded border-[var(--admin-border-strong)] text-[var(--admin-brand)] focus:ring-[var(--admin-brand)]"
                     checked={allowedSources.includes(option.value)}
                     onChange={() => toggleSource(option.value)}
                   />
                   <span className="min-w-0">
-                    <span className="block truncate font-medium text-slate-800">
+                    <span className="admin-heading block truncate font-bold text-[var(--admin-text)]">
                       {option.label}
                     </span>
-                    <span className="block break-all text-xs text-slate-500">
+                    <span className="block break-all text-xs text-[var(--admin-text-tertiary)]">
                       {option.value}
                     </span>
                   </span>
                 </label>
               ))}
               {filteredAccessOptions.length === 0 ? (
-                <p className="col-span-full rounded-md border border-dashed border-slate-200 bg-slate-50 p-4 text-center text-xs text-slate-500">
-                  Tidak ada pilihan yang cocok.
+                <p className="col-span-full rounded-lg border border-dashed border-[var(--admin-border)] bg-[var(--admin-card-subtle)] p-4 text-center text-xs text-[var(--admin-text-tertiary)]">
+                  No matching options.
                 </p>
               ) : null}
             </div>
           </div>
         ) : (
-          <p className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-700">
-            Data Unit/Job dari Central belum tersedia. Cek CENTRAL_API_TOKEN dan
-            endpoint /api/internal/employees.
+          <p className="rounded-lg border border-[var(--admin-gold)]/30 bg-[var(--admin-gold-soft)] p-3 text-xs text-[var(--admin-gold-text)]">
+            Central access options are currently unavailable.
           </p>
         )}
 
-        <div className="mt-5 border-t border-slate-200 pt-5">
+        <div className="mt-5 border-t border-[var(--admin-border)] pt-5">
           <label className={labelClass}>
-            Tambah rule dari Central
+            Add a Central rule
             <span className={helperTextClass}>
-              Gunakan ID atau claim yang berasal dari Central, bukan daftar
-              manual di Hub.
+              Use a Central ID or claim rather than maintaining a separate Hub list.
             </span>
           </label>
           <div className="mt-2 flex flex-col gap-3 sm:flex-row">
@@ -158,13 +158,13 @@ export default function AccessControlSection({
               onClick={addCustomRule}
               className={`${secondaryButtonClass} sm:w-auto`}
             >
-              Tambah
+              Add
             </button>
           </div>
-          <div className="mt-3 grid gap-2 text-xs text-slate-500 md:grid-cols-2">
+          <div className="mt-3 grid gap-2 text-xs text-[var(--admin-text-tertiary)] md:grid-cols-2">
             {centralRulePrefixes.map((prefix) => (
               <p key={prefix.value} className="min-w-0 break-words">
-                <code className="rounded bg-slate-100 px-1 text-slate-700">
+                <code className="rounded bg-[var(--admin-card-subtle)] px-1 text-[var(--admin-text-secondary)]">
                   {prefix.value}
                 </code>{" "}
                 {prefix.hint}
@@ -180,13 +180,13 @@ export default function AccessControlSection({
                 key={source.value}
                 type="button"
                 onClick={() => removeSource(source.value)}
-                className="max-w-full rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:bg-white hover:text-slate-900"
-                title="Klik untuk hapus rule"
+                className="admin-focus max-w-full rounded-md border border-[var(--admin-border)] bg-[var(--admin-card-subtle)] px-2.5 py-1.5 text-xs font-semibold text-[var(--admin-text-secondary)] transition hover:bg-[var(--admin-card)] hover:text-[var(--admin-text)]"
+                aria-label={`Remove access rule ${source.label}`}
               >
                 <span className="inline-block max-w-56 truncate align-bottom">
                   {source.label}
                 </span>{" "}
-                x
+                ×
               </button>
             ))}
           </div>

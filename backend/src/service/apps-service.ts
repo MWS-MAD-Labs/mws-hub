@@ -1,9 +1,6 @@
 import { applyStatusOverrides } from "../lib/status-overrides";
-import {
-  normalizeAccessToken,
-  userMatchesAccessRule,
-} from "../lib/access-rules";
-import { centralAccessForApp, hubAccessMode } from "../lib/hub-access-gate";
+import { normalizeAccessToken, userMatchesAccessRule } from "../lib/access-rules";
+import { centralAccessForApp } from "../lib/hub-access-gate";
 import { ApplicationService } from "./application-service";
 import type { CentralClaim, HubUser } from "../type/central-type";
 import type { HubAccessSource, HubAppResponse, HubCatalogEntry } from "../type/catalog-type";
@@ -111,10 +108,7 @@ function hasExplicitAppPermission(entry: HubCatalogEntry, user: HubUser): boolea
 // gate, so an app can never be visible to someone who would be turned away
 // on click, or openable by someone it was hidden from.
 export function canAccess(entry: HubCatalogEntry, user: HubUser): boolean {
-  const sourceAllowed = entry.allowedSources.some((source) =>
-    userMatchesAccessRule(source, user),
-  );
-
+  const sourceAllowed = entry.allowedSources.some((source) => userMatchesAccessRule(source, user));
   return sourceAllowed || hasExplicitAppPermission(entry, user);
 }
 
@@ -190,21 +184,19 @@ export class AppsService {
       effectiveCatalog(),
       approvedApplicationIdsFor(user),
     ]);
-    // In enforce an app not linked to Central has nobody who could be given access.
-    const visible = catalog
-      .filter((entry) => isVisibleTo(entry, user))
-      .filter((entry) => hubAccessMode() !== "enforce" || Boolean(entry.sso?.centralEntitlementAppId));
-    // An app Central gates is left out for people without access. Hub still owns its status.
+    const visible = catalog.filter((entry) => isVisibleTo(entry, user));
     const central = await Promise.all(
       visible.map((entry) =>
-        entry.sso?.centralEntitlementAppId
-          ? centralAccessForApp(user, entry.sso.centralEntitlementAppId)
+        entry.centralEntitlementAppId
+          ? centralAccessForApp(user, entry.centralEntitlementAppId)
           : Promise.resolve(null),
       ),
     );
     return visible
       .filter((_, index) => central[index] !== "denied")
-      .map((entry) => toResponse(entry, user, approvedApplicationIds));
+      .map((entry) => entry.centralEntitlementAppId
+        ? toResponse(entry, user, new Set([entry.id]))
+        : toResponse(entry, user, approvedApplicationIds));
   }
 
   static async findByLaunchId(appId: string): Promise<HubCatalogEntry | null> {
@@ -225,7 +217,7 @@ export class AppsService {
   }
 
   static async canLaunch(entry: HubCatalogEntry, user: HubUser): Promise<boolean> {
-    if (hubAccessMode() === "enforce" && !entry.sso?.centralEntitlementAppId) return false;
+    if (entry.centralEntitlementAppId) return true;
     return canAccessWithApprovedRequest(entry, user);
   }
 

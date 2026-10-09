@@ -97,6 +97,15 @@ export type AdminDashboardData = {
   unitId: string | null;
 };
 
+export type AdminPaginationMeta = {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
+};
+
 export const adminApi = {
   async dashboard(): Promise<AdminDashboardData> {
     const response = await apiRequest<{ data: AdminDashboardData }>(
@@ -170,11 +179,29 @@ export const adminApi = {
     return response?.data ?? [];
   },
 
-  async listAuditLogs() {
-    const response = await apiRequest<{ data: AdminAuditLog[] }>(
-      "/admin/api/audit-logs",
+  async listAuditLogs(query: { page?: number; pageSize?: number; q?: string; action?: string; dateFrom?: string; dateTo?: string } = {}) {
+    const params = new URLSearchParams();
+    if (query.page) params.set("page", String(query.page));
+    if (query.pageSize) params.set("pageSize", String(query.pageSize));
+    if (query.q) params.set("q", query.q);
+    if (query.action) params.set("action", query.action);
+    if (query.dateFrom) params.set("dateFrom", query.dateFrom);
+    if (query.dateTo) params.set("dateTo", query.dateTo);
+    const suffix = params.size ? `?${params.toString()}` : "";
+    const response = await apiRequest<{ data: AdminAuditLog[]; meta: { pagination: AdminPaginationMeta } }>(
+      `/admin/api/audit-logs${suffix}`,
     );
-    return response?.data ?? [];
+    return {
+      data: response?.data ?? [],
+      pagination: response?.meta.pagination ?? {
+        page: 1,
+        pageSize: query.pageSize || 10,
+        total: 0,
+        totalPages: 1,
+        hasPreviousPage: false,
+        hasNextPage: false,
+      },
+    };
   },
 
   async updateReport(id: string, status: AdminReport["status"]) {

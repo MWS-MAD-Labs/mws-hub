@@ -1,201 +1,34 @@
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { ArrowUpRight, KeyRound, Wrench } from "lucide-react";
+import { Link } from "react-router-dom";
 import AppShell from "@/admin/components/layout/AppShell";
-import Dropdown from "@/admin/components/ui/Dropdown";
-import {
-  adminApi,
-  type AdminAccessRequest,
-  type AdminReport,
-} from "@/admin/api/adminApi";
+import AdminPageHeader from "@/admin/components/ui/AdminPageHeader";
+import { REPORT_STATUS, ACCESS_STATUS } from "@/admin/components/ui/admin-status";
+import { adminApi, type AdminAccessRequest, type AdminReport } from "@/admin/api/adminApi";
+import { cn } from "@/lib/utils";
 
 export default function FeedbackPage() {
   const [reports, setReports] = useState<AdminReport[]>([]);
   const [requests, setRequests] = useState<AdminAccessRequest[]>([]);
   const [loading, setLoading] = useState(true);
-
-  async function load() {
-    setLoading(true);
-    try {
-      const [nextReports, nextRequests] = await Promise.all([
-        adminApi.listReports(),
-        adminApi.listAccessRequests(),
-      ]);
-      setReports(nextReports);
-      setRequests(nextRequests);
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Failed to load feedback.",
-      );
-    } finally {
-      setLoading(false);
-    }
-  }
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    void load();
+    let cancelled = false;
+    Promise.all([adminApi.listReports(), adminApi.listAccessRequests()])
+      .then(([nextReports, nextRequests]) => { if (!cancelled) { setReports(nextReports); setRequests(nextRequests); } })
+      .catch((err) => { if (!cancelled) setError(err instanceof Error ? err.message : "Failed to load feedback overview."); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, []);
 
-  async function changeReport(id: string, status: AdminReport["status"]) {
-    try {
-      await adminApi.updateReport(id, status);
-      await load();
-      toast.success("Report updated");
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Failed to update report.",
-      );
-    }
-  }
+  const unresolvedReports = reports.filter((report) => report.status !== "RESOLVED");
+  const pendingRequests = requests.filter((request) => request.status === "PENDING");
 
-  async function changeRequest(
-    id: string,
-    status: AdminAccessRequest["status"],
-  ) {
-    try {
-      await adminApi.updateAccessRequest(id, status);
-      await load();
-      toast.success("Access request updated");
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Failed to update request.",
-      );
-    }
-  }
-
-  const reportStatusOptions = [
-    { value: "OPEN", label: "open" },
-    { value: "IN_PROGRESS", label: "in progress" },
-    { value: "RESOLVED", label: "resolved" },
-  ] satisfies Array<{ value: AdminReport["status"]; label: string }>;
-  const requestStatusOptions = [
-    { value: "PENDING", label: "pending" },
-    { value: "APPROVED", label: "approved" },
-    { value: "REJECTED", label: "rejected" },
-  ] satisfies Array<{ value: AdminAccessRequest["status"]; label: string }>;
-
-  return (
-    <AppShell>
-      <section className="space-y-8">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Review queue
-          </p>
-          <h1 className="mt-1 text-2xl font-semibold">Feedback</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Review broken-tool reports and access requests from Hub users.
-          </p>
-        </div>
-        {loading ? (
-          <p className="text-sm text-muted-foreground">Loading feedback...</p>
-        ) : (
-          <>
-            <FeedbackTable
-              title="Broken-tool reports"
-              empty="No reports yet."
-              rows={reports}
-              render={(report) => (
-                <>
-                  <td className="px-4 py-4">
-                    {report.application.name}
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {report.message}
-                    </p>
-                  </td>
-                  <td className="px-4 py-4 text-muted-foreground">
-                    {report.reporter_email}
-                  </td>
-                  <td className="px-4 py-4">
-                    <Dropdown
-                      value={report.status}
-                      className="w-36"
-                      buttonClassName="text-xs"
-                      options={reportStatusOptions}
-                      onChange={(value) =>
-                        void changeReport(
-                          report.id,
-                          value,
-                        )
-                      }
-                    />
-                  </td>
-                </>
-              )}
-            />
-            <FeedbackTable
-              title="Access requests"
-              empty="No access requests yet."
-              rows={requests}
-              render={(request) => (
-                <>
-                  <td className="px-4 py-4">
-                    {request.application.name}
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {request.reason || "No reason provided"}
-                    </p>
-                  </td>
-                  <td className="px-4 py-4 text-muted-foreground">
-                    {request.requester_email}
-                  </td>
-                  <td className="px-4 py-4">
-                    <Dropdown
-                      value={request.status}
-                      className="w-36"
-                      buttonClassName="text-xs"
-                      options={requestStatusOptions}
-                      onChange={(value) =>
-                        void changeRequest(
-                          request.id,
-                          value,
-                        )
-                      }
-                    />
-                  </td>
-                </>
-              )}
-            />
-          </>
-        )}
-      </section>
-    </AppShell>
-  );
+  return <AppShell><section className="-mx-4 -my-6 min-h-[calc(100vh-3.75rem)] bg-[var(--admin-bg)] px-5 py-7 sm:-mx-6 sm:px-7 lg:-mx-8 lg:px-10 lg:py-9"><div className="mx-auto max-w-[1360px] space-y-7"><AdminPageHeader eyebrow="Queue overview" title="Feedback" description="A summary of broken-tool reports and application access requests." />
+    {loading ? <div className="h-64 animate-pulse rounded-xl border border-[var(--admin-border)] bg-[var(--admin-card)]" /> : error ? <div className="rounded-xl border border-[var(--admin-rose)]/30 bg-[var(--admin-card)] p-6 text-sm text-[var(--admin-rose)]">{error}</div> : <div className="grid gap-5 lg:grid-cols-2"><OverviewPanel title="Broken tools" count={unresolvedReports.length} icon={Wrench} href="/admin/broken-tools" action="Open broken tools">{unresolvedReports.slice(0, 5).map((report) => <OverviewRow key={report.id} title={report.application.name} detail={report.message} badge={REPORT_STATUS[report.status]} />)}</OverviewPanel><OverviewPanel title="Access requests" count={pendingRequests.length} icon={KeyRound} href="/admin/access-requests" action="Open access requests">{pendingRequests.slice(0, 5).map((request) => <OverviewRow key={request.id} title={request.application.name} detail={request.requester_email} badge={ACCESS_STATUS[request.status]} />)}</OverviewPanel></div>}
+  </div></section></AppShell>;
 }
 
-function FeedbackTable<T extends { id: string; created_at: string }>({
-  title,
-  empty,
-  rows,
-  render,
-}: {
-  title: string;
-  empty: string;
-  rows: T[];
-  render: (row: T) => React.ReactNode;
-}) {
-  return (
-    <div className="overflow-hidden rounded-lg border border-border/60 bg-card">
-      <div className="border-b border-border/60 px-4 py-4">
-        <h2 className="font-semibold">{title}</h2>
-      </div>
-      {rows.length === 0 ? (
-        <p className="p-4 text-sm text-muted-foreground">{empty}</p>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[680px] text-left text-sm">
-            <thead className="border-b border-border/60 bg-muted/30 text-xs uppercase text-muted-foreground">
-              <tr>
-                <th className="px-4 py-3">Application</th>
-                <th className="px-4 py-3">User</th>
-                <th className="px-4 py-3">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/60">
-              {rows.map((row) => (
-                <tr key={row.id}>{render(row)}</tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
-  );
-}
+function OverviewPanel({ title, count, icon: Icon, href, action, children }: { title: string; count: number; icon: typeof Wrench; href: string; action: string; children: React.ReactNode }) { return <section className="overflow-hidden rounded-xl border border-[var(--admin-border)] bg-[var(--admin-card)] shadow-[var(--admin-shadow)]"><div className="flex items-center gap-3 border-b border-[var(--admin-border)] p-5"><span className="grid h-10 w-10 place-items-center rounded-lg bg-[var(--admin-brand-soft)] text-[var(--admin-brand)]"><Icon className="h-5 w-5" /></span><div className="flex-1"><h2 className="admin-heading text-sm font-bold">{title}</h2><p className="mt-1 text-xs text-[var(--admin-text-tertiary)]">{count} need attention</p></div><Link to={href} className="admin-focus admin-heading inline-flex items-center gap-2 text-xs font-bold text-[var(--admin-brand)]">{action}<ArrowUpRight className="h-3.5 w-3.5" /></Link></div><div className="divide-y divide-[var(--admin-border)]">{count ? children : <p className="p-5 text-sm text-[var(--admin-text-tertiary)]">Nothing needs review.</p>}</div></section>; }
+function OverviewRow({ title, detail, badge }: { title: string; detail: string; badge: { label: string; className: string } }) { return <div className="flex items-start gap-3 p-5"><div className="min-w-0 flex-1"><p className="admin-heading text-sm font-bold">{title}</p><p className="mt-1 line-clamp-2 text-xs leading-5 text-[var(--admin-text-secondary)]">{detail}</p></div><span className={cn("admin-heading shrink-0 rounded-md px-2 py-1 text-[10px] font-bold", badge.className)}>{badge.label}</span></div>; }

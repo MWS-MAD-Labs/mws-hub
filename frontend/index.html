@@ -8,25 +8,7 @@
          <head> ahead of the bundle so the order is explicit rather than
          relying on module scripts being implicitly deferred. -->
   <script src="/env.js"></script>
-  <script>
-    (() => {
-      try {
-        const stored = localStorage.getItem("theme");
-        const preference = stored === "light" || stored === "dark" || stored === "system" ? stored : "system";
-        const resolved = preference === "system"
-          ? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
-          : preference;
-        const root = document.documentElement;
-        root.classList.toggle("dark", resolved === "dark");
-        root.dataset.theme = resolved;
-        root.dataset.themePreference = preference;
-        root.style.colorScheme = resolved;
-      } catch {
-        // The module entry applies the same preference once storage is available.
-      }
-    })();
-  </script>
-  <meta name="theme-color" content="#FFFAF4" />
+  <meta name="theme-color" content="#101827" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="MWS Hub" />
@@ -41,6 +23,7 @@
 
 <body>
   <div id="root"></div>
+  <div id="overlay-root"></div>
   <script type="module" src="/src/main.tsx"></script>
 </body>
 

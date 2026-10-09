@@ -48,7 +48,7 @@ const user = {
 } as HubUser;
 
 const gated = (id: string, extra: Partial<HubCatalogEntry> = {}) =>
-  entry(id, { sso: { appId: id, centralEntitlementAppId: id } as HubCatalogEntry["sso"], ...extra });
+  entry(id, { centralEntitlementAppId: id, sso: { appId: id, centralEntitlementAppId: id } as HubCatalogEntry["sso"], ...extra });
 
 beforeEach(() => {
   gate.clearAppAccessCacheForTest();
@@ -103,8 +103,8 @@ describe("cards for apps gated by Central", () => {
     spyOn(centralClient, "lookupApplicationEntitlement").mockResolvedValue({ is_active: true } as never);
     process.env.HUB_CENTRAL_ACCESS_MODE = "enforce";
     const enforced = (await AppsService.listFor(user)).map((app) => app.id);
-    expect(enforced).toEqual(["daily-checkin"]);
-    expect(await AppsService.canLaunch(entry("plain"), user)).toBe(false);
+    expect(enforced).toEqual(["daily-checkin", "plain"]);
+    expect(await AppsService.canLaunch(entry("plain"), user)).toBe(true);
     delete process.env.HUB_CENTRAL_ACCESS_MODE;
     const open = (await AppsService.listFor(user)).map((app) => app.id);
     expect(open).toEqual(["daily-checkin", "plain"]);

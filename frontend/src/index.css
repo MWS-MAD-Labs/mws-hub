@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap");
 
 @import "tailwindcss";
 @import "tw-animate-css";
@@ -6,7 +6,7 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-sans: "Nunito Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -37,53 +37,58 @@
    expects a real CSS color in each variable, not a component list that
    still needs wrapping. */
 :root {
-  --background: #fffaf4;
-  --surface: #fffaf4;
-  --card: #ffffff;
-  --card-foreground: #241718;
-  --foreground: #241718;
-  --muted: #f5e7e8;
-  --muted-foreground: #6f6061;
-  --primary: #7e1518;
-  --primary-foreground: #ffffff;
-  --accent: #d6a13a;
-  --accent-foreground: #241718;
-  --secondary: #1f2a44;
-  --secondary-foreground: #ffffff;
-  --destructive: #b94a4e;
-  --destructive-foreground: #ffffff;
-  --border: #eadfda;
-  --input: #ffffff;
-  --ring: #d6a13a;
-  --radius: 12px;
+  --layer-base: 0;
+  --layer-raised: 10;
+  --layer-sticky: 20;
+  --layer-floating: 30;
+  --layer-drawer-backdrop: 40;
+  --layer-drawer: 50;
+  --layer-popover: 60;
+  --layer-toast: 70;
+  --layer-modal: 100;
+  --background: hsl(32 16% 97%);
+  --surface: hsl(32 14% 96%);
+  --card: hsl(32 16% 100%);
+  --card-foreground: hsl(222 28% 14%);
+  --foreground: hsl(222 28% 14%);
+  --muted: hsl(216 20% 90%);
+  --muted-foreground: hsl(217 22% 30%);
+  --primary: hsl(357 71% 29%);
+  --primary-foreground: hsl(0 0% 100%);
+  --accent: hsl(18 76% 38%);
+  --accent-foreground: hsl(0 0% 98%);
+  --secondary: hsl(219 22% 30%);
+  --secondary-foreground: hsl(0 0% 98%);
+  --destructive: hsl(358 75% 44%);
+  --destructive-foreground: hsl(0 0% 98%);
+  --border: hsl(220 14% 82%);
+  --input: hsl(220 16% 96%);
+  --ring: hsl(352 78% 42%);
+  --radius: 14px;
 }
 
 .dark {
-  --background: #171112;
-  --surface: #171112;
-  --card: #211718;
-  --card-foreground: #fff7f1;
-  --foreground: #fff7f1;
-  --muted: #351719;
-  --muted-foreground: #bdaaa5;
-  --primary: #ffb2b6;
-  --primary-foreground: #241718;
-  --accent: #e4bc67;
-  --accent-foreground: #241718;
-  --secondary: #b9c7ee;
-  --secondary-foreground: #171112;
-  --destructive: #e69397;
-  --destructive-foreground: #171112;
-  --border: #463638;
-  --input: #2c2021;
-  --ring: #e4bc67;
+  --background: hsl(222 32% 8%);
+  --surface: hsl(222 30% 10%);
+  --card: hsl(222 28% 11%);
+  --card-foreground: hsl(210 20% 96%);
+  --foreground: hsl(210 20% 96%);
+  --muted: hsl(221 22% 14%);
+  --muted-foreground: hsl(214 24% 82%);
+  --primary: hsl(344 82% 64%);
+  --primary-foreground: hsl(222 34% 10%);
+  --accent: hsl(18 88% 62%);
+  --accent-foreground: hsl(215 14% 12%);
+  --secondary: hsl(214 28% 76%);
+  --secondary-foreground: hsl(222 34% 12%);
+  --destructive: hsl(356 85% 64%);
+  --destructive-foreground: hsl(210 18% 12%);
+  --border: hsl(218 20% 28%);
+  --input: hsl(218 24% 16%);
+  --ring: hsl(190 90% 64%);
 }
 
 body {
   background: linear-gradient(180deg, var(--background) 0%, var(--surface) 100%);
   font-family: var(--font-sans);
-}
-
-.font-heading {
-  font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
 }

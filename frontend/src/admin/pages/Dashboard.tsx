@@ -1,12 +1,16 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   AppWindow,
-  ArrowRight,
-  Building2,
+  ArrowUpRight,
+  CheckCircle2,
+  ClipboardList,
   Eye,
   EyeOff,
+  KeyRound,
+  RefreshCw,
   TriangleAlert,
   Wrench,
+  type LucideIcon,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
@@ -16,6 +20,7 @@ import {
   type AdminReport,
 } from "@/admin/api/adminApi";
 import AppShell from "@/admin/components/layout/AppShell";
+import { cn } from "@/lib/utils";
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("en", {
@@ -24,14 +29,15 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
-function reportStatusClass(status: AdminReport["status"]) {
-  if (status === "RESOLVED") return "bg-emerald-50 text-emerald-700";
-  if (status === "IN_PROGRESS") return "bg-blue-50 text-blue-700";
-  return "bg-amber-50 text-amber-700";
-}
+const STATUS_STYLES: Record<AdminReport["status"], string> = {
+  OPEN: "border-[var(--admin-gold)]/30 bg-[var(--admin-gold-soft)] text-[var(--admin-gold-text)]",
+  IN_PROGRESS: "border-[var(--admin-navy)]/20 bg-[var(--admin-navy-soft)] text-[var(--admin-navy)]",
+  RESOLVED: "border-[var(--admin-sage)]/30 bg-[var(--admin-sage-soft)] text-[var(--admin-sage-text)]",
+};
 
 function reportStatusLabel(status: AdminReport["status"]) {
-  return status.replace("_", " ").toLowerCase();
+  if (status === "IN_PROGRESS") return "In progress";
+  return status.charAt(0) + status.slice(1).toLowerCase();
 }
 
 export default function Dashboard() {
@@ -39,275 +45,136 @@ export default function Dashboard() {
   const [applications, setApplications] = useState<AdminApplication[]>([]);
   const [reports, setReports] = useState<AdminReport[]>([]);
   const [error, setError] = useState("");
-  const isLoading = !data && !error;
-  const publishedApplications = applications.filter(
-    (application) => application.discoverable,
-  );
-  const hiddenApplications = applications.filter(
-    (application) => !application.discoverable,
-  );
-  const openReports = reports.filter((report) => report.status !== "RESOLVED");
-  const recentReports = [...reports]
-    .sort(
-      (left, right) =>
-        new Date(right.created_at).getTime() - new Date(left.created_at).getTime(),
-    )
-    .slice(0, 5);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const loadDashboard = useCallback(async () => {
+    setIsLoading(true);
+    setError("");
+    try {
+      const [dashboard, nextApplications, nextReports] = await Promise.all([
+        adminApi.dashboard(),
+        adminApi.listApplications(),
+        adminApi.listReports(),
+      ]);
+      setData(dashboard);
+      setApplications(nextApplications);
+      setReports(nextReports);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to load admin dashboard.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    let cancelled = false;
-
-    async function loadDashboard() {
-      try {
-        const [dashboard, nextApplications, nextReports] = await Promise.all([
-          adminApi.dashboard(),
-          adminApi.listApplications(),
-          adminApi.listReports(),
-        ]);
-        if (!cancelled) {
-          setData(dashboard);
-          setApplications(nextApplications);
-          setReports(nextReports);
-        }
-      } catch (err: unknown) {
-        if (!cancelled) {
-          setError(
-            err instanceof Error
-              ? err.message
-              : "Failed to load admin dashboard.",
-          );
-        }
-      }
-    }
-
     void loadDashboard();
+  }, [loadDashboard]);
 
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const openReports = reports.filter((report) => report.status !== "RESOLVED");
+  const recentReports = reports.slice(0, 5);
 
   return (
     <AppShell>
-      <section className="-mx-4 -my-6 min-h-[calc(100vh-3.5rem)] bg-slate-50 px-4 py-6 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
-        <div className="w-full p-8">
-          <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <section className="admin-operations -mx-4 -my-6 min-h-[calc(100vh-3.5rem)] px-5 py-7 sm:-mx-6 sm:px-7 lg:-mx-8 lg:px-10 lg:py-9">
+        <div className="mx-auto w-full max-w-[1360px]">
+          <header className="flex flex-col gap-5 border-b border-[var(--admin-border-strong)] pb-7 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                Admin overview
-              </p>
-              <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">
-                Dashboard
-              </h1>
-              <p className="mt-1 text-sm text-slate-500">
-                Overview of your MWS Hub administration
-              </p>
+              <p className="admin-heading text-xs font-bold text-[var(--admin-brand)]">Admin Overview</p>
+              <h1 className="admin-heading mt-2 text-3xl font-extrabold tracking-[-0.04em] text-[var(--admin-text)] sm:text-4xl">Operations Desk</h1>
+              <p className="mt-2 text-sm text-[var(--admin-text-secondary)]">Review support queues and keep the MWS Hub catalogue current.</p>
             </div>
-            <nav className="flex items-center gap-2 text-sm text-slate-500">
-              <span className="font-medium text-slate-900">Dashboard</span>
-            </nav>
-          </div>
+            <button type="button" onClick={() => void loadDashboard()} disabled={isLoading} className="admin-heading inline-flex h-10 w-fit items-center gap-2 rounded-full border border-[var(--admin-border-strong)] bg-[var(--admin-card)] px-4 text-xs font-bold text-[var(--admin-text)] transition-colors hover:bg-[var(--admin-card-subtle)] disabled:opacity-50">
+              <RefreshCw className={cn("h-3.5 w-3.5", isLoading && "animate-spin")} />
+              Refresh
+            </button>
+          </header>
 
-          {isLoading ? (
-            <div className="space-y-5">
-              <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-                {[0, 1, 2, 3].map((item) => (
-                  <div
-                    key={item}
-                    className="h-32 animate-pulse rounded-lg border border-slate-200 bg-white p-5"
-                  >
-                    <div className="h-4 w-24 rounded bg-slate-100" />
-                    <div className="mt-4 h-7 w-16 rounded bg-slate-100" />
-                    <div className="mt-3 h-3 w-28 rounded bg-slate-100" />
-                  </div>
-                ))}
-              </div>
-              <div className="grid gap-5 lg:grid-cols-2">
-                <div
-                  className="h-32 animate-pulse rounded-lg border border-slate-200 bg-white p-5"
-                />
-                <div
-                  className="h-32 animate-pulse rounded-lg border border-slate-200 bg-white p-5"
-                />
-              </div>
-            </div>
-          ) : error ? (
-            <div className="rounded-lg border border-destructive/20 bg-white p-6 shadow-sm">
-              <p className="text-sm font-medium text-destructive">
-                Failed to load dashboard
-              </p>
-              <p className="mt-1 text-sm text-slate-500">{error}</p>
-            </div>
-          ) : data ? (
-            <div className="space-y-5">
-              <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-                <MetricCard
-                  icon={AppWindow}
-                  label="Total Applications"
-                  value={applications.length}
-                  helper="Applications in catalog"
-                />
-                <MetricCard
-                  icon={Eye}
-                  label="Published Applications"
-                  value={publishedApplications.length}
-                  helper="Visible in Hub"
-                />
-                <MetricCard
-                  icon={EyeOff}
-                  label="Hidden Applications"
-                  value={hiddenApplications.length}
-                  helper="Hidden from Hub"
-                />
-                <MetricCard
-                  icon={TriangleAlert}
-                  label="Open Reports"
-                  value={openReports.length}
-                  helper="Open or in progress"
-                />
-              </div>
-
-              <div className="grid gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.8fr)]">
-                <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                    Welcome
-                  </p>
-                  <h2 className="mt-3 text-xl font-semibold tracking-tight text-slate-900">
-                    {data.message}
-                  </h2>
-                  <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-                    Use this command center to manage catalog entries and review
-                    support queues for MWS Hub.
-                  </p>
-                </div>
-
-                <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-                  <div className="flex items-start gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-50 text-primary ring-1 ring-slate-200">
-                      <Building2 className="h-5 w-5" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                        Context
-                      </p>
-                      <p className="mt-1 truncate text-sm font-semibold text-slate-900">
-                        {data.unit || "Not assigned"}
-                      </p>
-                      {data.unitId ? (
-                        <p className="mt-2 break-all font-mono text-xs text-slate-500">
-                          {data.unitId}
-                        </p>
-                      ) : null}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
-                <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-                  <div className="border-b border-slate-200 px-5 py-4">
-                    <h2 className="text-sm font-semibold text-slate-900">
-                      Quick Actions
-                    </h2>
-                    <p className="mt-0.5 text-xs text-slate-500">
-                      Common admin workflows for managing MWS Hub.
-                    </p>
-                  </div>
-                  <div className="grid gap-4 p-5 md:grid-cols-2 xl:grid-cols-1">
-                    <Link
-                      to="/admin/catalog"
-                      className="group flex items-start justify-between gap-4 rounded-lg border border-slate-200 p-4 transition hover:border-primary/30 hover:bg-slate-50"
-                    >
-                      <span className="flex min-w-0 gap-3">
-                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-50 text-primary ring-1 ring-slate-200">
-                          <AppWindow className="h-5 w-5" />
-                        </span>
-                        <span className="min-w-0">
-                          <span className="block text-sm font-semibold text-slate-900">
-                            Manage Applications
-                          </span>
-                          <span className="mt-1 block text-sm leading-6 text-slate-500">
-                            Add, edit, hide, or maintain applications displayed in
-                            the Hub catalog.
-                          </span>
-                        </span>
-                      </span>
-                      <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-primary" />
-                    </Link>
-
-                    <Link
-                      to="/admin/broken-tools"
-                      className="group flex items-start justify-between gap-4 rounded-lg border border-slate-200 p-4 transition hover:border-primary/30 hover:bg-slate-50"
-                    >
-                      <span className="flex min-w-0 gap-3">
-                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-50 text-primary ring-1 ring-slate-200">
-                          <Wrench className="h-5 w-5" />
-                        </span>
-                        <span className="min-w-0">
-                          <span className="block text-sm font-semibold text-slate-900">
-                            Review Broken Tools
-                          </span>
-                          <span className="mt-1 block text-sm leading-6 text-slate-500">
-                            Triage user reports when an application link or tool
-                            is not working.
-                          </span>
-                        </span>
-                      </span>
-                      <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-primary" />
-                    </Link>
-                  </div>
-                </div>
-
-                <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-                  <div className="flex items-center justify-between gap-4 border-b border-slate-200 px-5 py-4">
-                    <div>
-                      <h2 className="text-sm font-semibold text-slate-900">
-                        Recent Reports
-                      </h2>
-                      <p className="mt-0.5 text-xs text-slate-500">
-                        Latest broken-tool reports.
-                      </p>
-                    </div>
-                    <Link
-                      to="/admin/broken-tools"
-                      className="text-xs font-medium text-primary hover:underline"
-                    >
-                      View all
-                    </Link>
-                  </div>
-                  {recentReports.length > 0 ? (
-                    <div className="divide-y divide-slate-100">
-                      {recentReports.map((report) => (
-                        <div key={report.id} className="p-5">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <p className="truncate text-sm font-semibold text-slate-900">
-                                {report.application.name}
-                              </p>
-                              <p className="mt-1 line-clamp-2 text-sm leading-6 text-slate-500">
-                                {report.message}
-                              </p>
-                            </div>
-                            <span
-                              className={`shrink-0 rounded-md px-2 py-1 text-xs font-medium capitalize ${reportStatusClass(report.status)}`}
-                            >
-                              {reportStatusLabel(report.status)}
-                            </span>
-                          </div>
-                          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400">
-                            <span>{report.reporter_email}</span>
-                            <span>{formatDate(report.created_at)}</span>
-                          </div>
+          {isLoading ? <DashboardSkeleton /> : error ? <DashboardError message={error} onRetry={loadDashboard} /> : data ? (
+            <div className="mt-7 space-y-7">
+              <div className="grid gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.55fr)]">
+                <section className="overflow-hidden rounded-3xl border border-[var(--admin-border)] bg-[var(--admin-card)] shadow-[var(--admin-shadow)]">
+                  <div className="border-b border-[var(--admin-border)] px-5 py-5 sm:px-7">
+                    <div className="flex flex-wrap items-end justify-between gap-4">
+                      <div>
+                        <p className="admin-heading text-xs font-bold text-[var(--admin-gold-text)]">Needs Attention</p>
+                        <div className="mt-2 flex items-baseline gap-3">
+                          <p className="admin-heading text-4xl font-extrabold tracking-[-0.04em] text-[var(--admin-text)]">{openReports.length}</p>
+                          <p className="text-sm text-[var(--admin-text-secondary)]">open or in-progress {openReports.length === 1 ? "report" : "reports"}</p>
                         </div>
-                      ))}
+                      </div>
+                      <Link to="/admin/broken-tools" className="admin-heading inline-flex items-center gap-2 rounded-full bg-[var(--admin-brand)] px-4 py-2.5 text-xs font-bold text-white dark:text-[#241718]">
+                        Review Queue
+                        <ArrowUpRight className="h-3.5 w-3.5" />
+                      </Link>
                     </div>
-                  ) : (
-                    <p className="p-5 text-sm text-slate-500">
-                      No broken-tool reports available.
-                    </p>
-                  )}
-                </div>
+                  </div>
+
+                  <div className="px-5 sm:px-7">
+                    <div className="flex items-center justify-between border-b border-[var(--admin-border)] py-4">
+                      <div>
+                        <h2 className="admin-heading text-sm font-bold text-[var(--admin-text)]">Recent Reports</h2>
+                        <p className="mt-1 text-xs text-[var(--admin-text-tertiary)]">Latest issues reported by Hub users.</p>
+                      </div>
+                      <Link to="/admin/broken-tools" className="admin-heading text-xs font-bold text-[var(--admin-brand)] hover:underline">View All</Link>
+                    </div>
+
+                    {recentReports.length ? (
+                      <div>
+                        {recentReports.map((report) => (
+                          <article key={report.id} className="border-b border-[var(--admin-border)] py-5 last:border-0">
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                              <div className="min-w-0">
+                                <p className="admin-heading text-sm font-bold text-[var(--admin-text)]">{report.application.name}</p>
+                                <p className="mt-1 line-clamp-2 text-sm leading-6 text-[var(--admin-text-secondary)]">{report.message}</p>
+                              </div>
+                              <span className={cn("admin-heading w-fit shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-bold", STATUS_STYLES[report.status])}>{reportStatusLabel(report.status)}</span>
+                            </div>
+                            <div className="mt-3 flex flex-col gap-1 text-xs text-[var(--admin-text-tertiary)] sm:flex-row sm:flex-wrap sm:gap-x-3">
+                              <span className="break-all">{report.reporter_email}</span>
+                              <span>{formatDate(report.created_at)}</span>
+                            </div>
+                          </article>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="py-12 text-center">
+                        <CheckCircle2 className="mx-auto h-6 w-6 text-[var(--admin-sage)]" />
+                        <p className="admin-heading mt-3 text-sm font-bold text-[var(--admin-text)]">No reports need review</p>
+                        <p className="mt-1 text-xs text-[var(--admin-text-tertiary)]">New broken-tool reports will appear here.</p>
+                      </div>
+                    )}
+                  </div>
+                </section>
+
+                <aside className="rounded-3xl border border-[var(--admin-border)] bg-[var(--admin-card)] p-5 shadow-[var(--admin-shadow)] sm:p-6">
+                  <p className="admin-heading text-xs font-bold text-[var(--admin-text-tertiary)]">Hub Status</p>
+                  <div className="mt-5 divide-y divide-[var(--admin-border)]">
+                    <StatusRow icon={AppWindow} label="Applications" value={applications.length} />
+                    <StatusRow icon={Eye} label="Central-Linked" value={applications.filter((application) => application.sso_central_entitlement_app_id).length} />
+                    <StatusRow icon={EyeOff} label="Needs Central Link" value={applications.filter((application) => !application.sso_central_entitlement_app_id).length} />
+                    <StatusRow icon={TriangleAlert} label="Open Reports" value={openReports.length} attention={openReports.length > 0} />
+                  </div>
+                  <div className="mt-6 border-t border-[var(--admin-border-strong)] pt-5">
+                    <p className="admin-heading text-[10px] font-bold text-[var(--admin-text-tertiary)]">Administrative Context</p>
+                    <p className="admin-heading mt-2 text-sm font-bold text-[var(--admin-text)]">{data.unit || "Not assigned"}</p>
+                    {data.unitId ? <p className="mt-1 break-all font-mono text-[10px] text-[var(--admin-text-tertiary)]">{data.unitId}</p> : null}
+                  </div>
+                </aside>
               </div>
+
+              <section>
+                <div className="flex items-end justify-between border-b border-[var(--admin-border-strong)] pb-3">
+                  <div>
+                    <h2 className="admin-heading text-lg font-extrabold text-[var(--admin-text)]">Manage</h2>
+                    <p className="mt-1 text-xs text-[var(--admin-text-tertiary)]">Common administration workflows.</p>
+                  </div>
+                </div>
+                <div className="grid md:grid-cols-3">
+                  <ManageLink to="/admin/catalog" icon={AppWindow} title="Application Catalog" description="Add, edit, or maintain Hub applications." />
+                  <ManageLink to="/admin/access-requests" icon={KeyRound} title="Access Requests" description="Review individual Central access decisions." />
+                  <ManageLink to="/admin/audit-logs" icon={ClipboardList} title="Audit Logs" description="Review recent administrative changes." />
+                </div>
+              </section>
             </div>
           ) : null}
         </div>
@@ -316,31 +183,46 @@ export default function Dashboard() {
   );
 }
 
-function MetricCard({
-  icon: Icon,
-  label,
-  value,
-  helper,
-}: {
-  icon: typeof AppWindow;
-  label: string;
-  value: number;
-  helper: string;
-}) {
+function StatusRow({ icon: Icon, label, value, attention = false }: { icon: LucideIcon; label: string; value: number; attention?: boolean }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="flex items-start justify-between gap-4">
+    <div className="flex items-center gap-3 py-4 first:pt-0 last:pb-0">
+      <Icon className={cn("h-4 w-4", attention ? "text-[var(--admin-gold-text)]" : "text-[var(--admin-brand)]")} />
+      <span className="flex-1 text-sm text-[var(--admin-text-secondary)]">{label}</span>
+      <strong className="admin-heading text-sm font-extrabold text-[var(--admin-text)]">{value}</strong>
+    </div>
+  );
+}
+
+function ManageLink({ to, icon: Icon, title, description }: { to: string; icon: LucideIcon; title: string; description: string }) {
+  return (
+    <Link to={to} className="group flex min-h-36 items-start gap-4 border-b border-[var(--admin-border)] py-5 transition-colors md:border-b-0 md:border-r md:px-5 md:first:pl-0 md:last:border-r-0 md:last:pr-0">
+      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[var(--admin-brand-soft)] text-[var(--admin-brand)]"><Icon className="h-4.5 w-4.5" /></span>
+      <span className="min-w-0 flex-1">
+        <span className="admin-heading flex items-center gap-2 text-sm font-bold text-[var(--admin-text)]">{title}<ArrowUpRight className="h-3.5 w-3.5 text-[var(--admin-text-tertiary)] transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-[var(--admin-brand)]" /></span>
+        <span className="mt-2 block text-xs leading-5 text-[var(--admin-text-secondary)]">{description}</span>
+      </span>
+    </Link>
+  );
+}
+
+function DashboardSkeleton() {
+  return (
+    <div className="mt-7 grid animate-pulse gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.55fr)]">
+      <div className="h-[520px] rounded-3xl border border-[var(--admin-border)] bg-[var(--admin-card)]" />
+      <div className="h-[360px] rounded-3xl border border-[var(--admin-border)] bg-[var(--admin-card)]" />
+    </div>
+  );
+}
+
+function DashboardError({ message, onRetry }: { message: string; onRetry: () => Promise<void> }) {
+  return (
+    <div className="mt-7 rounded-3xl border border-[var(--admin-rose)]/30 bg-[var(--admin-card)] p-6 shadow-[var(--admin-shadow)]">
+      <div className="flex items-start gap-4">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[var(--admin-rose-soft)] text-[var(--admin-rose)]"><Wrench className="h-4.5 w-4.5" /></span>
         <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-            {label}
-          </p>
-          <p className="mt-3 text-3xl font-semibold tracking-tight text-slate-900">
-            {value}
-          </p>
-          <p className="mt-1 text-sm text-slate-500">{helper}</p>
-        </div>
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-50 text-primary ring-1 ring-slate-200">
-          <Icon className="h-5 w-5" />
+          <h2 className="admin-heading text-sm font-bold text-[var(--admin-text)]">Dashboard Could Not Be Loaded</h2>
+          <p className="mt-1 text-sm text-[var(--admin-text-secondary)]">{message}</p>
+          <button type="button" onClick={() => void onRetry()} className="admin-heading mt-4 rounded-full bg-[var(--admin-brand)] px-4 py-2 text-xs font-bold text-white dark:text-[#241718]">Try Again</button>
         </div>
       </div>
     </div>

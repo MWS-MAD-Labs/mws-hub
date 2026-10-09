@@ -31,7 +31,7 @@ const menuItems = [
     enabled: true,
   },
   {
-    label: "Access requests",
+    label: "Access Requests",
     href: "/admin/access-requests",
     icon: KeyRound,
     enabled: true,
@@ -55,16 +55,18 @@ export default function Sidebar({
       {/* Mobile overlay */}
       <div
         className={cn(
-          "fixed inset-0 z-40 bg-slate-900/20 lg:hidden",
+          "fixed inset-0 z-[var(--layer-drawer-backdrop)] bg-slate-900/20 lg:hidden",
           isMobileOpen ? "block" : "hidden",
         )}
         onClick={onCloseMobile}
       />
 
       <aside
+        id="admin-navigation-drawer"
+        aria-label="Admin navigation"
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex flex-col",
-          "border-r border-slate-200 bg-white",
+          "fixed inset-y-0 left-0 z-[var(--layer-drawer)] flex flex-col",
+          "border-r border-[var(--admin-border)] bg-[var(--admin-card)]",
           "transition-all duration-200 ease-out",
           "lg:translate-x-0",
           isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
@@ -87,11 +89,11 @@ export default function Sidebar({
             />
 
             <div className={cn("min-w-0", !isOpen && "lg:hidden")}>
-              <p className="truncate text-[20px] font-bold tracking-[-0.02em] text-slate-800">
+              <p className="admin-heading truncate text-[18px] font-extrabold tracking-[-0.02em] text-[var(--admin-text)]">
                 MWS Hub
               </p>
 
-              <p className="mt-0.5 truncate text-xs font-medium text-slate-400">
+              <p className="mt-0.5 truncate text-xs font-medium text-[var(--admin-text-tertiary)]">
                 Admin
               </p>
             </div>
@@ -101,7 +103,7 @@ export default function Sidebar({
           <button
             type="button"
             onClick={onCloseMobile}
-            className="ml-auto inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 lg:hidden"
+            className="admin-focus ml-auto inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--admin-text-tertiary)] transition-colors hover:bg-[var(--admin-card-subtle)] hover:text-[var(--admin-text)] lg:hidden"
             aria-label="Close sidebar"
           >
             <X className="h-[18px] w-[18px]" />
@@ -119,7 +121,7 @@ export default function Sidebar({
           {/* Section label */}
           <div
             className={cn(
-              "mb-3 px-3 text-[11px] font-medium uppercase tracking-wide text-slate-400",
+              "admin-heading mb-3 px-3 text-[10px] font-bold text-[var(--admin-text-tertiary)]",
               !isOpen && "lg:hidden",
             )}
           >
@@ -159,16 +161,16 @@ export default function Sidebar({
                   className={({ isActive }) =>
                     cn(
                       "group flex h-11 items-center gap-3 rounded-lg px-3",
-                      "text-[14px] font-medium",
+                      "admin-heading text-[13px] font-bold",
                       "transition-colors duration-150",
                       !isOpen && "lg:justify-center lg:px-0",
 
                       isActive
-                        ? ["bg-red-50", "text-red-700"]
+                        ? ["bg-[var(--admin-brand-soft)]", "text-[var(--admin-brand)]"]
                         : [
-                            "text-slate-600",
-                            "hover:bg-slate-50",
-                            "hover:text-slate-800",
+                            "text-[var(--admin-text-secondary)]",
+                            "hover:bg-[var(--admin-card-subtle)]",
+                            "hover:text-[var(--admin-text)]",
                           ],
                     )
                   }
@@ -180,8 +182,8 @@ export default function Sidebar({
                         className={cn(
                           "h-[18px] w-[18px] shrink-0 stroke-[1.7]",
                           isActive
-                            ? "text-red-700"
-                            : "text-slate-500 group-hover:text-slate-700",
+                            ? "text-[var(--admin-brand)]"
+                            : "text-[var(--admin-text-tertiary)] group-hover:text-[var(--admin-text)]",
                         )}
                       />
 

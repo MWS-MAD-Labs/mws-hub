@@ -63,10 +63,8 @@ describe("Central application id on save", () => {
     expect((await failure(ApplicationService.create(input("exima"))))?.status).toBe(503);
   });
 
-  it("does not ask Central when no id is set", async () => {
-    const list = spyOn(centralClient, "listCentralApplicationIds");
-    await ApplicationService.create(input());
-    expect(list).not.toHaveBeenCalled();
+  it("requires a Central application id for new applications", async () => {
+    expect((await failure(ApplicationService.create(input())))?.status).toBe(400);
   });
 
   it("does not ask again on update when the id did not change", async () => {

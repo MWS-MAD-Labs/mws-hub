@@ -15,22 +15,22 @@ export function validateApplicationForm(
   { usesSso, ssoBase, appId }: SsoState,
 ): string {
   if (!form.name.trim()) {
-    return "Nama aplikasi wajib diisi.";
+    return "Application name is required.";
   }
   if (!form.category.trim()) {
-    return "Pilih satu kategori.";
+    return "Select a category.";
   }
-  if ((form.allowedSources ?? []).length === 0) {
-    return "Pilih minimal satu kelompok pengguna. Tanpa ini aplikasi tidak akan terlihat oleh siapa pun.";
-  }
-  if (!form.href?.trim()) {
-    return "Alamat aplikasi wajib diisi.";
+  if (form.status !== "coming_soon" && !form.href?.trim()) {
+    return "Application URL is required unless the status is Coming Soon.";
   }
   if (usesSso && !ssoBase.trim()) {
-    return "Isi alamat backend aplikasi, atau matikan login lewat Hub.";
+    return "Enter the application backend URL or turn off Hub SSO.";
   }
   if (usesSso && !resolveSsoAppId(appId, form.ssoAppId)) {
-    return "Isi kode SSO aplikasi, atau matikan login lewat Hub.";
+    return "Enter the SSO application ID or turn off Hub SSO.";
+  }
+  if (!form.centralEntitlementAppId?.trim()) {
+    return "Central Application ID is required.";
   }
 
   return "";

@@ -1,5 +1,6 @@
 import type { AdminApplicationInput } from "@/admin/api/adminApi";
 import Dropdown from "@/admin/components/ui/Dropdown";
+import AdminFieldLabel from "@/admin/components/ui/AdminFieldLabel";
 import { HUB_CATEGORIES } from "@/data/hubCategories";
 import {
   helperTextClass,
@@ -45,37 +46,37 @@ export default function IdentitySection({
     <section className={sectionClass}>
       <SectionHeading
         step={1}
-        title="Identitas aplikasi"
+        title="Application Identity"
         subtitle="Yang dilihat pengguna di halaman Hub."
       />
       <div className={`${sectionBodyClass} grid gap-5 md:grid-cols-2`}>
         <label className={labelClass}>
-          Nama aplikasi
+          Application Name
           <input
             className={inputClass}
             value={form.name}
-            placeholder="Contoh: Report Assistant"
+            placeholder="Example: Report Assistant"
             onChange={(event) => update("name", event.target.value)}
           />
           {appId ? (
             <span className={helperTextClass}>
-              Kode aplikasi dibuat otomatis:{" "}
-              <code className="rounded bg-slate-100 px-1 text-slate-700">
+              Application ID is generated automatically:{" "}
+              <code className="rounded bg-[var(--admin-card-subtle)] px-1 text-[var(--admin-text-secondary)]">
                 {appId}
               </code>
-              {isEditing ? " (tidak berubah saat diedit)" : ""}
+              {isEditing ? " (fixed while editing)" : ""}
             </span>
           ) : null}
         </label>
 
         <label className={labelClass}>
-          Kategori
+          Category
           <Dropdown
             value={form.category}
-            placeholder="Pilih kategori"
-            buttonClassName={`${inputClass} h-[42px] py-0 text-left`}
+            placeholder="Select category"
+            buttonClassName="mt-1.5 h-[42px] text-left"
             options={[
-              { value: "", label: "Pilih kategori" },
+              { value: "", label: "Select category" },
               ...HUB_CATEGORIES.map((category) => ({
                 value: category.id,
                 label: category.label,
@@ -86,22 +87,21 @@ export default function IdentitySection({
         </label>
 
         <label className={`${labelClass} md:col-span-2`}>
-          Deskripsi
+          Description
           <textarea
             className={`${inputClass} min-h-24 resize-none`}
             rows={2}
             value={form.description}
             onChange={(event) => update("description", event.target.value)}
-            placeholder="Contoh: Membantu guru membuat laporan siswa dengan cepat."
+            placeholder="Example: Helps teachers prepare student reports."
           />
         </label>
 
-        <label className={labelClass}>
-          Kata kunci pencarian{" "}
-          <span className="text-xs text-slate-500">(Opsional)</span>
+        <label className="flex flex-col">
+          <AdminFieldLabel optional>Search Keywords</AdminFieldLabel>
           <input
             className={inputClass}
-            placeholder="rapor, slide, siswa"
+            placeholder="reports, slides, students"
             value={keywordText}
             onChange={(event) =>
               update("keywords", normalizeKeywordParts(event.target.value))
@@ -109,7 +109,7 @@ export default function IdentitySection({
           />
         </label>
 
-        <div>
+        <div className="flex flex-col">
           <IconPicker
             value={form.icon}
             query={iconQuery}

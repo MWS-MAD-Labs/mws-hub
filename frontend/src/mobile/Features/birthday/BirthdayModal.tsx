@@ -1,5 +1,7 @@
 import { Cake, X } from "lucide-react";
+import { createPortal } from "react-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getOverlayRoot } from "@/components/overlays/portal";
 import type { HubBirthday } from "@/model/hub-model";
 
 const birthdayDateFormatter = new Intl.DateTimeFormat("en", {
@@ -55,9 +57,11 @@ export default function BirthdayModal({
   onClose,
 }: BirthdayModalProps) {
   if (!open) return null;
-  return (
+  const portalRoot = getOverlayRoot();
+  if (!portalRoot) return null;
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur-[2px] [padding-bottom:calc(env(safe-area-inset-bottom)+1rem)] [padding-top:calc(env(safe-area-inset-top)+1rem)]"
+      className="fixed inset-0 z-[var(--layer-modal)] flex items-center justify-center bg-black/60 px-4 backdrop-blur-[2px] [padding-bottom:calc(env(safe-area-inset-bottom)+1rem)] [padding-top:calc(env(safe-area-inset-top)+1rem)]"
       role="dialog"
       aria-modal="true"
       aria-label="All birthdays"
@@ -165,6 +169,7 @@ export default function BirthdayModal({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    portalRoot,
   );
 }

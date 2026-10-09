@@ -37,22 +37,20 @@ export type HubCatalogEntry = {
   href: string | null;
   external: boolean;
   status: HubAppStatus;
-  // Display lever: false drops an app from the grid for everyone, for tools
-  // a normal user should not even know about. Distinct from allowedSources,
-  // which is the access lever - a hidden app is still launchable by someone
-  // who has its URL and is admitted below.
+  // Legacy publication flag retained for persisted data compatibility. The
+  // admin UI no longer exposes it; Central entitlement decides per-user cards.
   discoverable: boolean;
-  // Deny by default. Values are Central-backed access keys: identity source
-  // (`student`, `employee`), role/audience keys (`teacher`, `admin`, ...),
-  // or `public` for every active Central user.
+  // Legacy Hub policy retained while old rows are migrated. Runtime access is
+  // Central-only and no longer evaluates these rules.
   allowedSources: HubAccessSource[];
+  centralEntitlementAppId?: string;
   sso?: HubAppSso;
 };
 
 // What GET /apps hands the browser. Policy details stay server-side: the
 // client never receives the raw allowedSources, only whether this person can
 // open the card or should see the request-access path.
-export type HubAppResponse = Omit<HubCatalogEntry, "allowedSources" | "sso"> & {
+export type HubAppResponse = Omit<HubCatalogEntry, "allowedSources" | "sso" | "centralEntitlementAppId"> & {
   access: "granted" | "locked";
   ssoAppId?: string;
 };

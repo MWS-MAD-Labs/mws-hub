@@ -17,7 +17,12 @@ export const STATUSES: Array<{
   {
     value: "maintenance",
     label: "Maintenance",
-    hint: "Link dimatikan. Kartu tetap tampil dengan tulisan sedang diperbaiki.",
+    hint: "The card stays visible but cannot be opened while work is in progress.",
+  },
+  {
+    value: "coming_soon",
+    label: "Coming soon",
+    hint: "The card is visible as an upcoming application and cannot be opened yet.",
   },
 ];
 
@@ -41,19 +46,19 @@ export const emptyForm: AdminApplicationInput = {
 };
 
 export const inputClass =
-  "mt-1.5 w-full rounded-md border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-primary focus:ring-4 focus:ring-primary/10";
+  "admin-focus mt-1.5 w-full rounded-lg border border-[var(--admin-border-strong)] bg-[var(--admin-card)] px-3.5 py-2.5 text-sm text-[var(--admin-text)] outline-none transition placeholder:text-[var(--admin-text-tertiary)]";
 
 export const sectionClass =
-  "overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm";
+  "overflow-hidden rounded-xl border border-[var(--admin-border)] bg-[var(--admin-card)] shadow-[var(--admin-shadow)]";
 
 export const sectionBodyClass = "p-5 sm:p-6";
 
-export const labelClass = "block text-sm font-medium text-slate-700";
+export const labelClass = "admin-heading block text-sm font-bold text-[var(--admin-text)]";
 
-export const helperTextClass = "mt-1 text-xs leading-5 text-slate-500";
+export const helperTextClass = "mt-1 block text-xs leading-5 text-[var(--admin-text-tertiary)]";
 
 export const secondaryButtonClass =
-  "inline-flex h-10 items-center justify-center rounded-md border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50";
+  "admin-focus admin-heading inline-flex h-10 items-center justify-center rounded-lg border border-[var(--admin-border-strong)] bg-[var(--admin-card)] px-4 text-sm font-bold text-[var(--admin-text)] transition hover:bg-[var(--admin-card-subtle)] disabled:opacity-60";
 
 export const primaryButtonClass =
-  "inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60";
+  "admin-focus admin-heading inline-flex h-10 items-center justify-center rounded-full bg-[var(--admin-brand)] px-5 text-sm font-bold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 dark:text-[#241718]";

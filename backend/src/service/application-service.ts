@@ -1,5 +1,4 @@
 import { prisma } from "../lib/prisma";
-import { isValidAccessRule } from "../lib/access-rules";
 import { listCentralApplicationIds } from "../lib/central-client";
 import { ResponseError } from "../error/response-error";
 import type {
@@ -36,11 +35,12 @@ const CATALOG_CATEGORIES = new Set([
   "operations",
   "utilities",
 ]);
-// "new" is here because requirement 8 asks for it explicitly - it puts a
-// badge on the card. "coming_soon" stays out: it overlaps with an app that
-// simply has no URL yet, and two ways to say the same thing is what makes a
-// form confusing to fill in.
-const ALLOWED_STATUSES = new Set<HubAppStatus>(["active", "maintenance", "new"]);
+const ALLOWED_STATUSES = new Set<HubAppStatus>([
+  "active",
+  "maintenance",
+  "coming_soon",
+  "new",
+]);
 
 export function toCatalogEntry(row: Application): HubCatalogEntry {
   return {
@@ -56,6 +56,7 @@ export function toCatalogEntry(row: Application): HubCatalogEntry {
     status: TO_STATUS[row.status],
     discoverable: row.discoverable,
     allowedSources: row.allowed_sources as HubAccessSource[],
+    centralEntitlementAppId: row.sso_central_entitlement_app_id || row.id,
     ...(row.sso_app_id && row.sso_entry_url
       ? {
           sso: {
@@ -63,10 +64,7 @@ export function toCatalogEntry(row: Application): HubCatalogEntry {
             entryUrl: row.sso_entry_url,
             ...(row.sso_logout_url ? { logoutUrl: row.sso_logout_url } : {}),
             ...(row.sso_central_entitlement_app_id
-              ? {
-                  centralEntitlementAppId:
-                    row.sso_central_entitlement_app_id,
-                }
+              ? { centralEntitlementAppId: row.sso_central_entitlement_app_id }
               : {}),
           },
         }
@@ -126,10 +124,14 @@ function assertApplicationInput(input: ApplicationInput) {
   if (!ALLOWED_STATUSES.has(input.status ?? "active")) {
     throw new ResponseError(
       400,
-      "Status must be Active, Maintenance, or New.",
+      "Status must be Active, Maintenance, Coming Soon, or New.",
     );
   }
-  if (input.status !== "maintenance" && !input.href) {
+  if (
+    input.status !== "maintenance" &&
+    input.status !== "coming_soon" &&
+    !input.href
+  ) {
     throw new ResponseError(400, "An URL is required for active applications.");
   }
   if (input.status === "maintenance" && !input.href) {
@@ -145,26 +147,17 @@ function assertApplicationInput(input: ApplicationInput) {
       throw new ResponseError(400, "Application URL is invalid.");
     }
   }
-  if (!input.allowedSources?.length) {
-    throw new ResponseError(400, "At least one allowed source is required.");
-  }
-  // An unrecognised key is worse than an empty list: nothing matches it, so
-  // the app saves cleanly and then silently never appears for anybody. Fail
-  // here instead, naming the offending value.
-  const unknownSources = input.allowedSources.filter(
-    (source) => !isValidAccessRule(source),
-  );
-  if (unknownSources.length > 0) {
-    throw new ResponseError(
-      400,
-      `Unknown access rule(s): ${unknownSources.join(", ")}.`,
-    );
+  if (!input.centralEntitlementAppId?.trim()) {
+    throw new ResponseError(400, "Central Application ID is required.");
   }
 }
 
 // The id is free text, and a wrong one hides the app from everybody. Check it
 // against Central when it is set or changed.
-async function assertCentralApplicationId(input: ApplicationInput, current?: string | null) {
+async function assertCentralApplicationId(
+  input: ApplicationInput,
+  current?: string | null,
+) {
   const id = input.centralEntitlementAppId;
   if (!id || id === current) return;
   let known: string[];
@@ -195,10 +188,8 @@ function toRow(input: ApplicationInput) {
     href: input.href ?? null,
     external: input.external ?? true,
     status: FROM_STATUS[input.status ?? "active"],
-    discoverable: input.discoverable ?? true,
-    // Deny by default: an app created without an audience admits nobody
-    // until someone says who it is for.
-    allowed_sources: input.allowedSources ?? [],
+    discoverable: true,
+    allowed_sources: input.allowedSources ?? ["public"],
     sso_app_id: input.ssoAppId ?? null,
     sso_entry_url: input.ssoEntryUrl ?? null,
     sso_logout_url: input.ssoLogoutUrl ?? null,
@@ -298,7 +289,10 @@ export class ApplicationService {
       throw new ResponseError(404, `Unknown application: ${id}`);
     }
 
-    await assertCentralApplicationId(input, existing.sso_central_entitlement_app_id);
+    await assertCentralApplicationId(
+      input,
+      existing.sso_central_entitlement_app_id,
+    );
 
     if (input.ssoAppId) {
       const existingSsoApp = await prisma.application.findFirst({

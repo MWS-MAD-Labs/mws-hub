@@ -1,304 +1,36 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  CheckCircle2,
-  Clock3,
-  RefreshCw,
-  Search,
-  ShieldQuestion,
-  XCircle,
-} from "lucide-react";
-import { Link } from "react-router-dom";
+import { RefreshCw, Search, ShieldQuestion } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import AppShell from "@/admin/components/layout/AppShell";
+import AdminPageHeader from "@/admin/components/ui/AdminPageHeader";
+import AdminPagination from "@/admin/components/ui/AdminPagination";
+import AdminConfirmDialog from "@/admin/components/ui/AdminConfirmDialog";
 import Dropdown from "@/admin/components/ui/Dropdown";
+import { ACCESS_STATUS } from "@/admin/components/ui/admin-status";
 import { adminApi, type AdminAccessRequest } from "@/admin/api/adminApi";
+import { cn } from "@/lib/utils";
 
-const statusOptions: AdminAccessRequest["status"][] = [
-  "PENDING",
-  "APPROVED",
-  "REJECTED",
-];
-
-function statusLabel(status: AdminAccessRequest["status"]) {
-  return status.replace("_", " ").toLowerCase();
-}
-
-function statusClass(status: AdminAccessRequest["status"]) {
-  if (status === "APPROVED") return "bg-emerald-50 text-emerald-700";
-  if (status === "REJECTED") return "bg-red-50 text-red-700";
-  return "bg-amber-50 text-amber-700";
-}
-
-function statusIcon(status: AdminAccessRequest["status"]) {
-  if (status === "APPROVED") return CheckCircle2;
-  if (status === "REJECTED") return XCircle;
-  return Clock3;
-}
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
-}
+type StatusFilter = AdminAccessRequest["status"] | "ALL";
+const statuses: AdminAccessRequest["status"][] = ["PENDING", "APPROVED", "REJECTED"];
+const formatDate = (value: string) => new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 
 export default function AccessRequest() {
-  const [requests, setRequests] = useState<AdminAccessRequest[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [updatingId, setUpdatingId] = useState("");
-
-  async function loadRequests() {
-    setIsLoading(true);
-    setError("");
-    try {
-      setRequests(await adminApi.listAccessRequests());
-    } catch (loadError) {
-      setError(
-        loadError instanceof Error
-          ? loadError.message
-          : "Failed to load access requests.",
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    void loadRequests();
-  }, []);
-
-  async function changeRequest(
-    id: string,
-    status: AdminAccessRequest["status"],
-  ) {
-    setUpdatingId(id);
-    try {
-      await adminApi.updateAccessRequest(id, status);
-      await loadRequests();
-      toast.success("Access request updated");
-    } catch (updateError) {
-      toast.error(
-        updateError instanceof Error
-          ? updateError.message
-          : "Failed to update access request.",
-      );
-    } finally {
-      setUpdatingId("");
-    }
-  }
-
-  const filteredRequests = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
-    if (!query) return requests;
-
-    return requests.filter((request) =>
-      [
-        request.application.name,
-        request.application.id,
-        request.requester_email,
-        request.reason,
-        request.status,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase()
-        .includes(query),
-    );
-  }, [requests, searchQuery]);
-
-  return (
-    <AppShell>
-      <section className="-mx-4 -my-6 min-h-[calc(100vh-3.5rem)] bg-slate-50 px-4 py-6 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
-        <div className="w-full p-8">
-          <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                Review queue
-              </p>
-              <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">
-                Access Requests
-              </h1>
-            </div>
-            <nav className="flex items-center gap-2 text-sm text-slate-500">
-              <Link to="/admin" className="hover:text-slate-900">
-                Dashboard
-              </Link>
-              <span>/</span>
-              <span className="font-medium text-slate-900">
-                Access Requests
-              </span>
-            </nav>
-          </div>
-
-          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-            <div className="flex flex-col gap-3 border-b border-slate-200 p-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h2 className="text-sm font-semibold text-slate-900">
-                  All requests
-                </h2>
-                <p className="mt-0.5 text-xs text-slate-500">
-                  {filteredRequests.length} requests
-                </p>
-              </div>
-
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <div className="relative">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                  <input
-                    type="search"
-                    placeholder="Search requests..."
-                    className="h-9 w-full rounded-md border border-slate-200 bg-white pl-9 pr-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10 sm:w-64"
-                    value={searchQuery}
-                    onChange={(event) => setSearchQuery(event.target.value)}
-                  />
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => void loadRequests()}
-                  disabled={isLoading}
-                  className="inline-flex h-9 items-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <RefreshCw
-                    className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
-                  />
-                  <span>Refresh</span>
-                </button>
-              </div>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[900px] text-left text-sm">
-                <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50/70">
-                    <th className="px-5 py-3 text-xs font-medium uppercase tracking-wide text-slate-500">
-                      Application
-                    </th>
-                    <th className="px-5 py-3 text-xs font-medium uppercase tracking-wide text-slate-500">
-                      Requester
-                    </th>
-                    <th className="px-5 py-3 text-xs font-medium uppercase tracking-wide text-slate-500">
-                      Reason
-                    </th>
-                    <th className="px-5 py-3 text-xs font-medium uppercase tracking-wide text-slate-500">
-                      Status
-                    </th>
-                    <th className="px-5 py-3 text-xs font-medium uppercase tracking-wide text-slate-500">
-                      Requested
-                    </th>
-                    <th className="w-44 px-5 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
-                      Action
-                    </th>
-                  </tr>
-                </thead>
-
-                <tbody className="divide-y divide-slate-100">
-                  {isLoading ? (
-                    <tr>
-                      <td
-                        colSpan={6}
-                        className="px-5 py-10 text-center text-sm text-slate-500"
-                      >
-                        Loading access requests...
-                      </td>
-                    </tr>
-                  ) : error ? (
-                    <tr>
-                      <td colSpan={6} className="px-5 py-10 text-center">
-                        <p className="text-sm text-destructive">{error}</p>
-                        <button
-                          type="button"
-                          onClick={() => void loadRequests()}
-                          className="mt-3 text-sm font-medium text-primary"
-                        >
-                          Try again
-                        </button>
-                      </td>
-                    </tr>
-                  ) : filteredRequests.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={6}
-                        className="px-5 py-10 text-center text-sm text-slate-500"
-                      >
-                        {searchQuery.trim()
-                          ? "No access requests match your search."
-                          : "No access requests found."}
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredRequests.map((request) => {
-                      const StatusIcon = statusIcon(request.status);
-
-                      return (
-                        <tr
-                          key={request.id}
-                          className="group transition-colors hover:bg-slate-50/60"
-                        >
-                          <td className="px-5 py-4">
-                            <div className="flex items-center gap-3">
-                              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-primary">
-                                <ShieldQuestion className="h-5 w-5" />
-                              </div>
-                              <div className="min-w-0">
-                                <p className="truncate font-medium text-slate-900">
-                                  {request.application.name}
-                                </p>
-                                <p className="mt-0.5 truncate font-mono text-xs text-slate-400">
-                                  {request.application.id}
-                                </p>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-5 py-4 text-slate-600">
-                            {request.requester_email}
-                          </td>
-                          <td className="max-w-md px-5 py-4">
-                            <p className="line-clamp-2 text-slate-600">
-                              {request.reason || "No reason provided"}
-                            </p>
-                          </td>
-                          <td className="px-5 py-4">
-                            <span
-                              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium capitalize ${statusClass(request.status)}`}
-                            >
-                              <StatusIcon className="h-3.5 w-3.5" />
-                              {statusLabel(request.status)}
-                            </span>
-                          </td>
-                          <td className="px-5 py-4 text-slate-500">
-                            {formatDate(request.created_at)}
-                          </td>
-                          <td className="px-5 py-4">
-                            <Dropdown
-                              value={request.status}
-                              className="ml-auto w-36"
-                              buttonClassName="text-xs"
-                              disabled={updatingId === request.id}
-                              options={statusOptions.map((status) => ({
-                                value: status,
-                                label: statusLabel(status),
-                              }))}
-                              onChange={(value) =>
-                                void changeRequest(
-                                  request.id,
-                                  value,
-                                )
-                              }
-                            />
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </section>
-    </AppShell>
-  );
+  const [requests, setRequests] = useState<AdminAccessRequest[]>([]); const [loading, setLoading] = useState(true); const [error, setError] = useState(""); const [updatingIds, setUpdatingIds] = useState<Set<string>>(new Set()); const [params, setParams] = useSearchParams();
+  const [decision, setDecision] = useState<{ request: AdminAccessRequest; status: AdminAccessRequest["status"] } | null>(null);
+  const query = params.get("q") || ""; const status = (params.get("status") || "ALL") as StatusFilter; const page = Math.max(1, Number(params.get("page")) || 1); const pageSize = [25, 50, 100].includes(Number(params.get("pageSize"))) ? Number(params.get("pageSize")) : 25;
+  async function load() { setLoading(true); setError(""); try { setRequests(await adminApi.listAccessRequests()); } catch (err) { setError(err instanceof Error ? err.message : "Failed to load access requests."); } finally { setLoading(false); } }
+  useEffect(() => { void load(); }, []);
+  const updateParams = (patch: Record<string, string>) => setParams((current) => { const next = new URLSearchParams(current); Object.entries(patch).forEach(([key, value]) => value && value !== "ALL" ? next.set(key, value) : next.delete(key)); return next; }, { replace: true });
+  async function change(id: string, nextStatus: AdminAccessRequest["status"]) { setUpdatingIds((current) => new Set(current).add(id)); try { await adminApi.updateAccessRequest(id, nextStatus); setRequests((current) => current.map((request) => request.id === id ? { ...request, status: nextStatus } : request)); toast.success("Access request updated"); } catch (err) { toast.error(err instanceof Error ? err.message : "Failed to update request."); } finally { setUpdatingIds((current) => { const next = new Set(current); next.delete(id); return next; }); } }
+  const filtered = useMemo(() => { const normalized = query.trim().toLowerCase(); return requests.filter((request) => (status === "ALL" || request.status === status) && (!normalized || [request.application.name, request.application.id, request.requester_email, request.reason, request.status].filter(Boolean).join(" ").toLowerCase().includes(normalized))); }, [query, requests, status]);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize)); const safePage = Math.min(page, totalPages); const rows = filtered.slice((safePage - 1) * pageSize, safePage * pageSize);
+  return <><AppShell><section className="-mx-4 -my-6 min-h-[calc(100vh-3.75rem)] bg-[var(--admin-bg)] px-5 py-7 sm:-mx-6 sm:px-7 lg:-mx-8 lg:px-10 lg:py-9"><div className="mx-auto max-w-[1360px] space-y-7"><AdminPageHeader eyebrow="Review Queue" title="Access Requests" description="Review access requests for restricted Hub applications." /><section className="overflow-hidden rounded-xl border border-[var(--admin-border)] bg-[var(--admin-card)] shadow-[var(--admin-shadow)]" aria-busy={loading}><div className="flex flex-col gap-4 border-b border-[var(--admin-border)] p-4 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="admin-heading text-sm font-bold">All Requests</h2><p className="mt-1 text-xs text-[var(--admin-text-tertiary)]">{filtered.length} records</p></div><div className="flex flex-col gap-2 sm:flex-row"><label className="relative"><span className="sr-only">Search Requests</span><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--admin-text-tertiary)]" /><input type="search" value={query} onChange={(event) => updateParams({ q: event.target.value, page: "1" })} placeholder="Search requests" className="admin-focus h-10 w-full rounded-lg border border-[var(--admin-border-strong)] bg-[var(--admin-card)] pl-9 pr-3 text-sm sm:w-64" /></label><Dropdown value={status} onChange={(value) => updateParams({ status: value, page: "1" })} options={[{ value: "ALL", label: "All Statuses" }, ...statuses.map((value) => ({ value, label: ACCESS_STATUS[value].label }))]} ariaLabel="Filter access request status" className="w-full sm:w-40" /><button type="button" onClick={() => void load()} disabled={loading} className="admin-focus admin-heading inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-[var(--admin-border-strong)] px-3 text-xs font-bold"><RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />Refresh</button></div></div>
+  {loading ? <p className="p-10 text-center text-sm text-[var(--admin-text-tertiary)]">Loading access requests...</p> : error ? <p className="p-10 text-center text-sm text-[var(--admin-rose)]">{error} <button onClick={() => void load()} className="font-bold text-[var(--admin-brand)]">Try Again</button></p> : rows.length === 0 ? <p className="p-10 text-center text-sm text-[var(--admin-text-tertiary)]">No access requests found.</p> : <><div className="hidden overflow-x-auto md:block"><table className="w-full min-w-[900px] text-left text-sm"><caption className="sr-only">Access Requests</caption><thead className="border-b border-[var(--admin-border)] bg-[var(--admin-card-subtle)] text-[10px] text-[var(--admin-text-tertiary)]"><tr><th scope="col" className="px-5 py-3">Application</th><th scope="col" className="px-5 py-3">Requester</th><th scope="col" className="px-5 py-3">Reason</th><th scope="col" className="px-5 py-3">Status</th><th scope="col" className="px-5 py-3">Requested</th><th scope="col" className="px-5 py-3 text-right">Manage</th></tr></thead><tbody className="divide-y divide-[var(--admin-border)]">{rows.map((request) => <RequestRow key={request.id} request={request} updating={updatingIds.has(request.id)} onChange={(item, nextStatus) => setDecision({ request: item, status: nextStatus })} />)}</tbody></table></div><div className="divide-y divide-[var(--admin-border)] md:hidden">{rows.map((request) => <MobileRequest key={request.id} request={request} updating={updatingIds.has(request.id)} onChange={(item, nextStatus) => setDecision({ request: item, status: nextStatus })} />)}</div></>}
+  {!loading && !error ? <AdminPagination page={safePage} pageSize={pageSize} total={filtered.length} onPageChange={(next) => updateParams({ page: String(next) })} onPageSizeChange={(next) => updateParams({ pageSize: String(next), page: "1" })} /> : null}</section></div></section></AppShell><AdminConfirmDialog open={Boolean(decision)} onOpenChange={(open) => { if (!open) setDecision(null); }} title={decisionTitle(decision)} description={decisionDescription(decision)} confirmLabel={decision?.status === "APPROVED" ? "Approve Access" : decision?.request.status === "APPROVED" ? "Revoke Access" : "Reject Request"} cancelLabel={decision?.request.status === "PENDING" ? "Keep Pending" : "Cancel"} destructive={decision?.status === "REJECTED"} pending={Boolean(decision && updatingIds.has(decision.request.id))} onConfirm={() => { if (decision) void change(decision.request.id, decision.status).then(() => setDecision(null)); }} /></>;
 }
+function Badge({ status }: { status: AdminAccessRequest["status"] }) { const meta = ACCESS_STATUS[status]; const Icon = meta.icon; return <span className={cn("admin-heading inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[10px] font-bold", meta.className)}><Icon className="h-3.5 w-3.5" />{meta.label}</span>; }
+function RequestRow({ request, updating, onChange }: { request: AdminAccessRequest; updating: boolean; onChange: (request: AdminAccessRequest, status: AdminAccessRequest["status"]) => void }) { return <tr className="hover:bg-[var(--admin-card-subtle)]"><td className="px-5 py-4"><div className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-lg bg-[var(--admin-brand-soft)] text-[var(--admin-brand)]"><ShieldQuestion className="h-5 w-5" /></span><div><p className="admin-heading text-sm font-bold">{request.application.name}</p><p className="mt-1 font-mono text-[10px] text-[var(--admin-text-tertiary)]">{request.application.id}</p></div></div></td><td className="px-5 py-4 text-xs text-[var(--admin-text-secondary)]">{request.requester_email}</td><td className="max-w-md px-5 py-4 text-xs leading-5 text-[var(--admin-text-secondary)]">{request.reason || "No reason provided"}</td><td className="px-5 py-4"><Badge status={request.status} /></td><td className="px-5 py-4 text-xs text-[var(--admin-text-tertiary)]">{formatDate(request.created_at)}</td><td className="px-5 py-4"><Dropdown value={request.status} onChange={(value) => onChange(request, value)} disabled={updating} options={statuses.map((value) => ({ value, label: ACCESS_STATUS[value].label }))} size="sm" ariaLabel={`Update ${request.application.name} access request`} className="ml-auto w-36" align="right" /></td></tr>; }
+function MobileRequest({ request, updating, onChange }: { request: AdminAccessRequest; updating: boolean; onChange: (request: AdminAccessRequest, status: AdminAccessRequest["status"]) => void }) { return <article className="p-4"><div className="flex items-start justify-between gap-3"><div><p className="admin-heading text-sm font-bold">{request.application.name}</p><p className="mt-1 text-xs text-[var(--admin-text-tertiary)]">{request.requester_email}</p></div><Badge status={request.status} /></div><p className="mt-3 text-sm leading-6 text-[var(--admin-text-secondary)]">{request.reason || "No reason provided"}</p><div className="mt-4 flex items-center justify-between gap-3"><time className="text-[10px] text-[var(--admin-text-tertiary)]">{formatDate(request.created_at)}</time><Dropdown value={request.status} onChange={(value) => onChange(request, value)} disabled={updating} options={statuses.map((value) => ({ value, label: ACCESS_STATUS[value].label }))} size="sm" ariaLabel={`Update ${request.application.name} access request`} className="w-36" align="right" /></div></article>; }
+function decisionTitle(decision: { request: AdminAccessRequest; status: AdminAccessRequest["status"] } | null) { if (!decision) return "Confirm Access Decision"; if (decision.request.status === "APPROVED" && decision.status !== "APPROVED") return `Revoke Access to “${decision.request.application.name}”?`; return decision.status === "APPROVED" ? `Approve Access to “${decision.request.application.name}”?` : "Reject This Access Request?"; }
+function decisionDescription(decision: { request: AdminAccessRequest; status: AdminAccessRequest["status"] } | null) { if (!decision) return ""; if (decision.request.status === "APPROVED" && decision.status !== "APPROVED") return `This updates the Hub request record for ${decision.request.requester_email}. Actual application access must be revoked in Central Application Access.`; if (decision.status === "APPROVED") return `This records the request as approved in Hub. Grant the person access in Central Application Access before they can launch the application.`; return `This records the request as rejected in Hub. Central Application Access remains the source of truth for actual access.`; }

@@ -1,4 +1,4 @@
-import type { FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { getAppIcon } from "@/data/hubCategories";
 import type {
   AdminAccessOptions,
@@ -6,17 +6,17 @@ import type {
   AdminApplicationInput,
 } from "@/admin/api/adminApi";
 import { useApplicationForm } from "./hooks/useApplicationForm";
-import { useAccessControl } from "./hooks/useAccessControl";
 import { useSsoConfig } from "./hooks/useSsoConfig";
 import { useIconPicker } from "./hooks/useIconPicker";
 import { normalizeKeywordParts } from "./utils/keywords";
 import { validateApplicationForm } from "./utils/validateApplicationForm";
+import { normalizeApplicationUrl } from "./utils/applicationUrls";
 import CardPreview from "./components/CardPreview";
 import IdentitySection from "./components/IdentitySection";
-import AccessControlSection from "./components/AccessControlSection";
 import StatusAndUrlSection from "./components/StatusAndUrlSection";
 import SsoSection from "./components/SsoSection";
 import FormActions from "./components/FormActions";
+import AdminConfirmDialog from "@/admin/components/ui/AdminConfirmDialog";
 
 type ApplicationFormProps = {
   application?: AdminApplication | null;
@@ -37,26 +37,8 @@ export default function ApplicationForm({
     useApplicationForm(application);
   const { iconQuery, setIconQuery, visibleIcons } = useIconPicker();
 
-  const {
-    accessQuery,
-    setAccessQuery,
-    activeAccessGroup,
-    setActiveAccessGroup,
-    customRule,
-    setCustomRule,
-    accessGroups,
-    filteredAccessOptions,
-    selectedAccessLabels,
-    derivedAudience,
-    toggleSource,
-    removeSource,
-    addCustomRule,
-  } = useAccessControl({
-    accessOptions,
-    allowedSources: form.allowedSources ?? [],
-    onChange: (sources) => update("allowedSources", sources),
-    resetKey: application,
-  });
+  void accessOptions;
+  const derivedAudience = "Central Application Access";
 
   const {
     usesSso,
@@ -71,6 +53,7 @@ export default function ApplicationForm({
     (form.keywords ?? []).join(","),
   ).join(", ");
   const isEditing = Boolean(application);
+  const [pendingInput, setPendingInput] = useState<AdminApplicationInput | null>(null);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -87,28 +70,35 @@ export default function ApplicationForm({
       form.ssoAppId,
       form.centralEntitlementAppId,
     );
-    await onSubmit({
+    const input: AdminApplicationInput = {
       ...form,
       name: form.name.trim(),
       description: form.description.trim(),
       audience: derivedAudience,
+      allowedSources: form.allowedSources?.length ? form.allowedSources : ["public"],
+      discoverable: true,
       category: form.category.trim(),
       keywords: (form.keywords ?? [])
         .map((keyword) => keyword.trim())
         .filter(Boolean),
-      href: form.href?.trim() || null,
+      href: form.href?.trim() ? normalizeApplicationUrl(form.href) : null,
       ssoAppId: sso.ssoAppId,
       ssoEntryUrl: sso.ssoEntryUrl,
       ssoLogoutUrl: sso.ssoLogoutUrl,
       centralEntitlementAppId: sso.centralEntitlementAppId,
       sortOrder: Number(form.sortOrder) || 0,
-    });
+    };
+    if (application && isCriticalChange(application, input)) {
+      setPendingInput(input);
+      return;
+    }
+    await onSubmit(input);
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       {formError ? (
-        <p className="rounded-md border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+        <p className="rounded-lg border border-[var(--admin-rose)]/30 bg-[var(--admin-rose-soft)] px-4 py-3 text-sm text-[var(--admin-rose)]">
           {formError}
         </p>
       ) : null}
@@ -128,23 +118,6 @@ export default function ApplicationForm({
             PreviewIcon={PreviewIcon}
           />
 
-          <AccessControlSection
-            accessGroups={accessGroups}
-            activeAccessGroup={activeAccessGroup}
-            setActiveAccessGroup={setActiveAccessGroup}
-            accessQuery={accessQuery}
-            setAccessQuery={setAccessQuery}
-            filteredAccessOptions={filteredAccessOptions}
-            selectedAccessLabels={selectedAccessLabels}
-            allowedSources={form.allowedSources ?? []}
-            toggleSource={toggleSource}
-            removeSource={removeSource}
-            customRule={customRule}
-            setCustomRule={setCustomRule}
-            addCustomRule={addCustomRule}
-            centralRulePrefixes={accessOptions.centralRulePrefixes}
-          />
-
           <StatusAndUrlSection form={form} update={update} />
 
           <SsoSection
@@ -161,7 +134,7 @@ export default function ApplicationForm({
 
         {/* RIGHT — PREVIEW + ACTIONS */}
         <aside className="lg:sticky lg:top-20 lg:self-start">
-          <div className="overflow-hidden rounded-lg bg-white shadow-sm">
+          <div className="overflow-hidden rounded-xl border border-[var(--admin-border)] bg-[var(--admin-card)] shadow-[var(--admin-shadow)]">
             <CardPreview
               form={form}
               derivedAudience={derivedAudience}
@@ -178,6 +151,20 @@ export default function ApplicationForm({
           </div>
         </aside>
       </div>
+      <AdminConfirmDialog open={Boolean(pendingInput)} onOpenChange={(open) => { if (!open) setPendingInput(null); }} title={`Save Critical Changes to “${form.name}”?`} description="This update changes application availability, launch destination, Central access, or SSO configuration. Incorrect values can prevent eligible users from opening the application." confirmLabel="Save Changes" cancelLabel="Review Changes" pending={isSaving} onConfirm={() => { if (pendingInput) void onSubmit(pendingInput).then(() => setPendingInput(null)); }} />
     </form>
   );
+}
+
+function isCriticalChange(application: AdminApplication, input: AdminApplicationInput) {
+  const oldStatus = application.status.toLowerCase();
+  const oldAvailable = oldStatus === "active" || oldStatus === "new";
+  const newAvailable = input.status === "active" || input.status === "new";
+  const oldHost = safeHost(application.href);
+  const newHost = safeHost(input.href);
+  return oldAvailable !== newAvailable || oldHost !== newHost || application.sso_app_id !== (input.ssoAppId || null) || application.sso_entry_url !== (input.ssoEntryUrl || null) || application.sso_central_entitlement_app_id !== (input.centralEntitlementAppId || null);
+}
+
+function safeHost(value: string | null | undefined) {
+  try { return value ? new URL(value).host : ""; } catch { return value || ""; }
 }

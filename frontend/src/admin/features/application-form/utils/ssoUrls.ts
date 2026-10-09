@@ -1,3 +1,5 @@
+import { normalizeApplicationUrl } from "./applicationUrls";
+
 // The SSO entry point is always the app service origin plus /auth/sso. Some
 // apps, like Daily Check-in, land on a frontend route after SSO (/select-role);
 // strip that landing route back off so it never becomes /select-role/auth/sso.
@@ -27,7 +29,7 @@ export function normalizeSsoBase(base: string): string {
 
 export function ssoEntryFromBase(base: string): string {
   const trimmed = normalizeSsoBase(base);
-  return trimmed ? `${trimmed}/auth/sso` : "";
+  return trimmed ? `${normalizeApplicationUrl(trimmed)}/auth/sso` : "";
 }
 
 // Same base as the entry point: an app that runs its own no-UI "clear my
@@ -35,7 +37,7 @@ export function ssoEntryFromBase(base: string): string {
 // path, so there is nothing extra to ask for here either.
 export function ssoLogoutFromBase(base: string): string {
   const trimmed = normalizeSsoBase(base);
-  return trimmed ? `${trimmed}/auth/logout-silent` : "";
+  return trimmed ? `${normalizeApplicationUrl(trimmed)}/auth/logout-silent` : "";
 }
 
 export function baseFromSsoEntry(entry: string): string {

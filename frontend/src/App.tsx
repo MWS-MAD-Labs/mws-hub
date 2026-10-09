@@ -176,7 +176,7 @@ export default function App() {
           />
         </Routes>
 
-        <Toaster />
+        <Toaster style={{ zIndex: "var(--layer-toast)" }} />
       </AuthProvider>
     </BrowserRouter>
   );

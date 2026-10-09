@@ -42,19 +42,32 @@ export default function SsoSection({
     <section className={sectionClass}>
       <SectionHeading
         step={4}
-        title="Login lewat Hub"
-        subtitle="Opsional. Hanya untuk aplikasi yang sudah dibuatkan endpoint SSO oleh developernya."
+        title="Hub Single Sign-On"
+        subtitle="Optional. Enable only when the application implements the Hub SSO endpoints."
       />
 
-      <div className={sectionBodyClass}>
-        <label className="flex items-start justify-between gap-4 rounded-md border border-slate-200 p-4 text-sm">
+      <div className={`${sectionBodyClass} space-y-5`}>
+        <label className={labelClass}>
+          Central Application ID
+          <span className={helperTextClass}>
+            Required. This application must exist in Central Application Access.
+          </span>
+          <input
+            className={inputClass}
+            type="text"
+            placeholder={appId || "exima"}
+            value={centralEntitlementAppId ?? ""}
+            onChange={(event) => update("centralEntitlementAppId", event.target.value)}
+          />
+        </label>
+
+        <label className="flex items-start justify-between gap-4 rounded-lg border border-[var(--admin-border)] p-4 text-sm">
           <span>
-            <span className="font-medium text-slate-800">
-              Pengguna langsung masuk tanpa login ulang
+            <span className="admin-heading font-bold text-[var(--admin-text)]">
+              Sign Users In Without Another Login
             </span>
-            <span className="mt-1 block text-xs leading-5 text-slate-500">
-              Biarkan mati kalau aplikasi ini hanya dibuka sebagai link biasa.
-              Sebagian besar aplikasi tidak memerlukan ini.
+            <span className="mt-1 block text-xs leading-5 text-[var(--admin-text-tertiary)]">
+              Keep this off when the application is opened as a normal link.
             </span>
           </span>
           <span className="relative mt-0.5 inline-flex">
@@ -64,15 +77,15 @@ export default function SsoSection({
               checked={usesSso}
               onChange={(event) => setUsesSso(event.target.checked)}
             />
-            <span className="h-6 w-11 rounded-full bg-slate-200 transition peer-checked:bg-primary" />
-            <span className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition peer-checked:translate-x-5" />
+            <span className="h-6 w-11 rounded-full bg-[var(--admin-border-strong)] transition peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--admin-brand)] peer-checked:bg-[var(--admin-brand)]" />
+            <span className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-[var(--admin-card)] shadow transition peer-checked:translate-x-5" />
           </span>
         </label>
 
         {usesSso ? (
-          <div className="mt-5 grid gap-5 md:grid-cols-2">
+          <div className="grid gap-5 border-t border-[var(--admin-border)] pt-5 md:grid-cols-2">
             <label className={labelClass}>
-              Kode SSO aplikasi
+              SSO Application ID
               <span className={helperTextClass}>
                 Ambil dari verifier/config aplikasi tujuan; nilainya harus sama
                 dengan audience token yang app itu terima.
@@ -87,70 +100,59 @@ export default function SsoSection({
             </label>
 
             <label className={labelClass}>
-              Alamat backend aplikasi
+              Application Backend Domain
               <span className={helperTextClass}>
-                Alamat server atau halaman awal app. Contoh:
-                https://app-stg.mws.web.id/select-role
-              </span>
-              <input
-                className={inputClass}
-                type="url"
-                placeholder="https://..."
-                value={ssoBase}
-                onChange={(event) => setSsoBase(event.target.value)}
-              />
-            </label>
-
-            <label className={labelClass}>
-              Central entitlement app id
-              <span className={helperTextClass}>
-                Opsional. Jika diisi, Hub hanya meluncurkan app untuk pengguna
-                dengan entitlement Central yang aktif.
+                Enter only the domain, optional port, and base path. Hub adds HTTP
+                in development and HTTPS in staging or production.
               </span>
               <input
                 className={inputClass}
                 type="text"
-                placeholder={ssoAppId || appId || "exima"}
-                value={centralEntitlementAppId ?? ""}
-                onChange={(event) =>
-                  update("centralEntitlementAppId", event.target.value)
-                }
+                inputMode="url"
+                placeholder="app.mws.web.id"
+                value={ssoBase}
+                onChange={(event) => setSsoBase(event.target.value)}
               />
+              <span className={helperTextClass}>
+                Example input: <code className="rounded bg-[var(--admin-card-subtle)] px-1">localhost:3003</code>
+                {" "}or{" "}
+                <code className="rounded bg-[var(--admin-card-subtle)] px-1">app.mws.web.id</code>
+              </span>
             </label>
 
-            <div className="rounded-md border border-slate-200 bg-slate-50 p-4 text-xs leading-5 text-slate-500 md:col-span-2">
-              <p className="font-medium text-slate-900">
-                Yang akan disimpan otomatis
+            <div className="rounded-lg border border-[var(--admin-border)] bg-[var(--admin-card-subtle)] p-4 text-xs leading-5 text-[var(--admin-text-tertiary)] md:col-span-2">
+              <p className="admin-heading font-bold text-[var(--admin-text)]">
+                Generated Configuration
               </p>
               <p className="mt-2">
-                Kode SSO:{" "}
-                <code className="rounded bg-white px-1 text-slate-700">
+                SSO ID:{" "}
+                <code className="rounded bg-[var(--admin-card)] px-1 text-[var(--admin-text-secondary)]">
                   {ssoAppId || "-"}
                 </code>{" "}
                 &nbsp;|&nbsp; Endpoint:{" "}
-                <code className="rounded bg-white px-1 text-slate-700">
+                <code className="break-all rounded bg-[var(--admin-card)] px-1 text-[var(--admin-text-secondary)]">
                   {ssoEntryFromBase(ssoBase) || "-"}
                 </code>
               </p>
               <p className="mt-1">
                 Logout:{" "}
-                <code className="rounded bg-white px-1 text-slate-700">
+                <code className="break-all rounded bg-[var(--admin-card)] px-1 text-[var(--admin-text-secondary)]">
                   {ssoLogoutFromBase(ssoBase) || "-"}
                 </code>{" "}
-                <span className="text-slate-400">
-                  (opsional, dipakai saat sign-out dari Hub)
+                <span className="text-[var(--admin-text-tertiary)]">
+                  (optional, used during Hub sign-out)
                 </span>
               </p>
               <p className="mt-2">
-                Developer aplikasi tujuan perlu memasang{" "}
-                <code className="rounded bg-white px-1 text-slate-700">
+                The target application must configure{" "}
+                <code className="rounded bg-[var(--admin-card)] px-1 text-[var(--admin-text-secondary)]">
                   HUB_SSO_PUBLIC_KEY
                 </code>{" "}
-                dan endpoint{" "}
-                <code className="rounded bg-white px-1 text-slate-700">
+                and the{" "}
+                <code className="rounded bg-[var(--admin-card)] px-1 text-[var(--admin-text-secondary)]">
                   /auth/sso
                 </code>{" "}
-                sebelum ini bisa dipakai.
+                endpoint before SSO can be used.
               </p>
             </div>
           </div>
