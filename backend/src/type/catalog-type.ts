@@ -45,12 +45,14 @@ export type HubCatalogEntry = {
   allowedSources: HubAccessSource[];
   centralEntitlementAppId?: string;
   sso?: HubAppSso;
+  // "central" when Central published the app, so Hub keeps no row for it.
+  source?: "hub" | "central";
 };
 
 // What GET /apps hands the browser. Policy details stay server-side: the
 // client never receives the raw allowedSources, only whether this person can
 // open the card or should see the request-access path.
-export type HubAppResponse = Omit<HubCatalogEntry, "allowedSources" | "sso" | "centralEntitlementAppId"> & {
+export type HubAppResponse = Omit<HubCatalogEntry, "allowedSources" | "sso" | "centralEntitlementAppId" | "source"> & {
   access: "granted" | "locked";
   ssoAppId?: string;
 };

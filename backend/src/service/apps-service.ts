@@ -2,6 +2,7 @@ import { applyStatusOverrides } from "../lib/status-overrides";
 import { normalizeAccessToken, userMatchesAccessRule } from "../lib/access-rules";
 import { centralAccessForApp } from "../lib/hub-access-gate";
 import { ApplicationService } from "./application-service";
+import { centralCatalogEntries } from "./central-catalog-service";
 import type { CentralClaim, HubUser } from "../type/central-type";
 import type { HubAccessSource, HubAppResponse, HubCatalogEntry } from "../type/catalog-type";
 
@@ -157,8 +158,9 @@ function toResponse(
   user: HubUser,
   approvedApplicationIds: Set<string>,
 ): HubAppResponse {
-  const { allowedSources, sso, ...rest } = entry;
+  const { allowedSources, sso, source, ...rest } = entry;
   void allowedSources;
+  void source;
 
   return {
     ...rest,
@@ -174,8 +176,14 @@ function toResponse(
 // what makes the admin screen able to add and hide apps without a release.
 // HUB_APP_STATUS_OVERRIDES still applies on top as an emergency lever that
 // works without touching the database.
+//
+// Applications published in Central join the list without a row in Hub. A row in Hub with the
+// same id wins, so Hub can still restyle one or set maintenance on it.
 async function effectiveCatalog(): Promise<HubCatalogEntry[]> {
-  return applyStatusOverrides(await ApplicationService.listActive());
+  const [own, published] = await Promise.all([ApplicationService.listActive(), centralCatalogEntries()]);
+  const taken = new Set(own.flatMap((entry) => [entry.id, entry.sso?.appId, entry.centralEntitlementAppId]));
+  const added = published.filter((entry) => !taken.has(entry.id));
+  return applyStatusOverrides([...own, ...added]);
 }
 
 export class AppsService {
@@ -192,8 +200,9 @@ export class AppsService {
           : Promise.resolve(null),
       ),
     );
+    // An app Central published has no rule of Hub's own to fall back on, so it needs a clear yes.
     return visible
-      .filter((_, index) => central[index] !== "denied")
+      .filter((entry, index) => (entry.source === "central" ? central[index] === "granted" : central[index] !== "denied"))
       .map((entry) => entry.centralEntitlementAppId
         ? toResponse(entry, user, new Set([entry.id]))
         : toResponse(entry, user, approvedApplicationIds));

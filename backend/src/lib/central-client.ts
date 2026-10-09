@@ -233,6 +233,26 @@ export async function listCentralApplicationIds(): Promise<string[]> {
   return data;
 }
 
+// An application Central published for the Hub.
+export type CentralPublishedApplication = {
+  id: string;
+  name: string;
+  description: string | null;
+  icon: string | null;
+  category: string | null;
+  launch_url: string;
+  logout_url: string | null;
+};
+
+export async function listPublishedApplications(): Promise<CentralPublishedApplication[]> {
+  const data = await lookup<unknown>("/applications", {});
+  if (!Array.isArray(data)) throw new Error("Central published applications response is invalid");
+  return data.filter((item): item is CentralPublishedApplication => {
+    const row = item as Partial<CentralPublishedApplication> | null;
+    return Boolean(row && isNonEmptyString(row.id) && isNonEmptyString(row.name) && isNonEmptyString(row.launch_url));
+  });
+}
+
 export type PermissionManifestEntry = { key: string; description?: string; requires?: string[] };
 export type RegisteredPermission = {
   key: string;
