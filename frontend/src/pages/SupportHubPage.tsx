@@ -168,6 +168,9 @@ const SupportHubPage = memo(() => {
     hasCatalog,
     categories,
     activeCategory,
+    scopes,
+    activeScope,
+    setScope,
     setQuery,
     setCategory,
     clearFilters,
@@ -299,6 +302,16 @@ const SupportHubPage = memo(() => {
               activeCategory={activeCategory}
               onSelect={setCategory}
             />
+            {scopes.length > 0 && (
+              <div className="mt-1">
+                <CategoryFilter
+                  categories={scopes}
+                  activeCategory={activeScope}
+                  onSelect={setScope}
+                  label="Application scopes"
+                />
+              </div>
+            )}
           </div>
         )}
 

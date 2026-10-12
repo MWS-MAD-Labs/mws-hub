@@ -242,16 +242,27 @@ export const HUB_ICONS: Record<string, LucideIcon> = {
 
 export const getAppIcon = (name: string): LucideIcon => HUB_ICONS[name] || AppWindow;
 
-// Five buckets derived from what the 19 real apps are FOR, not from which
-// department owns them. Each one holds 3-6 apps, so no category exists just
-// to hold a single item and none is big enough to need scrolling past.
+// What the Hub falls back on until Central has answered. The real lists are Central's master data
+// (Scopes & Categories), so a new one there shows up here without a release.
 export const HUB_CATEGORIES: HubCategory[] = [
   { id: "reporting", label: "Reporting", tone: "violet" },
-  { id: "students", label: "Teaching & Students", tone: "sky" },
+  { id: "students", label: "Students", tone: "sky" },
   { id: "workplace", label: "Workplace", tone: "emerald" },
   { id: "operations", label: "Operations", tone: "amber" },
   { id: "utilities", label: "Utilities", tone: "slate" },
 ];
+
+const TONE_CYCLE: HubCategoryTone[] = ["violet", "sky", "emerald", "amber", "slate"];
+
+// The five original categories keep their colour. A category added later gets one from its id, so it
+// is the same everywhere without a table to keep in step.
+export const toneOf = (id: string): HubCategoryTone => {
+  const known = HUB_CATEGORIES.find((category) => category.id === id);
+  if (known) return known.tone;
+  let hash = 0;
+  for (const char of id) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+  return TONE_CYCLE[hash % TONE_CYCLE.length];
+};
 
 // One solid tile colour per category, so colour groups apps instead of
 // decorating them. Every tone is spelled out in full - Tailwind cannot see
@@ -265,8 +276,4 @@ export const CATEGORY_TONES: Record<HubCategoryTone, string> = {
   neutral: "bg-muted/60 text-muted-foreground ring-border/60",
 };
 
-export const getCategory = (id: string): HubCategory | null =>
-  HUB_CATEGORIES.find((c) => c.id === id) || null;
-export const getCategoryLabel = (id: string): string => getCategory(id)?.label || "Uncategorized";
-export const getCategoryTone = (id: string): string =>
-  CATEGORY_TONES[getCategory(id)?.tone ?? "neutral"] || CATEGORY_TONES.neutral;
+export const getCategoryTone = (id: string): string => CATEGORY_TONES[toneOf(id)] || CATEGORY_TONES.neutral;

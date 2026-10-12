@@ -1,5 +1,6 @@
 import type { Context } from "hono";
 import { AppsService } from "../service/apps-service";
+import { centralTaxonomy } from "../service/central-catalog-service";
 import { mintRelayToken } from "../lib/sso-relay";
 import { createSsoCode } from "../lib/sso-code-store";
 import {
@@ -78,6 +79,10 @@ export class AppsController {
   // hands out a credential.
   static async list(c: Context<{ Variables: SessionVariables }>) {
     return c.json({ data: await AppsService.listFor(c.var.user) });
+  }
+
+  static async taxonomy(c: Context<{ Variables: SessionVariables }>) {
+    return c.json({ data: await centralTaxonomy() });
   }
 
   static async birthdays(c: Context<{ Variables: SessionVariables }>) {

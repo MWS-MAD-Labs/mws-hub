@@ -1,25 +1,67 @@
-import { listPublishedApplications, type CentralPublishedApplication } from "../lib/central-client";
+import {
+  getCentralTaxonomy,
+  listPublishedApplications,
+  type CentralPublishedApplication,
+  type CentralTaxonomy,
+} from "../lib/central-client";
 import { logger } from "../lib/logger";
 import type { HubCatalogEntry } from "../type/catalog-type";
 
 const CACHE_MS = 60_000;
-const HUB_CATEGORIES = new Set(["reporting", "students", "workplace", "operations", "utilities"]);
+// What the Hub falls back on until Central has answered, the lists Central starts with.
+export const FALLBACK_TAXONOMY: CentralTaxonomy = {
+  categories: [
+    { key: "reporting", name: "Reporting" },
+    { key: "students", name: "Students" },
+    { key: "workplace", name: "Workplace" },
+    { key: "operations", name: "Operations" },
+    { key: "utilities", name: "Utilities" },
+  ],
+  scopes: [
+    { key: "safespace", name: "Safespace" },
+    { key: "learnspace", name: "Learnspace" },
+    { key: "carespace", name: "Carespace" },
+    { key: "shieldspace", name: "Shieldspace" },
+  ],
+};
+
+let taxonomyCache: { at: number; taxonomy: CentralTaxonomy } | null = null;
+
+// Cached like the applications. With Central unreachable the last answer is kept, and the fallback
+// stands in until there is one.
+export async function centralTaxonomy(): Promise<CentralTaxonomy> {
+  if (taxonomyCache && Date.now() - taxonomyCache.at < CACHE_MS) return taxonomyCache.taxonomy;
+  try {
+    const taxonomy = await getCentralTaxonomy();
+    taxonomyCache = { at: Date.now(), taxonomy };
+    return taxonomy;
+  } catch (error) {
+    logger.error("Could not read the categories and scopes from Central:", error);
+    return taxonomyCache?.taxonomy ?? FALLBACK_TAXONOMY;
+  }
+}
 
 let cache: { at: number; entries: HubCatalogEntry[] } | null = null;
 
 export function clearCentralCatalogCacheForTest() {
   cache = null;
+  taxonomyCache = null;
 }
 
 // A card for an application Central published. Who sees it is decided by Central access alone.
-export function toCentralEntry(app: CentralPublishedApplication): HubCatalogEntry {
+export function toCentralEntry(
+  app: CentralPublishedApplication,
+  taxonomy: CentralTaxonomy = FALLBACK_TAXONOMY,
+): HubCatalogEntry {
   const category = (app.category || "").trim().toLowerCase();
+  const scope = (app.scope || "").trim().toLowerCase();
   return {
     id: app.id,
     name: app.name,
     icon: app.icon || "AppWindow",
     description: app.description || "",
-    category: HUB_CATEGORIES.has(category) ? category : "utilities",
+    category: taxonomy.categories.some((item) => item.key === category) ? category : "utilities",
+    ...(taxonomy.scopes.some((item) => item.key === scope) ? { scope } : {}),
     audience: "People with access",
     keywords: [],
     href: app.launch_url,
@@ -48,7 +90,8 @@ export function toCentralEntry(app: CentralPublishedApplication): HubCatalogEntr
 export async function centralCatalogEntries(): Promise<HubCatalogEntry[]> {
   if (cache && Date.now() - cache.at < CACHE_MS) return cache.entries;
   try {
-    const entries = (await listPublishedApplications()).map(toCentralEntry);
+    const [published, taxonomy] = await Promise.all([listPublishedApplications(), centralTaxonomy()]);
+    const entries = published.map((app) => toCentralEntry(app, taxonomy));
     cache = { at: Date.now(), entries };
     return entries;
   } catch (error) {

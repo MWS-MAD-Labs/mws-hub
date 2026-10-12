@@ -240,6 +240,7 @@ export type CentralPublishedApplication = {
   description: string | null;
   icon: string | null;
   category: string | null;
+  scope?: string | null;
   launch_url: string;
   logout_url: string | null;
   // sso: opened through the sign-in handoff. link: a plain address. Older Central versions send neither.
@@ -253,6 +254,25 @@ export async function listPublishedApplications(): Promise<CentralPublishedAppli
     const row = item as Partial<CentralPublishedApplication> | null;
     return Boolean(row && isNonEmptyString(row.id) && isNonEmptyString(row.name) && isNonEmptyString(row.launch_url));
   });
+}
+
+// The categories (kind of tool) and scopes (product space) Central keeps as master data.
+export type CentralTaxonomy = {
+  categories: { key: string; name: string }[];
+  scopes: { key: string; name: string }[];
+};
+
+const isNamedKey = (item: unknown): item is { key: string; name: string } => {
+  const row = item as { key?: unknown; name?: unknown } | null;
+  return Boolean(row && isNonEmptyString(row.key) && isNonEmptyString(row.name));
+};
+
+export async function getCentralTaxonomy(): Promise<CentralTaxonomy> {
+  const data = await lookup<{ categories?: unknown; scopes?: unknown }>("/application-taxonomy", {});
+  if (!data || !Array.isArray(data.categories) || !Array.isArray(data.scopes)) {
+    throw new Error("Central taxonomy response is invalid");
+  }
+  return { categories: data.categories.filter(isNamedKey), scopes: data.scopes.filter(isNamedKey) };
 }
 
 export type PermissionManifestEntry = { key: string; description?: string; requires?: string[] };

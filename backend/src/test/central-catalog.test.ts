@@ -27,7 +27,7 @@ mock.module("../service/application-service", () => ({
 }));
 
 const { AppsService, setApprovedAccessLookupForTest } = await import("../service/apps-service");
-const { clearCentralCatalogCacheForTest } = await import("../service/central-catalog-service");
+const { centralTaxonomy, clearCentralCatalogCacheForTest } = await import("../service/central-catalog-service");
 const gate = await import("../lib/hub-access-gate");
 
 setApprovedAccessLookupForTest(async () => new Set());
@@ -118,6 +118,35 @@ describe("applications published in Central", () => {
     const cards = await AppsService.listFor(user);
     expect(cards.find((app) => app.id === "a")?.category).toBe("utilities");
     expect(cards.find((app) => app.id === "b")?.category).toBe("utilities");
+  });
+
+  it("uses the categories and scopes Central keeps, and keeps the scope on the card", async () => {
+    spyOn(centralClient, "getCentralTaxonomy").mockResolvedValue({
+      categories: [{ key: "clinic", name: "Clinic" }],
+      scopes: [{ key: "carespace", name: "Carespace" }],
+    });
+    spyOn(centralClient, "listPublishedApplications").mockResolvedValue([
+      published("a", { category: "clinic", scope: "carespace" }),
+      published("b", { category: "reporting", scope: "nowhere" }),
+    ] as never);
+    spyOn(centralClient, "lookupApplicationEntitlement").mockResolvedValue({ is_active: true } as never);
+    const cards = await AppsService.listFor(user);
+    expect(cards.find((app) => app.id === "a")).toMatchObject({ category: "clinic", scope: "carespace" });
+    // A category Central no longer has falls back, an unknown scope is left off.
+    const other = cards.find((app) => app.id === "b");
+    expect(other?.category).toBe("utilities");
+    expect(other?.scope).toBeUndefined();
+    expect(await centralTaxonomy()).toEqual({
+      categories: [{ key: "clinic", name: "Clinic" }],
+      scopes: [{ key: "carespace", name: "Carespace" }],
+    });
+  });
+
+  it("falls back to the lists Central starts with when it cannot be read", async () => {
+    spyOn(centralClient, "getCentralTaxonomy").mockRejectedValue(new Error("down"));
+    const taxonomy = await centralTaxonomy();
+    expect(taxonomy.categories.map((item) => item.key)).toContain("utilities");
+    expect(taxonomy.scopes.map((item) => item.key)).toContain("safespace");
   });
 
   it("reads Central once a minute and keeps the last answer when Central is down", async () => {

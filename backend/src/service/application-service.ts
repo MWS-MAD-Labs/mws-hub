@@ -1,6 +1,7 @@
 import { prisma } from "../lib/prisma";
 import { listCentralApplicationIds } from "../lib/central-client";
 import { ResponseError } from "../error/response-error";
+import { centralTaxonomy } from "./central-catalog-service";
 import type {
   HubAccessSource,
   HubAppStatus,
@@ -28,13 +29,6 @@ const FROM_STATUS: Record<HubAppStatus, ApplicationStatus> = {
   new: ApplicationStatus.NEW,
 };
 
-const CATALOG_CATEGORIES = new Set([
-  "reporting",
-  "students",
-  "workplace",
-  "operations",
-  "utilities",
-]);
 const ALLOWED_STATUSES = new Set<HubAppStatus>([
   "active",
   "maintenance",
@@ -107,6 +101,14 @@ function assertSsoPairIsComplete(input: ApplicationInput) {
   }
 }
 
+// The categories are Central's master data, so a new one there is usable here at once.
+async function assertKnownCategory(category: string) {
+  const { categories } = await centralTaxonomy();
+  if (!categories.some((item) => item.key === category)) {
+    throw new ResponseError(400, "Category is not one of the categories in Central.");
+  }
+}
+
 function assertApplicationInput(input: ApplicationInput) {
   if (
     !input.name?.trim() ||
@@ -114,12 +116,6 @@ function assertApplicationInput(input: ApplicationInput) {
     !input.audience?.trim()
   ) {
     throw new ResponseError(400, "Name, category, and audience are required.");
-  }
-  if (!CATALOG_CATEGORIES.has(input.category)) {
-    throw new ResponseError(
-      400,
-      "Category is not supported by the Hub taxonomy.",
-    );
   }
   if (!ALLOWED_STATUSES.has(input.status ?? "active")) {
     throw new ResponseError(
@@ -230,6 +226,7 @@ export class ApplicationService {
 
   static async create(input: ApplicationInput): Promise<Application> {
     assertApplicationInput(input);
+    await assertKnownCategory(input.category);
     assertSsoPairIsComplete(input);
     await assertCentralApplicationId(input);
 
@@ -280,6 +277,7 @@ export class ApplicationService {
     input: ApplicationInput,
   ): Promise<Application> {
     assertApplicationInput(input);
+    await assertKnownCategory(input.category);
     assertSsoPairIsComplete(input);
 
     const existing = await prisma.application.findFirst({

@@ -32,6 +32,8 @@ export type HubCatalogEntry = {
   icon: string;
   description: string;
   category: string;
+  // The product space, set in Central. Rows of Hub's own have none.
+  scope?: string;
   audience: string;
   keywords: string[];
   href: string | null;

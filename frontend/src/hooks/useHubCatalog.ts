@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { hubApi } from "@/features/hub/api/hubApi";
-import { getCategoryLabel, HUB_CATEGORIES } from "@/data/hubCategories";
+import useHubTaxonomy from "@/hooks/useHubTaxonomy";
 import type { HubApplication, HubCategoryFilterOption } from "@/model/hub-model";
 
 // The pseudo-category the filter row opens on. Kept out of HUB_CATEGORIES
@@ -13,9 +13,9 @@ const normalize = (value = ""): string => String(value || "").toLowerCase().trim
 // Keywords are how one app stays findable from several angles without
 // belonging to two categories at once - "drive", "batch" and "pdf" all reach
 // Slides to PDF, but it still lives in exactly one bucket in the rail.
-const matchesQuery = (app: HubApplication, query: string): boolean => {
+const matchesQuery = (app: HubApplication, query: string, labels: Map<string, string>): boolean => {
   if (!query) return true;
-  const haystack = [app.name, app.description, getCategoryLabel(app.category), ...(app.keywords || [])]
+  const haystack = [app.name, app.description, labels.get(app.category), labels.get(app.scope || ""), ...(app.keywords || [])]
     .map(normalize)
     .join(" ");
   return haystack.includes(query);
@@ -31,6 +31,9 @@ export type UseHubCatalogResult = {
   hasCatalog: boolean;
   categories: HubCategoryFilterOption[];
   activeCategory: string;
+  scopes: HubCategoryFilterOption[];
+  activeScope: string;
+  setScope: (id: string) => void;
   setQuery: (value: string) => void;
   setCategory: (id: string) => void;
   clearFilters: () => void;
@@ -45,6 +48,11 @@ export default function useHubCatalog(): UseHubCatalogResult {
   const [isLoading, setIsLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
   const [reloadCount, setReloadCount] = useState(0);
+  const taxonomy = useHubTaxonomy();
+  const labels = useMemo(
+    () => new Map([...taxonomy.categories, ...taxonomy.scopes].map((item) => [item.key, item.name])),
+    [taxonomy],
+  );
 
   // The catalog arrives with server-side access state. Locked discoverable
   // apps stay in the list so users can request access from the card.
@@ -79,6 +87,7 @@ export default function useHubCatalog(): UseHubCatalogResult {
   const query = normalize(searchParams.get("q") || "");
   const rawQuery = searchParams.get("q") || "";
   const activeCategory = searchParams.get("cat") || ALL_CATEGORY;
+  const activeScope = searchParams.get("scope") || ALL_CATEGORY;
 
   const updateParams = useCallback(
     (patch: Record<string, string>) => {
@@ -99,7 +108,8 @@ export default function useHubCatalog(): UseHubCatalogResult {
 
   const setQuery = useCallback((value: string) => updateParams({ q: value }), [updateParams]);
   const setCategory = useCallback((id: string) => updateParams({ cat: id }), [updateParams]);
-  const clearFilters = useCallback(() => updateParams({ q: "", cat: "" }), [updateParams]);
+  const setScope = useCallback((id: string) => updateParams({ scope: id }), [updateParams]);
+  const clearFilters = useCallback(() => updateParams({ q: "", cat: "", scope: "" }), [updateParams]);
 
   const retry = useCallback(() => {
     updateParams({ mockError: "" });
@@ -114,8 +124,8 @@ export default function useHubCatalog(): UseHubCatalogResult {
     if (isLoading || hasError) return [];
     return applications
       .filter((app) => app.discoverable !== false)
-      .filter((app) => matchesQuery(app, query));
-  }, [applications, isLoading, hasError, query]);
+      .filter((app) => matchesQuery(app, query, labels));
+  }, [applications, isLoading, hasError, query, labels]);
 
   const availableApplications = useMemo(
     () => applications.filter((app) => app.discoverable !== false),
@@ -126,33 +136,51 @@ export default function useHubCatalog(): UseHubCatalogResult {
   // keeps saying how much is behind each tab. Counting after the category
   // filter would zero out every tab except the open one, which turns the
   // counts into noise and hides where the rest of the results went.
+  // Each row's counts follow the search and the other row, but not its own selection.
+  const inScope = useMemo(
+    () => (activeScope === ALL_CATEGORY ? searchable : searchable.filter((app) => app.scope === activeScope)),
+    [searchable, activeScope],
+  );
+  const inCategory = useMemo(
+    () => (activeCategory === ALL_CATEGORY ? searchable : searchable.filter((app) => app.category === activeCategory)),
+    [searchable, activeCategory],
+  );
+
   const categories = useMemo(() => {
     const tally = new Map<string, number>();
-    searchable.forEach((app) => tally.set(app.category, (tally.get(app.category) || 0) + 1));
+    inScope.forEach((app) => tally.set(app.category, (tally.get(app.category) || 0) + 1));
 
     return [
-      { id: ALL_CATEGORY, label: "All", count: searchable.length },
-      ...HUB_CATEGORIES.map((category) => ({
-        id: category.id,
-        label: category.label,
-        count: tally.get(category.id) || 0,
+      { id: ALL_CATEGORY, label: "All", count: inScope.length },
+      ...taxonomy.categories.map((category) => ({
+        id: category.key,
+        label: category.name,
+        count: tally.get(category.key) || 0,
       })),
       // An empty bucket still shows, greyed by its own zero. Tabs that come
       // and go as you type make the row jump around and cost more than the
       // space they save.
     ];
-  }, [searchable]);
+  }, [inScope, taxonomy.categories]);
+
+  // Only offered once at least one application has a scope, so the row does not sit there empty.
+  const scopes = useMemo(() => {
+    if (!applications.some((app) => app.scope)) return [];
+    const tally = new Map<string, number>();
+    inCategory.forEach((app) => app.scope && tally.set(app.scope, (tally.get(app.scope) || 0) + 1));
+    return [
+      { id: ALL_CATEGORY, label: "All scopes", count: inCategory.length },
+      ...taxonomy.scopes.map((scope) => ({ id: scope.key, label: scope.name, count: tally.get(scope.key) || 0 })),
+    ];
+  }, [applications, inCategory, taxonomy.scopes]);
 
   const visibleApplications = useMemo(
-    () =>
-      activeCategory === ALL_CATEGORY
-        ? searchable
-        : searchable.filter((app) => app.category === activeCategory),
-    [searchable, activeCategory],
+    () => (activeScope === ALL_CATEGORY ? inCategory : inCategory.filter((app) => app.scope === activeScope)),
+    [inCategory, activeScope],
   );
 
   const hasCatalog = !isLoading && !hasError && applications.length > 0;
-  const isFiltering = Boolean(query) || activeCategory !== ALL_CATEGORY;
+  const isFiltering = Boolean(query) || activeCategory !== ALL_CATEGORY || activeScope !== ALL_CATEGORY;
 
   return {
     isLoading,
@@ -164,6 +192,9 @@ export default function useHubCatalog(): UseHubCatalogResult {
     hasCatalog,
     categories,
     activeCategory,
+    scopes,
+    activeScope,
+    setScope,
     setQuery,
     setCategory,
     clearFilters,

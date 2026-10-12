@@ -1,5 +1,5 @@
 import { apiRequest } from "@/lib/api";
-import type { HubApplication, HubBirthday } from "@/model/hub-model";
+import type { HubApplication, HubBirthday, HubTaxonomy } from "@/model/hub-model";
 
 export const hubApi = {
   // The server keeps policy details hidden, but discoverable locked apps still
@@ -7,6 +7,11 @@ export const hubApi = {
   async listApplications(): Promise<HubApplication[]> {
     const response = await apiRequest<{ data: HubApplication[] }>("/apps");
     return response?.data ?? [];
+  },
+
+  async taxonomy(): Promise<HubTaxonomy> {
+    const response = await apiRequest<{ data: HubTaxonomy }>("/apps/taxonomy");
+    return response?.data ?? { categories: [], scopes: [] };
   },
 
   async listBirthdays(limit = 8): Promise<HubBirthday[]> {

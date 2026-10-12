@@ -1,7 +1,7 @@
 import type { AdminApplicationInput } from "@/admin/api/adminApi";
 import Dropdown from "@/admin/components/ui/Dropdown";
 import AdminFieldLabel from "@/admin/components/ui/AdminFieldLabel";
-import { HUB_CATEGORIES } from "@/data/hubCategories";
+import useHubTaxonomy from "@/hooks/useHubTaxonomy";
 import {
   helperTextClass,
   inputClass,
@@ -42,6 +42,7 @@ export default function IdentitySection({
   visibleIcons,
   PreviewIcon,
 }: IdentitySectionProps) {
+  const taxonomy = useHubTaxonomy();
   return (
     <section className={sectionClass}>
       <SectionHeading
@@ -77,9 +78,9 @@ export default function IdentitySection({
             buttonClassName="mt-1.5 h-[42px] text-left"
             options={[
               { value: "", label: "Select category" },
-              ...HUB_CATEGORIES.map((category) => ({
-                value: category.id,
-                label: category.label,
+              ...taxonomy.categories.map((category) => ({
+                value: category.key,
+                label: category.name,
               })),
             ]}
             onChange={(value) => update("category", value)}
