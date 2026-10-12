@@ -242,6 +242,8 @@ export type CentralPublishedApplication = {
   category: string | null;
   launch_url: string;
   logout_url: string | null;
+  // sso: opened through the sign-in handoff. link: a plain address. Older Central versions send neither.
+  launch_mode?: "sso" | "link";
 };
 
 export async function listPublishedApplications(): Promise<CentralPublishedApplication[]> {

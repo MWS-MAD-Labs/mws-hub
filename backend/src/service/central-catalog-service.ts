@@ -28,12 +28,17 @@ export function toCentralEntry(app: CentralPublishedApplication): HubCatalogEntr
     discoverable: true,
     allowedSources: [],
     centralEntitlementAppId: app.id,
-    sso: {
-      appId: app.id,
-      entryUrl: app.launch_url,
-      ...(app.logout_url ? { logoutUrl: app.logout_url } : {}),
-      centralEntitlementAppId: app.id,
-    },
+    // A plain link is opened as it is. Who may see it is still decided by access in Central.
+    ...(app.launch_mode === "link"
+      ? {}
+      : {
+          sso: {
+            appId: app.id,
+            entryUrl: app.launch_url,
+            ...(app.logout_url ? { logoutUrl: app.logout_url } : {}),
+            centralEntitlementAppId: app.id,
+          },
+        }),
     source: "central",
   };
 }

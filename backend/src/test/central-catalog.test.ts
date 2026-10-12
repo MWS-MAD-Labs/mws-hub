@@ -144,6 +144,22 @@ describe("applications published in Central", () => {
     expect((await AppsService.listFor(user)).map((app) => app.id)).toEqual(["plain"]);
   });
 
+  it("shows a plain link as a link, without a sign-in handoff, and still by access in Central", async () => {
+    spyOn(centralClient, "listPublishedApplications").mockResolvedValue([published("guide", { launch_mode: "link", logout_url: null })] as never);
+    spyOn(centralClient, "lookupApplicationEntitlement").mockResolvedValue({ is_active: true } as never);
+    const card = (await AppsService.listFor(user)).find((app) => app.id === "guide");
+    expect(card).toMatchObject({ href: "https://guide.example.com/auth/sso", access: "granted" });
+    expect(card).not.toHaveProperty("ssoAppId");
+    const found = await AppsService.findByLaunchId("guide");
+    expect(found?.sso).toBeUndefined();
+    expect(found?.centralEntitlementAppId).toBe("guide");
+
+    // Nobody without access in Central sees it.
+    gate.clearAppAccessCacheForTest();
+    spyOn(centralClient, "lookupApplicationEntitlement").mockResolvedValue(null);
+    expect((await AppsService.listFor(user)).some((app) => app.id === "guide")).toBe(false);
+  });
+
   it("opens the launch flow and the logout fan-out for a published application", async () => {
     spyOn(centralClient, "listPublishedApplications").mockResolvedValue([published("demo")] as never);
     const found = await AppsService.findByLaunchId("demo");
