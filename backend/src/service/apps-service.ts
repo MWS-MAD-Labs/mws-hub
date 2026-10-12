@@ -3,6 +3,7 @@ import { normalizeAccessToken, userMatchesAccessRule } from "../lib/access-rules
 import { centralAccessForApp } from "../lib/hub-access-gate";
 import { ApplicationService } from "./application-service";
 import { deriveAppSecret } from "../lib/hub-app-secret";
+import { applyDisplay } from "./application-display-service";
 import { centralCatalogEntries } from "./central-catalog-service";
 import type { CentralClaim, HubUser } from "../type/central-type";
 import type { HubAccessSource, HubAppResponse, HubCatalogEntry } from "../type/catalog-type";
@@ -184,7 +185,7 @@ function toResponse(
 async function effectiveCatalog(): Promise<HubCatalogEntry[]> {
   const [own, published] = await Promise.all([ApplicationService.listActive(), centralCatalogEntries()]);
   const taken = new Set(own.flatMap((entry) => [entry.id, entry.sso?.appId, entry.centralEntitlementAppId]));
-  const added = published.filter((entry) => !taken.has(entry.id));
+  const added = await applyDisplay(published.filter((entry) => !taken.has(entry.id)));
   return applyStatusOverrides([...own, ...added]);
 }
 

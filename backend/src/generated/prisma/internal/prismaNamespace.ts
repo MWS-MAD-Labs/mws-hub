@@ -402,7 +402,8 @@ export const ModelName = {
   AppReport: 'AppReport',
   AccessRequest: 'AccessRequest',
   AuditLog: 'AuditLog',
-  UserSession: 'UserSession'
+  UserSession: 'UserSession',
+  ApplicationDisplay: 'ApplicationDisplay'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -418,7 +419,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "application" | "ssoCode" | "appReport" | "accessRequest" | "auditLog" | "userSession"
+    modelProps: "application" | "ssoCode" | "appReport" | "accessRequest" | "auditLog" | "userSession" | "applicationDisplay"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -866,6 +867,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    ApplicationDisplay: {
+      payload: Prisma.$ApplicationDisplayPayload<ExtArgs>
+      fields: Prisma.ApplicationDisplayFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ApplicationDisplayFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApplicationDisplayPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ApplicationDisplayFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApplicationDisplayPayload>
+        }
+        findFirst: {
+          args: Prisma.ApplicationDisplayFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApplicationDisplayPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ApplicationDisplayFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApplicationDisplayPayload>
+        }
+        findMany: {
+          args: Prisma.ApplicationDisplayFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApplicationDisplayPayload>[]
+        }
+        create: {
+          args: Prisma.ApplicationDisplayCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApplicationDisplayPayload>
+        }
+        createMany: {
+          args: Prisma.ApplicationDisplayCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ApplicationDisplayCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApplicationDisplayPayload>[]
+        }
+        delete: {
+          args: Prisma.ApplicationDisplayDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApplicationDisplayPayload>
+        }
+        update: {
+          args: Prisma.ApplicationDisplayUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApplicationDisplayPayload>
+        }
+        deleteMany: {
+          args: Prisma.ApplicationDisplayDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ApplicationDisplayUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ApplicationDisplayUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApplicationDisplayPayload>[]
+        }
+        upsert: {
+          args: Prisma.ApplicationDisplayUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApplicationDisplayPayload>
+        }
+        aggregate: {
+          args: Prisma.ApplicationDisplayAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateApplicationDisplay>
+        }
+        groupBy: {
+          args: Prisma.ApplicationDisplayGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ApplicationDisplayGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ApplicationDisplayCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ApplicationDisplayCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -997,6 +1072,18 @@ export const UserSessionScalarFieldEnum = {
 } as const
 
 export type UserSessionScalarFieldEnum = (typeof UserSessionScalarFieldEnum)[keyof typeof UserSessionScalarFieldEnum]
+
+
+export const ApplicationDisplayScalarFieldEnum = {
+  application_id: 'application_id',
+  status: 'status',
+  discoverable: 'discoverable',
+  keywords: 'keywords',
+  updated_at: 'updated_at',
+  updated_by: 'updated_by'
+} as const
+
+export type ApplicationDisplayScalarFieldEnum = (typeof ApplicationDisplayScalarFieldEnum)[keyof typeof ApplicationDisplayScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -1321,6 +1408,7 @@ export type GlobalOmitConfig = {
   accessRequest?: Prisma.AccessRequestOmit
   auditLog?: Prisma.AuditLogOmit
   userSession?: Prisma.UserSessionOmit
+  applicationDisplay?: Prisma.ApplicationDisplayOmit
 }
 
 /* Types for Logging */

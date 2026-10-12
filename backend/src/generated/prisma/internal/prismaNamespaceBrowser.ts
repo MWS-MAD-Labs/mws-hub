@@ -56,7 +56,8 @@ export const ModelName = {
   AppReport: 'AppReport',
   AccessRequest: 'AccessRequest',
   AuditLog: 'AuditLog',
-  UserSession: 'UserSession'
+  UserSession: 'UserSession',
+  ApplicationDisplay: 'ApplicationDisplay'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -167,6 +168,18 @@ export const UserSessionScalarFieldEnum = {
 } as const
 
 export type UserSessionScalarFieldEnum = (typeof UserSessionScalarFieldEnum)[keyof typeof UserSessionScalarFieldEnum]
+
+
+export const ApplicationDisplayScalarFieldEnum = {
+  application_id: 'application_id',
+  status: 'status',
+  discoverable: 'discoverable',
+  keywords: 'keywords',
+  updated_at: 'updated_at',
+  updated_by: 'updated_by'
+} as const
+
+export type ApplicationDisplayScalarFieldEnum = (typeof ApplicationDisplayScalarFieldEnum)[keyof typeof ApplicationDisplayScalarFieldEnum]
 
 
 export const SortOrder = {
