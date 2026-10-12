@@ -131,8 +131,7 @@ Routes:
   store (recommended in production). `memory` remains the default for local
   development and tests.
 
-The application catalog lives in Hub's database and is managed through the
-admin routes.
+The applications come from Central: name, icon, address, category and who may open them are changed there (Application Access). The Hub keeps only how a card is shown, set in **App Display** (`/admin/display`): status (active, maintenance, coming soon, new), whether it can be found in search, and keywords. These are stored in `application_display`, one row per application, and only once something differs from the default. Older rows in `applications` that Central does not cover stay listed as "Not in Central" and can be deleted; `bun run prune:catalog` removes the ones Central covers.
 
 ## Secret between the Hub and an application
 

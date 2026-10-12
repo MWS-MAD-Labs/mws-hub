@@ -21,44 +21,23 @@ export type AdminAccessOptions = {
   centralRulePrefixes: AdminAccessRuleOption[];
 };
 
-export type AdminApplication = {
+// One row of App Display: an application Central publishes, or an older Hub row Central does not cover.
+export type AdminDisplayItem = {
   id: string;
   name: string;
   icon: string;
-  description: string;
-  audience: string;
   category: string;
-  keywords: string[];
   href: string | null;
-  external: boolean;
-  status: AdminApplicationStatus;
+  status: HubApplicationStatus;
   discoverable: boolean;
-  allowed_sources: AdminAccessSource[];
-  sso_app_id: string | null;
-  sso_entry_url: string | null;
-  sso_logout_url: string | null;
-  sso_central_entitlement_app_id: string | null;
-  sort_order: number;
+  keywords: string[];
+  in_central: boolean;
 };
 
-export type AdminApplicationInput = {
-  id?: string;
-  name: string;
-  icon?: string;
-  description: string;
-  audience: string;
-  category: string;
-  keywords?: string[];
-  href?: string | null;
-  external?: boolean;
-  status?: Lowercase<AdminApplicationStatus>;
-  discoverable?: boolean;
-  allowedSources?: AdminAccessSource[];
-  ssoAppId?: string | null;
-  ssoEntryUrl?: string | null;
-  ssoLogoutUrl?: string | null;
-  centralEntitlementAppId?: string | null;
-  sortOrder?: number;
+export type AdminDisplayInput = {
+  status: HubApplicationStatus;
+  discoverable: boolean;
+  keywords: string[];
 };
 
 export type AdminReport = {
@@ -114,40 +93,20 @@ export const adminApi = {
     return response!.data;
   },
 
-  async listApplications(): Promise<AdminApplication[]> {
-    const response = await apiRequest<{ data: AdminApplication[] }>(
-      "/admin/api/catalog",
+  async listDisplay(): Promise<AdminDisplayItem[]> {
+    const response = await apiRequest<{ data: AdminDisplayItem[] }>(
+      "/admin/api/display",
     );
     return response?.data ?? [];
   },
 
-  async getApplication(id: string): Promise<AdminApplication> {
-    const response = await apiRequest<{ data: AdminApplication }>(
-      `/admin/api/catalog/${encodeURIComponent(id)}`,
-    );
-    return response!.data;
-  },
-
-  async createApplication(
-    input: AdminApplicationInput,
-  ): Promise<AdminApplication> {
-    const response = await apiRequest<{ data: AdminApplication }>(
-      "/admin/api/catalog",
-      {
-        method: "POST",
-        body: input,
-      },
-    );
-    return response!.data;
-  },
-
-  async updateApplication(
+  async updateDisplay(
     id: string,
-    input: AdminApplicationInput,
-  ): Promise<AdminApplication> {
-    const response = await apiRequest<{ data: AdminApplication }>(
-      `/admin/api/catalog/${encodeURIComponent(id)}`,
-      { method: "PATCH", body: input },
+    input: AdminDisplayInput,
+  ): Promise<AdminDisplayItem> {
+    const response = await apiRequest<{ data: AdminDisplayItem }>(
+      `/admin/api/display/${encodeURIComponent(id)}`,
+      { method: "PUT", body: input },
     );
     return response!.data;
   },

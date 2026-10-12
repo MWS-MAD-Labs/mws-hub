@@ -15,7 +15,7 @@ import {
 import { Link } from "react-router-dom";
 import {
   adminApi,
-  type AdminApplication,
+  type AdminDisplayItem,
   type AdminDashboardData,
   type AdminReport,
 } from "@/admin/api/adminApi";
@@ -42,7 +42,7 @@ function reportStatusLabel(status: AdminReport["status"]) {
 
 export default function Dashboard() {
   const [data, setData] = useState<AdminDashboardData | null>(null);
-  const [applications, setApplications] = useState<AdminApplication[]>([]);
+  const [applications, setApplications] = useState<AdminDisplayItem[]>([]);
   const [reports, setReports] = useState<AdminReport[]>([]);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -53,7 +53,7 @@ export default function Dashboard() {
     try {
       const [dashboard, nextApplications, nextReports] = await Promise.all([
         adminApi.dashboard(),
-        adminApi.listApplications(),
+        adminApi.listDisplay(),
         adminApi.listReports(),
       ]);
       setData(dashboard);
@@ -150,8 +150,8 @@ export default function Dashboard() {
                   <p className="admin-heading text-xs font-bold text-[var(--admin-text-tertiary)]">Hub Status</p>
                   <div className="mt-5 divide-y divide-[var(--admin-border)]">
                     <StatusRow icon={AppWindow} label="Applications" value={applications.length} />
-                    <StatusRow icon={Eye} label="Central-Linked" value={applications.filter((application) => application.sso_central_entitlement_app_id).length} />
-                    <StatusRow icon={EyeOff} label="Needs Central Link" value={applications.filter((application) => !application.sso_central_entitlement_app_id).length} />
+                    <StatusRow icon={Eye} label="From Central" value={applications.filter((application) => application.in_central).length} />
+                    <StatusRow icon={EyeOff} label="Not In Central" value={applications.filter((application) => !application.in_central).length} attention={applications.some((application) => !application.in_central)} />
                     <StatusRow icon={TriangleAlert} label="Open Reports" value={openReports.length} attention={openReports.length > 0} />
                   </div>
                   <div className="mt-6 border-t border-[var(--admin-border-strong)] pt-5">
@@ -170,7 +170,7 @@ export default function Dashboard() {
                   </div>
                 </div>
                 <div className="grid md:grid-cols-3">
-                  <ManageLink to="/admin/catalog" icon={AppWindow} title="Application Catalog" description="Add, edit, or maintain Hub applications." />
+                  <ManageLink to="/admin/display" icon={AppWindow} title="App Display" description="Set the status and keywords of each card." />
                   <ManageLink to="/admin/access-requests" icon={KeyRound} title="Access Requests" description="Review individual Central access decisions." />
                   <ManageLink to="/admin/audit-logs" icon={ClipboardList} title="Audit Logs" description="Review recent administrative changes." />
                 </div>

@@ -14,9 +14,6 @@ const LoginPage = lazy(() => import("@/pages/LoginPage"));
 const LogoutRelayPage = lazy(() => import("@/pages/LogoutRelayPage"));
 const Dashboard = lazy(() => import("@/admin/pages/Dashboard"));
 const ApplicationsPage = lazy(() => import("@/admin/pages/ApplicationsPage"));
-const ApplicationEditorPage = lazy(
-  () => import("@/admin/pages/ApplicationEditorPage"),
-);
 const FeedbackPage = lazy(() => import("@/admin/pages/FeedbackPage"));
 const AccessRequest = lazy(() => import("@/admin/pages/AccessRequest"));
 const BrokenTools = lazy(() => import("@/admin/pages/BrokenTools"));
@@ -97,7 +94,7 @@ export default function App() {
             }
           />
           <Route
-            path="/admin/catalog"
+            path="/admin/display"
             element={
               <PageLoader>
                 <RequireAdmin>
@@ -107,28 +104,12 @@ export default function App() {
             }
           />
           <Route
-            path="/admin/catalog/new"
-            element={
-              <PageLoader>
-                <RequireAdmin>
-                  <ApplicationEditorPage />
-                </RequireAdmin>
-              </PageLoader>
-            }
-          />
-          <Route
-            path="/admin/catalog/:id/edit"
-            element={
-              <PageLoader>
-                <RequireAdmin>
-                  <ApplicationEditorPage />
-                </RequireAdmin>
-              </PageLoader>
-            }
+            path="/admin/catalog/*"
+            element={<Navigate to="/admin/display" replace />}
           />
           <Route
             path="/admin/applications"
-            element={<Navigate to="/admin/catalog" replace />}
+            element={<Navigate to="/admin/display" replace />}
           />
           <Route
             path="/admin/feedback"

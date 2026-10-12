@@ -19,8 +19,8 @@ type SidebarProps = {
 const menuItems = [
   { label: "Dashboard", href: "/admin", icon: Home, enabled: true },
   {
-    label: "Application Catalog",
-    href: "/admin/catalog",
+    label: "App Display",
+    href: "/admin/display",
     icon: AppWindow,
     enabled: true,
   },
