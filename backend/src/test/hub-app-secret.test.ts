@@ -91,3 +91,28 @@ describe("POST /sso/exchange with a secret of the application's own", () => {
     expect((await send("daily-checkin", deriveAppSecret(MASTER, "exima", 1), other)).status).toBe(401);
   });
 });
+
+describe("POST /sso/secret-check", () => {
+  const app = new Hono();
+  app.route("/sso", ssoRoute);
+  app.onError((err, c) => (err instanceof ResponseError ? c.json({ errors: err.message }, err.status as 400) : (() => { throw err; })()));
+  const original = process.env.HUB_INTERNAL_SECRET;
+  afterEach(() => {
+    process.env.HUB_INTERNAL_SECRET = original;
+  });
+  const send = (secret?: string) =>
+    app.request("/sso/secret-check", { method: "POST", headers: secret === undefined ? {} : { "x-hub-internal-secret": secret } });
+
+  it("says yes only to the master secret", async () => {
+    process.env.HUB_INTERNAL_SECRET = MASTER;
+    expect((await send(MASTER)).status).toBe(200);
+    expect((await send("wrong-secret-value-123456")).status).toBe(401);
+    expect((await send(deriveAppSecret(MASTER, "exima", 1))).status).toBe(401);
+    expect((await send()).status).toBe(401);
+  });
+
+  it("is unavailable while the Hub has no secret", async () => {
+    delete process.env.HUB_INTERNAL_SECRET;
+    expect((await send(MASTER)).status).toBe(503);
+  });
+});

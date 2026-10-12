@@ -1,9 +1,23 @@
 import type { Context } from "hono";
 import { ResponseError } from "../error/response-error";
+import { sameSecret } from "../lib/hub-app-secret";
 import { consumeSsoCode } from "../lib/sso-code-store";
 import { logger } from "../lib/logger";
 
 export class SsoExchangeController {
+  // Says only whether the sent secret is the master one. Nothing else comes back.
+  static async secretCheck(c: Context) {
+    const master = process.env.HUB_INTERNAL_SECRET;
+    if (!master) {
+      throw new ResponseError(503, "HUB_INTERNAL_SECRET is not configured.");
+    }
+    const provided = c.req.header("x-hub-internal-secret") || "";
+    if (!provided || !sameSecret(provided, master)) {
+      throw new ResponseError(401, "Invalid or missing internal secret.");
+    }
+    return c.json({ data: { ok: true } });
+  }
+
   // Server-to-server only (see internalSecretAuthMiddleware) - a receiving
   // app's backend trades the short opaque code from its ?code= redirect for
   // the actual relay token, without that token ever having sat in a URL a

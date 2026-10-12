@@ -4,6 +4,9 @@ import { internalSecretAuthMiddleware } from "../middleware/internal-secret-auth
 
 export const ssoRoute = new Hono();
 
+// Central asks this when someone pastes the Hub's secret there, to see that it is the right one.
+ssoRoute.post("/secret-check", SsoExchangeController.secretCheck);
+
 ssoRoute.post(
   "/exchange",
   internalSecretAuthMiddleware,
