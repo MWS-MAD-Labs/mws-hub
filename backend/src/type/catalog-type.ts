@@ -49,12 +49,14 @@ export type HubCatalogEntry = {
   sso?: HubAppSso;
   // "central" when Central published the app, so Hub keeps no row for it.
   source?: "hub" | "central";
+  // Set by Central: whether the app has a Hub secret of its own, and which version is current.
+  hubSecret?: { mode: "shared" | "own"; version: number };
 };
 
 // What GET /apps hands the browser. Policy details stay server-side: the
 // client never receives the raw allowedSources, only whether this person can
 // open the card or should see the request-access path.
-export type HubAppResponse = Omit<HubCatalogEntry, "allowedSources" | "sso" | "centralEntitlementAppId" | "source"> & {
+export type HubAppResponse = Omit<HubCatalogEntry, "allowedSources" | "sso" | "centralEntitlementAppId" | "source" | "hubSecret"> & {
   access: "granted" | "locked";
   ssoAppId?: string;
 };

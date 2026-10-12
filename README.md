@@ -133,3 +133,11 @@ Routes:
 
 The application catalog lives in Hub's database and is managed through the
 admin routes.
+
+## Secret between the Hub and an application
+
+`HUB_INTERNAL_SECRET` in the Hub's `.env` is the master. Applications call the Hub (exchanging an SSO code) and the Hub calls them (ending a session) with a secret in the `X-Hub-Internal-Secret` header.
+
+An application can have a secret of its own, made from the master and its id: `v{version}.` followed by the HMAC-SHA256 of `app:{id}:{version}` with the master as key. Central puts it in the application's `.env` as `HUB_INTERNAL_SECRET`, and the Hub makes it again to check it, so a secret that leaks only opens that application. After a rotation in Central the old version is refused.
+
+The master itself is accepted from every application until `HUB_ALLOW_SHARED_SECRET=false` is set in the Hub's `.env`. Set that once every application has its own secret. Deploy the Hub before Central, since Central starts giving new applications secrets of their own.

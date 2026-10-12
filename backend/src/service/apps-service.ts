@@ -2,6 +2,7 @@ import { applyStatusOverrides } from "../lib/status-overrides";
 import { normalizeAccessToken, userMatchesAccessRule } from "../lib/access-rules";
 import { centralAccessForApp } from "../lib/hub-access-gate";
 import { ApplicationService } from "./application-service";
+import { deriveAppSecret } from "../lib/hub-app-secret";
 import { centralCatalogEntries } from "./central-catalog-service";
 import type { CentralClaim, HubUser } from "../type/central-type";
 import type { HubAccessSource, HubAppResponse, HubCatalogEntry } from "../type/catalog-type";
@@ -158,9 +159,10 @@ function toResponse(
   user: HubUser,
   approvedApplicationIds: Set<string>,
 ): HubAppResponse {
-  const { allowedSources, sso, source, ...rest } = entry;
+  const { allowedSources, sso, source, hubSecret, ...rest } = entry;
   void allowedSources;
   void source;
+  void hubSecret;
 
   return {
     ...rest,
@@ -251,11 +253,15 @@ export class AppsService {
   // third-party cookies being allowed, or the tab staying open long enough
   // for a hidden iframe to finish - see lib/session-revocation.ts for the
   // caller.
-  static async revokeSessionTargets(): Promise<string[]> {
+  // Where to tell an application's backend that someone signed out, and the secret that application is sent.
+  static async revokeSessionTargets(master: string): Promise<{ url: string; secret: string }[]> {
     const catalog = await effectiveCatalog();
     return catalog
-      .map((entry) => entry.sso?.logoutUrl)
-      .filter((url): url is string => Boolean(url))
-      .map((url) => url.replace(/\/auth\/logout-silent$/, "/auth/revoke-session"));
+      .filter((entry) => Boolean(entry.sso?.logoutUrl))
+      .map((entry) => ({
+        url: entry.sso!.logoutUrl!.replace(/\/auth\/logout-silent$/, "/auth/revoke-session"),
+        // An application with a secret of its own is sent that one, the others the Hub's own.
+        secret: entry.hubSecret?.mode === "own" ? deriveAppSecret(master, entry.id, entry.hubSecret.version) : master,
+      }));
   }
 }

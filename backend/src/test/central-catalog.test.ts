@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, mock, spyOn } from "bun:test";
 import * as centralClient from "../lib/central-client";
+import { deriveAppSecret } from "../lib/hub-app-secret";
 import type { HubCatalogEntry } from "../type/catalog-type";
 import type { HubUser } from "../type/central-type";
 
@@ -147,6 +148,21 @@ describe("applications published in Central", () => {
     const taxonomy = await centralTaxonomy();
     expect(taxonomy.categories.map((item) => item.key)).toContain("utilities");
     expect(taxonomy.scopes.map((item) => item.key)).toContain("safespace");
+  });
+
+  it("tells each application's backend the secret that application uses, and keeps it off the cards", async () => {
+    spyOn(centralClient, "listPublishedApplications").mockResolvedValue([
+      published("own-app", { logout_url: "https://own.example.com/auth/logout-silent", hub_secret: { mode: "own", version: 2 } }),
+      published("old-app", { logout_url: "https://old.example.com/auth/logout-silent", hub_secret: { mode: "shared", version: 1 } }),
+    ] as never);
+    spyOn(centralClient, "lookupApplicationEntitlement").mockResolvedValue({ is_active: true } as never);
+    const targets = await AppsService.revokeSessionTargets("master-secret-0123456789abcdef");
+    expect(targets).toEqual([
+      { url: "https://own.example.com/auth/revoke-session", secret: deriveAppSecret("master-secret-0123456789abcdef", "own-app", 2) },
+      { url: "https://old.example.com/auth/revoke-session", secret: "master-secret-0123456789abcdef" },
+    ]);
+    const cards = await AppsService.listFor(user);
+    expect(JSON.stringify(cards)).not.toContain("hubSecret");
   });
 
   it("reads Central once a minute and keeps the last answer when Central is down", async () => {

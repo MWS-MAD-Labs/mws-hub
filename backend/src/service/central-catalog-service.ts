@@ -82,6 +82,7 @@ export function toCentralEntry(
           },
         }),
     source: "central",
+    ...(app.hub_secret ? { hubSecret: app.hub_secret } : {}),
   };
 }
 

@@ -40,17 +40,17 @@ export async function revokeSessionsForUser(email: string, personId?: string): P
     return;
   }
 
-  const targets = await AppsService.revokeSessionTargets();
+  const targets = await AppsService.revokeSessionTargets(secret);
   if (targets.length === 0) return;
 
   await Promise.allSettled(
-    targets.map(async (url) => {
+    targets.map(async ({ url, secret: sent }) => {
       try {
         const res = await fetch(url, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "X-Hub-Internal-Secret": secret,
+            "X-Hub-Internal-Secret": sent,
           },
           body: JSON.stringify({ email, ...(personId ? { central_id: personId } : {}) }),
           signal: AbortSignal.timeout(CALL_TIMEOUT_MS),
