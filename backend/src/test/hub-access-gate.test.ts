@@ -78,6 +78,13 @@ describe("Hub access gate at sign-in", () => {
     expect(lookup).not.toHaveBeenCalled();
   });
 
+  it("does not record a bypass in warn mode", async () => {
+    process.env.HUB_CENTRAL_ACCESS_MODE = "warn";
+    process.env.HUB_CENTRAL_ACCESS_BYPASS_EMAILS = "employee@millennia21.id";
+    await gate.enforceHubAccessOnLogin(user);
+    expect(audits).toEqual([]);
+  });
+
   it("lets someone with active access in, also when it comes from a group", async () => {
     process.env.HUB_CENTRAL_ACCESS_MODE = "enforce";
     const lookup = spyOn(centralClient, "lookupApplicationEntitlement").mockResolvedValue(entitlement());

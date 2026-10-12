@@ -131,7 +131,12 @@ export async function enforceHubAccessOnLogin(user: HubUser): Promise<void> {
   if (mode === "off") return;
 
   const access = await resolveHubAccess(user, cacheMs());
-  if (access.status === "granted" || access.status === "bypass") return;
+  if (access.status === "granted") return;
+  if (access.status === "bypass") {
+    // Only enforce turns anyone away, so only there does the bypass let someone in who might not be.
+    if (mode === "enforce") await audit(user, "hub.login_bypass", `${user.email} signed in with emergency sign-in`);
+    return;
+  }
 
   if (access.status === "central_unavailable") {
     if (mode === "enforce") {
