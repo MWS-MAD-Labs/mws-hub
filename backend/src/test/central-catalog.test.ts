@@ -165,6 +165,35 @@ describe("applications published in Central", () => {
     expect(JSON.stringify(cards)).not.toContain("hubSecret");
   });
 
+  it("sends a Hub row for an application Central knows the secret Central set for it", async () => {
+    spyOn(centralClient, "listPublishedApplications").mockResolvedValue([
+      published("daily-checkin", { hub_secret: { mode: "own", version: 1 } }),
+    ] as never);
+    spyOn(centralClient, "lookupApplicationEntitlement").mockResolvedValue({ is_active: true } as never);
+    own = [
+      entry("emotional-checkin", {
+        sso: {
+          appId: "daily-checkin",
+          entryUrl: "https://daily-checkin.example.com/auth/sso",
+          logoutUrl: "https://daily-checkin.example.com/auth/logout-silent",
+          centralEntitlementAppId: "daily-checkin",
+        },
+        centralEntitlementAppId: "daily-checkin",
+      }),
+    ];
+    try {
+      const targets = await AppsService.revokeSessionTargets("master-secret-0123456789abcdef");
+      expect(targets).toEqual([
+        {
+          url: "https://daily-checkin.example.com/auth/revoke-session",
+          secret: deriveAppSecret("master-secret-0123456789abcdef", "daily-checkin", 1),
+        },
+      ]);
+    } finally {
+      own = [];
+    }
+  });
+
   it("reads Central once a minute and keeps the last answer when Central is down", async () => {
     const list = spyOn(centralClient, "listPublishedApplications").mockResolvedValue([published("demo")] as never);
     spyOn(centralClient, "lookupApplicationEntitlement").mockResolvedValue({ is_active: true } as never);

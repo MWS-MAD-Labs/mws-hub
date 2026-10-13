@@ -186,7 +186,18 @@ function toResponse(
 async function effectiveCatalog(): Promise<HubCatalogEntry[]> {
   const [rows, state] = await Promise.all([ApplicationService.listActive(), centralCatalogState()]);
   // A row for an application Central hid, retired or removed does not keep its card alive.
-  const own = rows.filter((entry) => !isWithdrawn(entry, state));
+  const centralSecrets = new Map(state.entries.map((entry) => [entry.id, entry.hubSecret]));
+  // A row that stands for an application Central knows uses the secret Central set for it.
+  const own = rows
+    .filter((entry) => !isWithdrawn(entry, state))
+    .map((entry) => {
+      if (entry.hubSecret) return entry;
+      const key = [entry.explicitCentralLink, entry.sso?.appId, entry.centralEntitlementAppId, entry.id].find(
+        (candidate) => candidate && centralSecrets.get(candidate),
+      );
+      const hubSecret = key ? centralSecrets.get(key) : undefined;
+      return hubSecret ? { ...entry, hubSecret } : entry;
+    });
   const taken = new Set(rows.flatMap((entry) => [entry.id, entry.sso?.appId, entry.centralEntitlementAppId]));
   const added = state.entries.filter((entry) => !taken.has(entry.id));
   return applyStatusOverrides([...own, ...added]);
@@ -265,7 +276,7 @@ export class AppsService {
       .map((entry) => ({
         url: appEndpoints(entry.sso!.logoutUrl!)!.revoke,
         // An application with a secret of its own is sent that one, the others the Hub's own.
-        secret: entry.hubSecret?.mode === "own" ? deriveAppSecret(master, entry.id, entry.hubSecret.version) : master,
+        secret: entry.hubSecret?.mode === "own" ? deriveAppSecret(master, entry.sso?.appId ?? entry.id, entry.hubSecret.version) : master,
       }));
   }
 }
