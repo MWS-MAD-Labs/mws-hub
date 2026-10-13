@@ -1,3 +1,4 @@
+import { deriveAppSecret } from "./hub-app-secret";
 import { AppsService } from "../service/apps-service";
 import { logger } from "./logger";
 
@@ -65,4 +66,35 @@ export async function revokeSessionsForUser(email: string, personId?: string): P
       }
     }),
   );
+}
+
+// Central retired an application: tells its backend to end every session it holds. Same endpoint and secret as the
+// per-person revoke above, with `all` instead of a person. Best-effort, returns whether the application took it.
+export async function revokeAllSessionsForApp(
+  master: string,
+  app: { applicationId: string; logoutUrl: string; secretMode: string; secretVersion: number },
+): Promise<boolean> {
+  let url: URL;
+  try {
+    url = new URL(app.logoutUrl.replace(/\/auth\/logout-silent$/, "/auth/revoke-session"));
+  } catch {
+    return false;
+  }
+  if (url.protocol !== "http:" && url.protocol !== "https:") return false;
+  const secret =
+    app.secretMode === "OWN" ? deriveAppSecret(master, app.applicationId, app.secretVersion) : master;
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      redirect: "manual",
+      headers: { "Content-Type": "application/json", "X-Hub-Internal-Secret": secret },
+      body: JSON.stringify({ all: true }),
+      signal: AbortSignal.timeout(CALL_TIMEOUT_MS),
+    });
+    if (!res.ok) logger.error(`revokeAllSessionsForApp: ${url} responded ${res.status}`);
+    return res.ok;
+  } catch (error) {
+    logger.error(`revokeAllSessionsForApp: ${url} failed:`, error);
+    return false;
+  }
 }

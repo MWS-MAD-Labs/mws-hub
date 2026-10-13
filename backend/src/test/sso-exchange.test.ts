@@ -128,3 +128,48 @@ describe("POST /sso/exchange", () => {
     expect(response.status).toBe(200);
   });
 });
+
+describe("POST /sso/app-retired", () => {
+  const originalFetch = globalThis.fetch;
+  beforeEach(() => {
+    process.env.HUB_INTERNAL_SECRET = "test-secret";
+  });
+  afterEach(() => {
+    process.env.HUB_INTERNAL_SECRET = originalSecret;
+    globalThis.fetch = originalFetch;
+  });
+  const retired = (headers: Record<string, string>, body: unknown) =>
+    testApp.request("/sso/app-retired", {
+      method: "POST",
+      headers: { "content-type": "application/json", ...headers },
+      body: JSON.stringify(body),
+    });
+
+  it("needs the master secret", async () => {
+    expect((await retired({}, { application_id: "x", logout_url: "https://x.test/auth/logout-silent" })).status).toBe(401);
+    expect((await retired({ "x-hub-internal-secret": "nope" }, {})).status).toBe(401);
+  });
+
+  it("asks the application to end all its sessions with its own secret", async () => {
+    const calls: { url: string; secret: string | null; body: string }[] = [];
+    globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
+      calls.push({
+        url: String(input),
+        secret: new Headers(init?.headers).get("x-hub-internal-secret"),
+        body: String(init?.body),
+      });
+      return new Response("{}", { status: 200 });
+    }) as typeof fetch;
+    const response = await retired(
+      { "x-hub-internal-secret": "test-secret" },
+      { application_id: "exima", logout_url: "https://exima.test/auth/logout-silent", secret_mode: "SHARED", secret_version: 1 },
+    );
+    expect(response.status).toBe(200);
+    expect(((await response.json()) as { data: { notified: boolean } }).data.notified).toBe(true);
+    expect(calls).toEqual([{ url: "https://exima.test/auth/revoke-session", secret: "test-secret", body: '{"all":true}' }]);
+  });
+
+  it("refuses a missing address", async () => {
+    expect((await retired({ "x-hub-internal-secret": "test-secret" }, { application_id: "exima" })).status).toBe(400);
+  });
+});

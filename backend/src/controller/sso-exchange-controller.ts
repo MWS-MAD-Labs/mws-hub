@@ -3,6 +3,7 @@ import { ResponseError } from "../error/response-error";
 import { sameSecret } from "../lib/hub-app-secret";
 import { consumeSsoCode } from "../lib/sso-code-store";
 import { logger } from "../lib/logger";
+import { revokeAllSessionsForApp } from "../lib/session-revocation";
 
 export class SsoExchangeController {
   // Says only whether the sent secret is the master one. Nothing else comes back.
@@ -16,6 +17,28 @@ export class SsoExchangeController {
       throw new ResponseError(401, "Invalid or missing internal secret.");
     }
     return c.json({ data: { ok: true } });
+  }
+
+  // Central retired an application: its backend is told to end every session it holds. Master secret only.
+  static async appRetired(c: Context) {
+    const master = process.env.HUB_INTERNAL_SECRET;
+    if (!master) throw new ResponseError(503, "HUB_INTERNAL_SECRET is not configured.");
+    const provided = c.req.header("x-hub-internal-secret") || "";
+    if (!provided || !sameSecret(provided, master)) {
+      throw new ResponseError(401, "Invalid or missing internal secret.");
+    }
+    const body = (await c.req.json().catch(() => null)) as Record<string, unknown> | null;
+    const applicationId = typeof body?.application_id === "string" ? body.application_id : "";
+    const logoutUrl = typeof body?.logout_url === "string" ? body.logout_url : "";
+    const version = Number(body?.secret_version);
+    if (!applicationId || !logoutUrl) throw new ResponseError(400, "application_id and logout_url are required.");
+    const notified = await revokeAllSessionsForApp(master, {
+      applicationId,
+      logoutUrl,
+      secretMode: body?.secret_mode === "OWN" ? "OWN" : "SHARED",
+      secretVersion: Number.isInteger(version) && version > 0 ? version : 1,
+    });
+    return c.json({ data: { notified } });
   }
 
   // Server-to-server only (see internalSecretAuthMiddleware) - a receiving
