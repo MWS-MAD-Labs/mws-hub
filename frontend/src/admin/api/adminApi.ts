@@ -30,15 +30,6 @@ export type AdminReport = {
   application: { id: string; name: string };
 };
 
-export type AdminAccessRequest = {
-  id: string;
-  requester_email: string;
-  reason: string | null;
-  status: "PENDING" | "APPROVED" | "REJECTED";
-  created_at: string;
-  application: { id: string; name: string };
-};
-
 export type AdminAuditLog = {
   id: string;
   actor_email: string;
@@ -94,13 +85,6 @@ export const adminApi = {
     return response?.data ?? [];
   },
 
-  async listAccessRequests() {
-    const response = await apiRequest<{ data: AdminAccessRequest[] }>(
-      "/admin/api/access-requests",
-    );
-    return response?.data ?? [];
-  },
-
   async listAuditLogs(query: { page?: number; pageSize?: number; q?: string; action?: string; dateFrom?: string; dateTo?: string } = {}) {
     const params = new URLSearchParams();
     if (query.page) params.set("page", String(query.page));
@@ -133,10 +117,4 @@ export const adminApi = {
     });
   },
 
-  async updateAccessRequest(id: string, status: AdminAccessRequest["status"]) {
-    await apiRequest(`/admin/api/access-requests/${encodeURIComponent(id)}`, {
-      method: "PATCH",
-      body: { status },
-    });
-  },
 };

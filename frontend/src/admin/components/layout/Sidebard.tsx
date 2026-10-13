@@ -1,7 +1,6 @@
 import {
   ClipboardList,
   Home,
-  KeyRound,
   Wrench,
   X,
 } from "lucide-react";
@@ -23,13 +22,6 @@ const menuItems = [
     icon: Wrench,
     enabled: true,
   },
-  {
-    label: "Access Requests",
-    href: "/admin/access-requests",
-    icon: KeyRound,
-    enabled: true,
-  },
-
   {
     label: "Audit Logs",
     href: "/admin/audit-logs",

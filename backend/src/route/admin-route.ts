@@ -23,15 +23,5 @@ adminRoute.get("/api/catalog", ApplicationController.list);
 adminRoute.delete("/api/catalog/:id", ApplicationController.remove);
 adminRoute.get("/api/reports", FeedbackController.reports);
 adminRoute.patch("/api/reports/:id", FeedbackController.updateReport);
-adminRoute.get("/api/access-requests", FeedbackController.accessRequests);
-adminRoute.patch(
-  "/api/access-requests/:id",
-  FeedbackController.updateAccessRequest,
-);
 adminRoute.get("/reports", FeedbackController.reports);
 adminRoute.patch("/reports/:id", FeedbackController.updateReport);
-adminRoute.get("/access-requests", FeedbackController.accessRequests);
-adminRoute.patch(
-  "/access-requests/:id",
-  FeedbackController.updateAccessRequest,
-);

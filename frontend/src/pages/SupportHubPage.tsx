@@ -25,7 +25,7 @@ const SUPPORT_EMAIL =
   import.meta.env.VITE_SUPPORT_EMAIL || "admin@millennia21.id";
 
 type FeedbackDialogState = {
-  kind: "request" | "report";
+  kind: "report";
   app: HubApplication;
 } | null;
 const LAUNCH_ERRORS: Record<
@@ -91,20 +91,15 @@ function FeedbackDialog({
     setError("");
   }, [state]);
 
-  const isRequest = state?.kind === "request";
-  const title = isRequest
-    ? `Request access to ${state?.app.name}`
-    : `Report ${state?.app.name}`;
-  const label = isRequest ? "Reason" : "Problem";
-  const placeholder = isRequest
-    ? "Tell MAD Labs why you need this app."
-    : "Tell MAD Labs what is broken or missing.";
+  const title = `Report ${state?.app.name}`;
+  const label = "Problem";
+  const placeholder = "Tell MAD Labs what is broken or missing.";
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const trimmed = text.trim();
     if (!trimmed) {
-      setError(isRequest ? "Reason is required." : "Problem description is required.");
+      setError("Problem description is required.");
       return;
     }
 
@@ -231,10 +226,6 @@ const SupportHubPage = memo(() => {
     );
   }, [searchParams, setSearchParams]);
 
-  const handleRequestAccess = useCallback((app: HubApplication) => {
-    setFeedbackDialog({ kind: "request", app });
-  }, []);
-
   const handleReportProblem = useCallback((app: HubApplication) => {
     setFeedbackDialog({ kind: "report", app });
   }, []);
@@ -249,21 +240,11 @@ const SupportHubPage = memo(() => {
 
       setIsFeedbackSubmitting(true);
       try {
-        const path =
-          feedbackDialog.kind === "request"
-            ? `/apps/${encodeURIComponent(feedbackDialog.app.id)}/request-access`
-            : `/apps/${encodeURIComponent(feedbackDialog.app.id)}/report`;
-        const body =
-          feedbackDialog.kind === "request"
-            ? { reason: text }
-            : { message: text };
-
-        await apiRequest(path, { method: "POST", body });
-        toast.success(
-          feedbackDialog.kind === "request"
-            ? "Access request sent"
-            : "Problem report sent",
-        );
+        await apiRequest(`/apps/${encodeURIComponent(feedbackDialog.app.id)}/report`, {
+          method: "POST",
+          body: { message: text },
+        });
+        toast.success("Problem report sent");
         setFeedbackDialog(null);
       } catch (error: unknown) {
         toast.error(
@@ -364,7 +345,6 @@ const SupportHubPage = memo(() => {
                 query={query}
                 user={user ? toHubUser(user) : undefined}
                 onQueryChange={setQuery}
-                onRequestAccess={handleRequestAccess}
                 onReportProblem={handleReportProblem}
               />
 
@@ -373,7 +353,6 @@ const SupportHubPage = memo(() => {
                   <AppCard
                     key={app.id}
                     app={app}
-                    onRequestAccess={handleRequestAccess}
                     onReportProblem={handleReportProblem}
                   />
                 ))}

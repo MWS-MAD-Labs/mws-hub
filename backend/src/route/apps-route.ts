@@ -37,11 +37,6 @@ appsRoute.post(
   sessionAuthMiddleware,
   FeedbackController.report,
 );
-appsRoute.post(
-  "/:appId/request-access",
-  sessionAuthMiddleware,
-  FeedbackController.requestAccess,
-);
 appsRoute.get(
   "/:appId/launch",
   launchSessionAuthMiddleware,

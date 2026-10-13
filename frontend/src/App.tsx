@@ -13,8 +13,6 @@ const ProfilePage = lazy(() => import("@/pages/ProfilePage"));
 const LoginPage = lazy(() => import("@/pages/LoginPage"));
 const LogoutRelayPage = lazy(() => import("@/pages/LogoutRelayPage"));
 const Dashboard = lazy(() => import("@/admin/pages/Dashboard"));
-const FeedbackPage = lazy(() => import("@/admin/pages/FeedbackPage"));
-const AccessRequest = lazy(() => import("@/admin/pages/AccessRequest"));
 const BrokenTools = lazy(() => import("@/admin/pages/BrokenTools"));
 const AuditLogsPage = lazy(() => import("@/admin/pages/AuditLogsPage"));
 
@@ -106,13 +104,7 @@ export default function App() {
           />
           <Route
             path="/admin/feedback"
-            element={
-              <PageLoader>
-                <RequireAdmin>
-                  <FeedbackPage />
-                </RequireAdmin>
-              </PageLoader>
-            }
+            element={<Navigate to="/admin/broken-tools" replace />}
           />
           <Route
             path="/admin/broken-tools"
@@ -130,13 +122,7 @@ export default function App() {
           />
           <Route
             path="/admin/access-requests"
-            element={
-              <PageLoader>
-                <RequireAdmin>
-                  <AccessRequest />
-                </RequireAdmin>
-              </PageLoader>
-            }
+            element={<Navigate to="/admin" replace />}
           />
           <Route
             path="/admin/audit-logs"
