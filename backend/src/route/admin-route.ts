@@ -12,6 +12,7 @@ export const adminRoute = new Hono<{ Variables: SessionVariables }>();
 adminRoute.use("*", sessionAuthMiddleware, adminAuthMiddleware);
 
 adminRoute.get("/dashboard-data", AdminController.dashboard);
+adminRoute.get("/api/overview", AdminController.overview);
 adminRoute.get("/access-options", AdminController.accessOptions);
 adminRoute.get("/api/access-options", AdminController.accessOptions);
 adminRoute.get("/audit-logs", AuditLogController.list);

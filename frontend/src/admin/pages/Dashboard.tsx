@@ -1,70 +1,51 @@
 import { useCallback, useEffect, useState } from "react";
-import {
-  ArrowUpRight,
-  CheckCircle2,
-  ClipboardList,
-  KeyRound,
-  RefreshCw,
-  TriangleAlert,
-  Wrench,
-  type LucideIcon,
-} from "lucide-react";
+import { ArrowUpRight, CheckCircle2, CircleAlert, RefreshCw, TriangleAlert, type LucideIcon } from "lucide-react";
 import { Link } from "react-router-dom";
-import {
-  adminApi,
-  type AdminDashboardData,
-  type AdminReport,
-} from "@/admin/api/adminApi";
+import { adminApi, type AdminOverview } from "@/admin/api/adminApi";
 import AppShell from "@/admin/components/layout/AppShell";
 import { cn } from "@/lib/utils";
 
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
-}
+type Level = "ok" | "warning" | "problem";
 
-const STATUS_STYLES: Record<AdminReport["status"], string> = {
-  OPEN: "border-[var(--admin-gold)]/30 bg-[var(--admin-gold-soft)] text-[var(--admin-gold-text)]",
-  IN_PROGRESS: "border-[var(--admin-navy)]/20 bg-[var(--admin-navy-soft)] text-[var(--admin-navy)]",
-  RESOLVED: "border-[var(--admin-sage)]/30 bg-[var(--admin-sage-soft)] text-[var(--admin-sage-text)]",
+const LEVEL: Record<Level, { label: string; className: string; icon: LucideIcon }> = {
+  ok: { label: "Healthy", className: "border-[var(--admin-sage)]/30 bg-[var(--admin-sage-soft)] text-[var(--admin-sage-text)]", icon: CheckCircle2 },
+  warning: { label: "Needs a look", className: "border-[var(--admin-gold)]/30 bg-[var(--admin-gold-soft)] text-[var(--admin-gold-text)]", icon: TriangleAlert },
+  problem: { label: "Problem", className: "border-[var(--admin-rose)]/30 bg-[var(--admin-rose-soft)] text-[var(--admin-rose)]", icon: CircleAlert },
 };
 
-function reportStatusLabel(status: AdminReport["status"]) {
-  if (status === "IN_PROGRESS") return "In progress";
-  return status.charAt(0) + status.slice(1).toLowerCase();
-}
+const FAILURE_LABEL: Record<string, string> = {
+  entitlement_denied: "No access",
+  maintenance: "Under maintenance",
+  coming_soon: "Not released",
+  no_link: "No link",
+  unknown_app: "No longer available",
+  central_unavailable: "Central did not answer",
+  account_inactive: "Account inactive",
+};
 
+const dateTime = (value: string) => new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+
+// Whether the Hub is working, what people opened through it, and what they reported.
 export default function Dashboard() {
-  const [data, setData] = useState<AdminDashboardData | null>(null);
-  const [reports, setReports] = useState<AdminReport[]>([]);
+  const [overview, setOverview] = useState<AdminOverview | null>(null);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
-  const loadDashboard = useCallback(async () => {
+  const load = useCallback(async () => {
     setIsLoading(true);
     setError("");
     try {
-      const [dashboard, nextReports] = await Promise.all([
-        adminApi.dashboard(),
-        adminApi.listReports(),
-      ]);
-      setData(dashboard);
-      setReports(nextReports);
+      setOverview(await adminApi.overview());
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to load admin dashboard.");
+      setError(err instanceof Error ? err.message : "Failed to load the overview.");
     } finally {
       setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    void loadDashboard();
-  }, [loadDashboard]);
-
-  const openReports = reports.filter((report) => report.status !== "RESOLVED");
-  const recentReports = reports.slice(0, 5);
+    void load();
+  }, [load]);
 
   return (
     <AppShell>
@@ -73,97 +54,28 @@ export default function Dashboard() {
           <header className="flex flex-col gap-5 border-b border-[var(--admin-border-strong)] pb-7 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <p className="admin-heading text-xs font-bold text-[var(--admin-brand)]">Admin Overview</p>
-              <h1 className="admin-heading mt-2 text-3xl font-extrabold tracking-[-0.04em] text-[var(--admin-text)] sm:text-4xl">Operations Desk</h1>
-              <p className="mt-2 text-sm text-[var(--admin-text-secondary)]">Review support queues and keep the MWS Hub catalogue current.</p>
+              <h1 className="admin-heading mt-2 text-3xl font-extrabold tracking-[-0.04em] text-[var(--admin-text)] sm:text-4xl">Hub Overview</h1>
+              <p className="mt-2 text-sm text-[var(--admin-text-secondary)]">Whether the Hub works, what people opened through it, and what they reported. Applications are managed in Central.</p>
             </div>
-            <button type="button" onClick={() => void loadDashboard()} disabled={isLoading} className="admin-heading inline-flex h-10 w-fit items-center gap-2 rounded-full border border-[var(--admin-border-strong)] bg-[var(--admin-card)] px-4 text-xs font-bold text-[var(--admin-text)] transition-colors hover:bg-[var(--admin-card-subtle)] disabled:opacity-50">
+            <button type="button" onClick={() => void load()} disabled={isLoading} className="admin-heading inline-flex h-10 w-fit items-center gap-2 rounded-full border border-[var(--admin-border-strong)] px-4 text-xs font-bold text-[var(--admin-text)]">
               <RefreshCw className={cn("h-3.5 w-3.5", isLoading && "animate-spin")} />
               Refresh
             </button>
           </header>
 
-          {isLoading ? <DashboardSkeleton /> : error ? <DashboardError message={error} onRetry={loadDashboard} /> : data ? (
+          {isLoading && !overview ? (
+            <div className="mt-7 h-96 animate-pulse rounded-3xl border border-[var(--admin-border)] bg-[var(--admin-card)]" />
+          ) : error ? (
+            <div role="alert" className="mt-7 rounded-3xl border border-[var(--admin-rose)]/30 bg-[var(--admin-rose-soft)] p-6">
+              <p className="admin-heading text-sm font-bold text-[var(--admin-rose)]">The overview could not load</p>
+              <p className="mt-1 text-sm text-[var(--admin-text-secondary)]">{error}</p>
+              <button type="button" onClick={() => void load()} className="admin-heading mt-3 text-xs font-bold text-[var(--admin-brand)] hover:underline">Try Again</button>
+            </div>
+          ) : overview ? (
             <div className="mt-7 space-y-7">
-              <div className="grid gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.55fr)]">
-                <section className="overflow-hidden rounded-3xl border border-[var(--admin-border)] bg-[var(--admin-card)] shadow-[var(--admin-shadow)]">
-                  <div className="border-b border-[var(--admin-border)] px-5 py-5 sm:px-7">
-                    <div className="flex flex-wrap items-end justify-between gap-4">
-                      <div>
-                        <p className="admin-heading text-xs font-bold text-[var(--admin-gold-text)]">Needs Attention</p>
-                        <div className="mt-2 flex items-baseline gap-3">
-                          <p className="admin-heading text-4xl font-extrabold tracking-[-0.04em] text-[var(--admin-text)]">{openReports.length}</p>
-                          <p className="text-sm text-[var(--admin-text-secondary)]">open or in-progress {openReports.length === 1 ? "report" : "reports"}</p>
-                        </div>
-                      </div>
-                      <Link to="/admin/broken-tools" className="admin-heading inline-flex items-center gap-2 rounded-full bg-[var(--admin-brand)] px-4 py-2.5 text-xs font-bold text-white dark:text-[#241718]">
-                        Review Queue
-                        <ArrowUpRight className="h-3.5 w-3.5" />
-                      </Link>
-                    </div>
-                  </div>
-
-                  <div className="px-5 sm:px-7">
-                    <div className="flex items-center justify-between border-b border-[var(--admin-border)] py-4">
-                      <div>
-                        <h2 className="admin-heading text-sm font-bold text-[var(--admin-text)]">Recent Reports</h2>
-                        <p className="mt-1 text-xs text-[var(--admin-text-tertiary)]">Latest issues reported by Hub users.</p>
-                      </div>
-                      <Link to="/admin/broken-tools" className="admin-heading text-xs font-bold text-[var(--admin-brand)] hover:underline">View All</Link>
-                    </div>
-
-                    {recentReports.length ? (
-                      <div>
-                        {recentReports.map((report) => (
-                          <article key={report.id} className="border-b border-[var(--admin-border)] py-5 last:border-0">
-                            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                              <div className="min-w-0">
-                                <p className="admin-heading text-sm font-bold text-[var(--admin-text)]">{report.application.name}</p>
-                                <p className="mt-1 line-clamp-2 text-sm leading-6 text-[var(--admin-text-secondary)]">{report.message}</p>
-                              </div>
-                              <span className={cn("admin-heading w-fit shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-bold", STATUS_STYLES[report.status])}>{reportStatusLabel(report.status)}</span>
-                            </div>
-                            <div className="mt-3 flex flex-col gap-1 text-xs text-[var(--admin-text-tertiary)] sm:flex-row sm:flex-wrap sm:gap-x-3">
-                              <span className="break-all">{report.reporter_email}</span>
-                              <span>{formatDate(report.created_at)}</span>
-                            </div>
-                          </article>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="py-12 text-center">
-                        <CheckCircle2 className="mx-auto h-6 w-6 text-[var(--admin-sage)]" />
-                        <p className="admin-heading mt-3 text-sm font-bold text-[var(--admin-text)]">No reports need review</p>
-                        <p className="mt-1 text-xs text-[var(--admin-text-tertiary)]">New broken-tool reports will appear here.</p>
-                      </div>
-                    )}
-                  </div>
-                </section>
-
-                <aside className="rounded-3xl border border-[var(--admin-border)] bg-[var(--admin-card)] p-5 shadow-[var(--admin-shadow)] sm:p-6">
-                  <p className="admin-heading text-xs font-bold text-[var(--admin-text-tertiary)]">Hub Status</p>
-                  <div className="mt-5 divide-y divide-[var(--admin-border)]">
-                    <StatusRow icon={TriangleAlert} label="Open Reports" value={openReports.length} attention={openReports.length > 0} />
-                  </div>
-                  <div className="mt-6 border-t border-[var(--admin-border-strong)] pt-5">
-                    <p className="admin-heading text-[10px] font-bold text-[var(--admin-text-tertiary)]">Administrative Context</p>
-                    <p className="admin-heading mt-2 text-sm font-bold text-[var(--admin-text)]">{data.unit || "Not assigned"}</p>
-                    {data.unitId ? <p className="mt-1 break-all font-mono text-[10px] text-[var(--admin-text-tertiary)]">{data.unitId}</p> : null}
-                  </div>
-                </aside>
-              </div>
-
-              <section>
-                <div className="flex items-end justify-between border-b border-[var(--admin-border-strong)] pb-3">
-                  <div>
-                    <h2 className="admin-heading text-lg font-extrabold text-[var(--admin-text)]">Manage</h2>
-                    <p className="mt-1 text-xs text-[var(--admin-text-tertiary)]">Common administration workflows.</p>
-                  </div>
-                </div>
-                <div className="grid md:grid-cols-3">
-                  <ManageLink to="/admin/access-requests" icon={KeyRound} title="Access Requests" description="Review individual Central access decisions." />
-                  <ManageLink to="/admin/audit-logs" icon={ClipboardList} title="Audit Logs" description="Review recent administrative changes." />
-                </div>
-              </section>
+              <Health overview={overview} />
+              <Activity overview={overview} />
+              <Reports overview={overview} />
             </div>
           ) : null}
         </div>
@@ -172,48 +84,155 @@ export default function Dashboard() {
   );
 }
 
-function StatusRow({ icon: Icon, label, value, attention = false }: { icon: LucideIcon; label: string; value: number; attention?: boolean }) {
+function Card({ title, subtitle, aside, children }: { title: string; subtitle?: string; aside?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-3 py-4 first:pt-0 last:pb-0">
-      <Icon className={cn("h-4 w-4", attention ? "text-[var(--admin-gold-text)]" : "text-[var(--admin-brand)]")} />
-      <span className="flex-1 text-sm text-[var(--admin-text-secondary)]">{label}</span>
-      <strong className="admin-heading text-sm font-extrabold text-[var(--admin-text)]">{value}</strong>
-    </div>
-  );
-}
-
-function ManageLink({ to, icon: Icon, title, description }: { to: string; icon: LucideIcon; title: string; description: string }) {
-  return (
-    <Link to={to} className="group flex min-h-36 items-start gap-4 border-b border-[var(--admin-border)] py-5 transition-colors md:border-b-0 md:border-r md:px-5 md:first:pl-0 md:last:border-r-0 md:last:pr-0">
-      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[var(--admin-brand-soft)] text-[var(--admin-brand)]"><Icon className="h-4.5 w-4.5" /></span>
-      <span className="min-w-0 flex-1">
-        <span className="admin-heading flex items-center gap-2 text-sm font-bold text-[var(--admin-text)]">{title}<ArrowUpRight className="h-3.5 w-3.5 text-[var(--admin-text-tertiary)] transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-[var(--admin-brand)]" /></span>
-        <span className="mt-2 block text-xs leading-5 text-[var(--admin-text-secondary)]">{description}</span>
-      </span>
-    </Link>
-  );
-}
-
-function DashboardSkeleton() {
-  return (
-    <div className="mt-7 grid animate-pulse gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.55fr)]">
-      <div className="h-[520px] rounded-3xl border border-[var(--admin-border)] bg-[var(--admin-card)]" />
-      <div className="h-[360px] rounded-3xl border border-[var(--admin-border)] bg-[var(--admin-card)]" />
-    </div>
-  );
-}
-
-function DashboardError({ message, onRetry }: { message: string; onRetry: () => Promise<void> }) {
-  return (
-    <div className="mt-7 rounded-3xl border border-[var(--admin-rose)]/30 bg-[var(--admin-card)] p-6 shadow-[var(--admin-shadow)]">
-      <div className="flex items-start gap-4">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[var(--admin-rose-soft)] text-[var(--admin-rose)]"><Wrench className="h-4.5 w-4.5" /></span>
+    <section className="overflow-hidden rounded-3xl border border-[var(--admin-border)] bg-[var(--admin-card)] shadow-[var(--admin-shadow)]">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--admin-border)] px-5 py-4 sm:px-7">
         <div>
-          <h2 className="admin-heading text-sm font-bold text-[var(--admin-text)]">Dashboard Could Not Be Loaded</h2>
-          <p className="mt-1 text-sm text-[var(--admin-text-secondary)]">{message}</p>
-          <button type="button" onClick={() => void onRetry()} className="admin-heading mt-4 rounded-full bg-[var(--admin-brand)] px-4 py-2 text-xs font-bold text-white dark:text-[#241718]">Try Again</button>
+          <h2 className="admin-heading text-sm font-bold text-[var(--admin-text)]">{title}</h2>
+          {subtitle ? <p className="mt-1 text-xs text-[var(--admin-text-tertiary)]">{subtitle}</p> : null}
         </div>
+        {aside}
       </div>
+      <div className="px-5 py-4 sm:px-7">{children}</div>
+    </section>
+  );
+}
+
+function LevelPill({ level }: { level: Level }) {
+  const { label, className, icon: Icon } = LEVEL[level];
+  return (
+    <span className={cn("admin-heading inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold", className)}>
+      <Icon className="h-3 w-3" />
+      {label}
+    </span>
+  );
+}
+
+function Health({ overview }: { overview: AdminOverview }) {
+  const { health } = overview;
+  const down = health.apps.filter((app) => app.status === "down");
+  return (
+    <Card title="Health" subtitle={`Checked ${dateTime(overview.generated_at)}`} aside={<LevelPill level={health.status} />}>
+      <ul className="divide-y divide-[var(--admin-border)]">
+        {health.checks.map((check) => (
+          <li key={check.id} className="flex flex-wrap items-start gap-x-4 gap-y-1 py-3 first:pt-0 last:pb-0">
+            <span className="w-36 shrink-0 text-sm font-semibold text-[var(--admin-text)]">{check.label}</span>
+            <LevelPill level={check.status} />
+            <span className="min-w-0 flex-1 basis-64 text-sm text-[var(--admin-text-secondary)]">{check.detail}</span>
+          </li>
+        ))}
+      </ul>
+      {down.length > 0 ? (
+        <div className="mt-4 rounded-2xl bg-[var(--admin-gold-soft)] p-4">
+          <p className="admin-heading text-xs font-bold text-[var(--admin-gold-text)]">Not answering</p>
+          <ul className="mt-2 space-y-1 text-sm text-[var(--admin-text)]">
+            {down.map((app) => (
+              <li key={app.id}>
+                <span className="font-semibold">{app.name}</span> <span className="font-mono text-xs text-[var(--admin-text-tertiary)]">{app.address}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      {health.not_in_central.length > 0 ? (
+        <div className="mt-4 rounded-2xl border border-[var(--admin-border)] p-4">
+          <p className="admin-heading text-xs font-bold text-[var(--admin-text-tertiary)]">Older entries, not in Central</p>
+          <p className="mt-2 text-sm text-[var(--admin-text-secondary)]">{health.not_in_central.map((app) => app.name).join(", ")}</p>
+        </div>
+      ) : null}
+    </Card>
+  );
+}
+
+function Tile({ label, value, attention = false }: { label: string; value: number; attention?: boolean }) {
+  return (
+    <div className="rounded-2xl border border-[var(--admin-border)] p-4">
+      <p className="text-xs text-[var(--admin-text-tertiary)]">{label}</p>
+      <p className={cn("admin-heading mt-1 text-3xl font-extrabold tracking-[-0.04em]", attention ? "text-[var(--admin-gold-text)]" : "text-[var(--admin-text)]")}>{value}</p>
     </div>
+  );
+}
+
+function Activity({ overview }: { overview: AdminOverview }) {
+  const { activity } = overview;
+  const failures = Object.values(activity.failures30).reduce((sum, count) => sum + count, 0);
+  return (
+    <Card title="Launch Activity" subtitle="From the audit trail." aside={<Link to="/admin/audit-logs?range=this_month&action=application.launch" className="admin-heading inline-flex items-center gap-1 text-xs font-bold text-[var(--admin-brand)] hover:underline">All Launches<ArrowUpRight className="h-3.5 w-3.5" /></Link>}>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Tile label="Launches, last 7 days" value={activity.launches7} />
+        <Tile label="Launches, last 30 days" value={activity.launches30} />
+        <Tile label="Refused or failed, last 30 days" value={failures} attention={failures > 0} />
+      </div>
+      {failures > 0 ? (
+        <p className="mt-3 text-sm text-[var(--admin-text-secondary)]">
+          {Object.entries(activity.failures30).map(([reason, count]) => `${FAILURE_LABEL[reason] ?? reason}: ${count}`).join(", ")}
+        </p>
+      ) : null}
+      {activity.apps.length > 0 ? (
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full min-w-[560px] text-left text-sm">
+            <caption className="sr-only">Launches per application</caption>
+            <thead className="text-[10px] text-[var(--admin-text-tertiary)]">
+              <tr>
+                <th scope="col" className="py-2 pr-4">Application</th>
+                <th scope="col" className="py-2 pr-4 text-right">7 days</th>
+                <th scope="col" className="py-2 pr-4 text-right">30 days</th>
+                <th scope="col" className="py-2 pr-4 text-right">Failed</th>
+                <th scope="col" className="py-2">Last opened</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[var(--admin-border)]">
+              {activity.apps.map((app) => (
+                <tr key={app.id}>
+                  <td className="py-2.5 pr-4">
+                    <Link to={`/admin/audit-logs?range=this_month&q=${encodeURIComponent(app.id)}`} className="font-semibold text-[var(--admin-text)] hover:underline">{app.name}</Link>
+                  </td>
+                  <td className="py-2.5 pr-4 text-right tabular-nums">{app.launches7}</td>
+                  <td className="py-2.5 pr-4 text-right tabular-nums">{app.launches30}</td>
+                  <td className={cn("py-2.5 pr-4 text-right tabular-nums", app.failures30 > 0 && "font-semibold text-[var(--admin-gold-text)]")}>{app.failures30}</td>
+                  <td className="py-2.5 text-xs text-[var(--admin-text-tertiary)]">{app.last_launch_at ? dateTime(app.last_launch_at) : "Never"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <p className="mt-4 text-sm text-[var(--admin-text-secondary)]">Nobody opened an application through the Hub in the last 30 days.</p>
+      )}
+      {activity.never_opened.length > 0 ? (
+        <p className="mt-4 text-xs text-[var(--admin-text-tertiary)]">
+          Not opened in 30 days: {activity.never_opened.map((app) => app.name).join(", ")}
+        </p>
+      ) : null}
+    </Card>
+  );
+}
+
+function Reports({ overview }: { overview: AdminOverview }) {
+  const { reports } = overview;
+  return (
+    <Card title="Reports" subtitle="Problems people reported from a card." aside={<Link to="/admin/broken-tools" className="admin-heading inline-flex items-center gap-1 text-xs font-bold text-[var(--admin-brand)] hover:underline">Review Queue<ArrowUpRight className="h-3.5 w-3.5" /></Link>}>
+      {reports.open === 0 ? (
+        <div className="py-6 text-center">
+          <CheckCircle2 className="mx-auto h-6 w-6 text-[var(--admin-sage)]" />
+          <p className="admin-heading mt-3 text-sm font-bold text-[var(--admin-text)]">No reports need review</p>
+        </div>
+      ) : (
+        <>
+          <p className="text-sm text-[var(--admin-text-secondary)]">
+            <span className="admin-heading text-2xl font-extrabold text-[var(--admin-text)]">{reports.open}</span> open or in progress
+          </p>
+          <ul className="mt-3 divide-y divide-[var(--admin-border)]">
+            {reports.by_app.map((row) => (
+              <li key={row.application_id} className="flex items-center justify-between py-2.5 text-sm">
+                <Link to={`/admin/broken-tools?q=${encodeURIComponent(row.name)}`} className="font-semibold text-[var(--admin-text)] hover:underline">{row.name}</Link>
+                <span className="tabular-nums text-[var(--admin-text-secondary)]">{row.open}</span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </Card>
   );
 }

@@ -25,12 +25,13 @@ export default function AuditLogsPage() {
   const page = Math.max(1, Number(params.get("page")) || 1);
   const pageSize = [10, 25, 50, 100].includes(Number(params.get("pageSize"))) ? Number(params.get("pageSize")) : 10;
   const query = params.get("q") || "";
+  const action = params.get("action") || "";
   const preset = (params.get("range") || "this_week") as RangePreset;
   const presetRange = rangeFor(preset === "custom" ? "this_week" : preset);
   const dateFrom = params.get("dateFrom") || presetRange.from;
   const dateTo = params.get("dateTo") || presetRange.to;
 
-  const load = useCallback(async () => { setLoading(true); try { const result = await adminApi.listAuditLogs({ page, pageSize, q: query, dateFrom, dateTo }); setLogs(result.data); setPagination(result.pagination); } catch (error) { toast.error(error instanceof Error ? error.message : "Failed to load audit logs."); } finally { setLoading(false); } }, [page, pageSize, query, dateFrom, dateTo]);
+  const load = useCallback(async () => { setLoading(true); try { const result = await adminApi.listAuditLogs({ page, pageSize, q: query, action, dateFrom, dateTo }); setLogs(result.data); setPagination(result.pagination); } catch (error) { toast.error(error instanceof Error ? error.message : "Failed to load audit logs."); } finally { setLoading(false); } }, [page, pageSize, query, action, dateFrom, dateTo]);
   useEffect(() => { void load(); }, [load]);
   const updateParams = (patch: Record<string, string>) => setParams((current) => { const next = new URLSearchParams(current); Object.entries(patch).forEach(([key, value]) => value ? next.set(key, value) : next.delete(key)); return next; }, { replace: true });
 
@@ -57,6 +58,14 @@ export default function AuditLogsPage() {
                 />
               </span>
             </label>
+            <div className="flex flex-col">
+              <AdminFieldLabel>Action</AdminFieldLabel>
+              <Dropdown
+                value={action || "all"}
+                onChange={(value) => updateParams({ action: value === "all" ? "" : value, page: "1" })}
+                options={[{ value: "all", label: "All Actions" }, ...Object.entries(ACTION_LABELS).filter(([key]) => key !== "access_request.update_status").map(([value, label]) => ({ value, label }))]}
+              />
+            </div>
             <div className="flex flex-col">
               <AdminFieldLabel>Date Range</AdminFieldLabel>
               <Dropdown

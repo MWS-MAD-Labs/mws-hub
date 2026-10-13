@@ -42,6 +42,26 @@ export type AdminAuditLog = {
   created_at: string;
 };
 
+// What the dashboard shows: health of the Hub, launch activity and open reports. Built on the server from Central,
+// the database and the audit trail.
+export type AdminOverview = {
+  generated_at: string;
+  health: {
+    status: "ok" | "warning" | "problem";
+    checks: { id: string; label: string; status: "ok" | "warning" | "problem"; detail: string }[];
+    apps: { id: string; name: string; address: string | null; status: "up" | "down" | "no_address"; detail: string }[];
+    not_in_central: { id: string; name: string }[];
+  };
+  activity: {
+    launches7: number;
+    launches30: number;
+    failures30: Record<string, number>;
+    apps: { id: string; name: string; launches7: number; launches30: number; failures30: number; last_launch_at: string | null }[];
+    never_opened: { id: string; name: string }[];
+  };
+  reports: { open: number; by_app: { application_id: string; name: string; open: number }[] };
+};
+
 export type AdminDashboardData = {
   message: string;
   unit: string;
@@ -69,6 +89,11 @@ export const adminApi = {
     await apiRequest(`/admin/api/catalog/${encodeURIComponent(id)}`, {
       method: "DELETE",
     });
+  },
+
+  async overview(): Promise<AdminOverview> {
+    const response = await apiRequest<{ data: AdminOverview }>("/admin/api/overview");
+    return response!.data;
   },
 
   async accessOptions(): Promise<AdminAccessOptions> {
