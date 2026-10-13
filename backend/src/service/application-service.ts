@@ -51,6 +51,7 @@ export function toCatalogEntry(row: Application): HubCatalogEntry {
     discoverable: row.discoverable,
     allowedSources: row.allowed_sources as HubAccessSource[],
     centralEntitlementAppId: row.sso_central_entitlement_app_id || row.id,
+    ...(row.sso_central_entitlement_app_id ? { explicitCentralLink: row.sso_central_entitlement_app_id } : {}),
     ...(row.sso_app_id && row.sso_entry_url
       ? {
           sso: {

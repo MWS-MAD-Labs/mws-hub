@@ -37,6 +37,16 @@ const LAUNCH_ERRORS: Record<
     description:
       "Your MWS account isn't admitted to this application yet. Ask MAD Labs if you need it.",
   }),
+  app_entitlement_denied: (app) => ({
+    title: `You don't have access to ${app}`,
+    description:
+      "Your MWS account isn't admitted to this application. Ask the people who run it, or MAD Labs, if you need it.",
+  }),
+  app_unavailable: () => ({
+    title: "This application is no longer available",
+    description:
+      "It was hidden or removed, so its card can't be opened anymore. Refresh the page to see what you can open.",
+  }),
   app_maintenance: (app) => ({
     title: `${app} is under maintenance`,
     description:

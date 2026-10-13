@@ -109,7 +109,8 @@ export class AppsController {
         outcome: "unknown_app",
         target: "hub",
       });
-      throw new ResponseError(404, `Unknown app: ${appId}`);
+      // A card that was hidden, retired or removed in Central is still in somebody's open tab, so this lands on a page.
+      return launchFailure(c, "app_unavailable");
     }
 
     // The session cookie is an 8-hour-old snapshot of who this was at login.

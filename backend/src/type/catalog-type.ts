@@ -46,6 +46,8 @@ export type HubCatalogEntry = {
   // Central-only and no longer evaluates these rules.
   allowedSources: HubAccessSource[];
   centralEntitlementAppId?: string;
+  // The Central application a Hub row was linked to on purpose. A row without one is only matched by its id.
+  explicitCentralLink?: string;
   sso?: HubAppSso;
   // "central" when Central published the app, so Hub keeps no row for it.
   source?: "hub" | "central";
@@ -56,7 +58,7 @@ export type HubCatalogEntry = {
 // What GET /apps hands the browser. Policy details stay server-side: the
 // client never receives the raw allowedSources, only whether this person can
 // open the card or should see the request-access path.
-export type HubAppResponse = Omit<HubCatalogEntry, "allowedSources" | "sso" | "centralEntitlementAppId" | "source" | "hubSecret"> & {
+export type HubAppResponse = Omit<HubCatalogEntry, "allowedSources" | "sso" | "centralEntitlementAppId" | "explicitCentralLink" | "source" | "hubSecret"> & {
   access: "granted" | "locked";
   ssoAppId?: string;
 };

@@ -1,5 +1,6 @@
 import {
   getCentralTaxonomy,
+  listCentralApplicationIds,
   listPublishedApplications,
   type CentralPublishedApplication,
   type CentralTaxonomy,
@@ -41,7 +42,7 @@ export async function centralTaxonomy(): Promise<CentralTaxonomy> {
   }
 }
 
-let cache: { at: number; entries: HubCatalogEntry[] } | null = null;
+let cache: { at: number; entries: HubCatalogEntry[]; known: Set<string> | null } | null = null;
 
 export function clearCentralCatalogCacheForTest() {
   cache = null;
@@ -86,18 +87,41 @@ export function toCentralEntry(
   };
 }
 
+// What the Hub last learned from Central: the cards it publishes, and every application id it knows, published or not.
+// `known` is null when the second list could not be read. With no answer yet, `read` is false.
+export type CentralCatalogState = { read: boolean; entries: HubCatalogEntry[]; known: Set<string> | null };
+
 // Cached for a minute. When Central cannot be reached the last answer is kept, and with none yet
 // the list is empty, so Hub itself never stops working because of it.
-export async function centralCatalogEntries(): Promise<HubCatalogEntry[]> {
-  if (cache && Date.now() - cache.at < CACHE_MS) return cache.entries;
+export async function centralCatalogState(): Promise<CentralCatalogState> {
+  if (cache && Date.now() - cache.at < CACHE_MS) return { read: true, entries: cache.entries, known: cache.known };
   try {
-    const [published, taxonomy] = await Promise.all([listPublishedApplications(), centralTaxonomy()]);
+    const [published, taxonomy, ids] = await Promise.all([
+      listPublishedApplications(),
+      centralTaxonomy(),
+      listCentralApplicationIds().catch(() => null),
+    ]);
     const entries = published.map((app) => toCentralEntry(app, taxonomy));
-    cache = { at: Date.now(), entries };
-    return entries;
+    const known = ids ? new Set([...ids, ...published.map((app) => app.id)]) : null;
+    cache = { at: Date.now(), entries, known };
+    return { read: true, entries, known };
   } catch (error) {
     logger.error("Could not read the published applications from Central:", error);
     // Try again on the next request, but keep serving what was known.
-    return cache?.entries ?? [];
+    return cache ? { read: true, entries: cache.entries, known: cache.known } : { read: false, entries: [], known: null };
   }
+}
+
+export async function centralCatalogEntries(): Promise<HubCatalogEntry[]> {
+  return (await centralCatalogState()).entries;
+}
+
+// Whether a Hub row points at an application Central no longer shows: hidden, retired or removed. A row linked on
+// purpose is withdrawn as soon as Central does not publish it. A row only matched by its id is withdrawn when Central
+// knows that id and does not publish it, so an application that Central never heard of is left alone.
+export function isWithdrawn(row: Pick<HubCatalogEntry, "id" | "explicitCentralLink">, state: CentralCatalogState): boolean {
+  if (!state.read) return false;
+  const published = new Set(state.entries.map((entry) => entry.id));
+  if (row.explicitCentralLink) return !published.has(row.explicitCentralLink);
+  return Boolean(state.known?.has(row.id)) && !published.has(row.id);
 }
