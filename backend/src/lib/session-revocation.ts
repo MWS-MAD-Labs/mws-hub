@@ -1,3 +1,4 @@
+import { appEndpoints } from "./app-endpoints";
 import { deriveAppSecret } from "./hub-app-secret";
 import { AppsService } from "../service/apps-service";
 import { logger } from "./logger";
@@ -74,13 +75,12 @@ export async function revokeAllSessionsForApp(
   master: string,
   app: { applicationId: string; logoutUrl: string; secretMode: string; secretVersion: number },
 ): Promise<boolean> {
-  let url: URL;
-  try {
-    url = new URL(app.logoutUrl.replace(/\/auth\/logout-silent$/, "/auth/revoke-session"));
-  } catch {
+  const endpoints = appEndpoints(app.logoutUrl);
+  if (!endpoints) {
+    logger.error(`revokeAllSessionsForApp: ${app.applicationId} has a logout address that does not end in /auth/logout`);
     return false;
   }
-  if (url.protocol !== "http:" && url.protocol !== "https:") return false;
+  const url = new URL(endpoints.revoke);
   const secret =
     app.secretMode === "OWN" ? deriveAppSecret(master, app.applicationId, app.secretVersion) : master;
   try {

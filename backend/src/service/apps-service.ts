@@ -6,6 +6,7 @@ import { deriveAppSecret } from "../lib/hub-app-secret";
 import { centralCatalogState, isWithdrawn } from "./central-catalog-service";
 import type { CentralClaim, HubUser } from "../type/central-type";
 import type { HubAccessSource, HubAppResponse, HubCatalogEntry } from "../type/catalog-type";
+import { appEndpoints } from "../lib/app-endpoints";
 
 type ApprovedAccessLookup = (user: HubUser) => Promise<Set<string>>;
 
@@ -243,9 +244,9 @@ export class AppsService {
   // nothing there to clear).
   static async logoutTargets(): Promise<string[]> {
     const catalog = await effectiveCatalog();
-    return catalog.map((entry) => entry.sso?.logoutUrl).filter(
-      (url): url is string => Boolean(url),
-    );
+    return catalog
+      .map((entry) => (entry.sso?.logoutUrl ? appEndpoints(entry.sso.logoutUrl)?.silent : undefined))
+      .filter((url): url is string => Boolean(url));
   }
 
   // Server-to-server counterpart to logoutTargets() above - same per-app
@@ -260,9 +261,9 @@ export class AppsService {
   static async revokeSessionTargets(master: string): Promise<{ url: string; secret: string }[]> {
     const catalog = await effectiveCatalog();
     return catalog
-      .filter((entry) => Boolean(entry.sso?.logoutUrl))
+      .filter((entry) => Boolean(entry.sso?.logoutUrl && appEndpoints(entry.sso.logoutUrl)))
       .map((entry) => ({
-        url: entry.sso!.logoutUrl!.replace(/\/auth\/logout-silent$/, "/auth/revoke-session"),
+        url: appEndpoints(entry.sso!.logoutUrl!)!.revoke,
         // An application with a secret of its own is sent that one, the others the Hub's own.
         secret: entry.hubSecret?.mode === "own" ? deriveAppSecret(master, entry.id, entry.hubSecret.version) : master,
       }));
