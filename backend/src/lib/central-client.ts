@@ -245,6 +245,9 @@ export type CentralPublishedApplication = {
   logout_url: string | null;
   // sso: opened through the sign-in handoff. link: a plain address. Older Central versions send neither.
   launch_mode?: "sso" | "link";
+  // How the card looks. Older Central versions send neither.
+  status?: "active" | "maintenance" | "coming_soon" | "new";
+  keywords?: string[];
   // How this application proves itself to the Hub, and the version that counts now. Older Central versions send none.
   hub_secret?: { mode: "shared" | "own"; version: number };
 };

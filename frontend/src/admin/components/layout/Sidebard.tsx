@@ -1,5 +1,4 @@
 import {
-  AppWindow,
   ClipboardList,
   Home,
   KeyRound,
@@ -18,12 +17,6 @@ type SidebarProps = {
 
 const menuItems = [
   { label: "Dashboard", href: "/admin", icon: Home, enabled: true },
-  {
-    label: "App Display",
-    href: "/admin/display",
-    icon: AppWindow,
-    enabled: true,
-  },
   {
     label: "Broken Tools",
     href: "/admin/broken-tools",

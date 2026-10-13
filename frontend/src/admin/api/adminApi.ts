@@ -21,25 +21,6 @@ export type AdminAccessOptions = {
   centralRulePrefixes: AdminAccessRuleOption[];
 };
 
-// One row of App Display: an application Central publishes, or an older Hub row Central does not cover.
-export type AdminDisplayItem = {
-  id: string;
-  name: string;
-  icon: string;
-  category: string;
-  href: string | null;
-  status: HubApplicationStatus;
-  discoverable: boolean;
-  keywords: string[];
-  in_central: boolean;
-};
-
-export type AdminDisplayInput = {
-  status: HubApplicationStatus;
-  discoverable: boolean;
-  keywords: string[];
-};
-
 export type AdminReport = {
   id: string;
   reporter_email: string;
@@ -89,24 +70,6 @@ export const adminApi = {
   async dashboard(): Promise<AdminDashboardData> {
     const response = await apiRequest<{ data: AdminDashboardData }>(
       "/admin/dashboard-data",
-    );
-    return response!.data;
-  },
-
-  async listDisplay(): Promise<AdminDisplayItem[]> {
-    const response = await apiRequest<{ data: AdminDisplayItem[] }>(
-      "/admin/api/display",
-    );
-    return response?.data ?? [];
-  },
-
-  async updateDisplay(
-    id: string,
-    input: AdminDisplayInput,
-  ): Promise<AdminDisplayItem> {
-    const response = await apiRequest<{ data: AdminDisplayItem }>(
-      `/admin/api/display/${encodeURIComponent(id)}`,
-      { method: "PUT", body: input },
     );
     return response!.data;
   },

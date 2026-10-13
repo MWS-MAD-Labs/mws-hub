@@ -47,8 +47,3 @@ export type AuditLog = Prisma.AuditLogModel
  * 
  */
 export type UserSession = Prisma.UserSessionModel
-/**
- * Model ApplicationDisplay
- * 
- */
-export type ApplicationDisplay = Prisma.ApplicationDisplayModel

@@ -1,6 +1,5 @@
 import type { Context } from "hono";
 import { ApplicationService, type ApplicationInput } from "../service/application-service";
-import { ApplicationDisplayService, type DisplayInput } from "../service/application-display-service";
 import { recordAuditLog } from "../service/audit-log-service";
 import { ResponseError } from "../error/response-error";
 import type { SessionVariables } from "../type/hono-context";
@@ -31,25 +30,6 @@ function applicationMetadata(application: Application) {
 }
 
 export class ApplicationController {
-  // What the App Display screen reads: every application Central publishes, and the older rows it does not cover.
-  static async displayList(c: Context<{ Variables: SessionVariables }>) {
-    return c.json({ data: await ApplicationDisplayService.list() });
-  }
-
-  static async displayUpdate(c: Context<{ Variables: SessionVariables }>) {
-    const id = requireId(c);
-    const body = await c.req.json<DisplayInput>().catch(() => ({}) as DisplayInput);
-    const item = await ApplicationDisplayService.update(id, body, c.var.user.email);
-    await recordAuditLog({
-      actor: c.var.user,
-      action: "application.display",
-      entity: { type: "application", id },
-      summary: `Changed how ${item.name} is shown`,
-      metadata: { display: { status: item.status, discoverable: item.discoverable, keywords: item.keywords } },
-    });
-    return c.json({ data: item });
-  }
-
   static async list(c: Context<{ Variables: SessionVariables }>) {
     return c.json({ data: await ApplicationService.listForAdmin() });
   }

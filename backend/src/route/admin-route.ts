@@ -17,10 +17,8 @@ adminRoute.get("/api/access-options", AdminController.accessOptions);
 adminRoute.get("/audit-logs", AuditLogController.list);
 adminRoute.get("/api/audit-logs", AuditLogController.list);
 
-// Name, address and access of an application are changed in Central. The Hub keeps how a card is shown
-// (status, whether it can be found, keywords) and removes older rows Central does not cover.
-adminRoute.get("/api/display", ApplicationController.displayList);
-adminRoute.put("/api/display/:id", ApplicationController.displayUpdate);
+// Applications are managed in Central, card status and keywords included. What is left here is older Hub rows that
+// Central does not cover, which can be listed and removed.
 adminRoute.get("/api/catalog", ApplicationController.list);
 adminRoute.delete("/api/catalog/:id", ApplicationController.remove);
 adminRoute.get("/api/reports", FeedbackController.reports);

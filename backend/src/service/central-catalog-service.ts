@@ -9,6 +9,7 @@ import { logger } from "../lib/logger";
 import type { HubCatalogEntry } from "../type/catalog-type";
 
 const CACHE_MS = 60_000;
+const VALID_STATUS = new Set(["active", "maintenance", "coming_soon", "new"]);
 // What the Hub falls back on until Central has answered, the lists Central starts with.
 export const FALLBACK_TAXONOMY: CentralTaxonomy = {
   categories: [
@@ -64,10 +65,10 @@ export function toCentralEntry(
     category: taxonomy.categories.some((item) => item.key === category) ? category : "utilities",
     ...(taxonomy.scopes.some((item) => item.key === scope) ? { scope } : {}),
     audience: "People with access",
-    keywords: [],
+    keywords: Array.isArray(app.keywords) ? app.keywords.filter((word) => typeof word === "string") : [],
     href: app.launch_url,
     external: true,
-    status: "active",
+    status: app.status && VALID_STATUS.has(app.status) ? app.status : "active",
     discoverable: true,
     allowedSources: [],
     centralEntitlementAppId: app.id,

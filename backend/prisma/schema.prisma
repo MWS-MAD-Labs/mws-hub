@@ -216,17 +216,3 @@ model UserSession {
   @@index([email])
   @@map("user_sessions")
 }
-
-// What only the Hub decides about an application Central publishes: how its card is shown. Name, address
-// and access stay in Central. A row exists only once someone changed something from the default.
-model ApplicationDisplay {
-  application_id String            @id
-  status         ApplicationStatus @default(ACTIVE)
-  discoverable   Boolean           @default(true)
-  keywords       String[]          @default([])
-
-  updated_at DateTime @updatedAt
-  updated_by String?
-
-  @@map("application_display")
-}
