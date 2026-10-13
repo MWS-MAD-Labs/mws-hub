@@ -64,22 +64,6 @@ function oauthStateCookieOptions() {
   };
 }
 
-const POST_LOGOUT_REDIRECT_COOKIE = "hub_post_logout_redirect";
-
-// Not httpOnly: LogoutRelayPage reads this to know where to send the browser
-// once fan-out finishes. Safe to expose because only Hub's own server ever
-// writes it, and only after resolveLogoutRedirect has already vetted the
-// value - unlike a ?redirect= query param, nothing a phishing link can set
-// this cookie to reaches this far.
-function postLogoutRedirectCookieOptions() {
-  return {
-    httpOnly: false,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "Strict" as const,
-    path: "/",
-  };
-}
-
 async function hubAccessSummary(user: SessionVariables["user"]) {
   const access = await resolveHubAccess(user, Number(process.env.HUB_CENTRAL_ACCESS_CACHE_SECONDS || 30) * 1000);
   return {
@@ -236,34 +220,19 @@ export class AuthController {
     return c.json({ data: await AppsService.logoutTargets() });
   }
 
-  // Sign-out that starts inside a satellite app. The app clears its own
-  // session and then sends the BROWSER here - it has to be the browser,
-  // because Hub's session is a cookie on Hub's domain and no other server can
-  // delete it. A back-channel call would leave the user still signed in here.
-  //
-  // Works via top-level navigation + SameSite=Lax (see cookieOptions()
-  // above) - Lax cookies ride along on a cross-site top-level GET
-  // regardless of whether Hub and the apps share a registrable domain, so
-  // this part doesn't actually need them to. (The apps' own OTHER local
-  // sessions are a different story - see revokeSessionsForUser() below,
-  // added specifically because the apps and Hub do NOT share a domain in
-  // production, which breaks the browser-driven iframe fan-out this
-  // redirect leads into at /logout-relay.)
+  // Sign-out that starts inside a satellite app. The app clears its own session and sends the browser here, in
+  // the same tab. The person is known from Hub's own cookie (Lax rides along on a top-level GET). Their sessions
+  // in every other app are ended from here, server to server, and Hub's own session stays: Hub is the launcher,
+  // so the browser lands on its front page to pick an app again.
   static async logoutFromApp(c: Context) {
     const user = await sessionUserFromCookie(c);
 
     const target =
       (await resolveLogoutRedirect(c.req.query("redirect"))) ||
-      `${frontendOrigin()}/login`;
+      `${frontendOrigin()}/`;
 
-    // The satellite app tells us which email IT was actually logged in as
-    // (see e.g. mws-daily-checkin's routes/auth.js). Normally that matches
-    // Hub's own current session, but not always - a stale session in one
-    // app can sit alongside a genuinely different, currently-active Hub
-    // login for someone else. In that case this logout isn't Hub's (or any
-    // other app's) to act on: leave Hub's cookie and every other app's
-    // session alone, and just send the browser back to where the satellite
-    // app's own logout already cleared its own cookie.
+    // The app says which email it was signed in as. A stale session in one app can sit next to a different
+    // current Hub login. In that case this sign-out is not Hub's to act on: leave everything alone.
     const loggedOutEmail = c.req.query("email");
     if (loggedOutEmail && user && loggedOutEmail.toLowerCase() !== user.email.toLowerCase()) {
       logger.info(
@@ -272,24 +241,8 @@ export class AuthController {
       return c.redirect(target, 302);
     }
 
-    const cookieName = process.env.SESSION_COOKIE_NAME || "hub_session";
-    deleteCookie(c, cookieName, cookieOptions());
-
-    // Hub's own cookie is gone, but every other satellite app the person had
-    // open still has its own separate session that only the browser can
-    // reach - route through a Hub page that fans logout out to those first
-    // (see LogoutRelayPage), then finishes the trip to `target`.
-    setCookie(c, POST_LOGOUT_REDIRECT_COOKIE, target, {
-      ...postLogoutRedirectCookieOptions(),
-      maxAge: 30,
-    });
-
     if (user) {
       logger.info("User logged out from satellite app:", user.email);
-      // Back-channel, server-to-server - the browser-driven iframe fan-out
-      // that /logout-relay does next is a best-effort backup for apps that
-      // don't implement /auth/revoke-session yet, not the primary
-      // mechanism for apps that do.
       await revokeSessionsForUser(user.email, user.person_id);
       await recordAuditLog({
         actor: user,
@@ -305,6 +258,6 @@ export class AuthController {
       logger.info("App logout reached Hub without a valid Hub session");
     }
 
-    return c.redirect(`${frontendOrigin()}/logout-relay`, 302);
+    return c.redirect(target, 302);
   }
 }

@@ -173,27 +173,3 @@ describe("POST /sso/app-retired", () => {
     expect((await retired({ "x-hub-internal-secret": "test-secret" }, { application_id: "exima" })).status).toBe(400);
   });
 });
-
-describe("POST /sso/app-logout", () => {
-  beforeEach(() => {
-    process.env.HUB_INTERNAL_SECRET = "test-secret";
-  });
-  afterEach(() => {
-    process.env.HUB_INTERNAL_SECRET = originalSecret;
-  });
-  const logout = (headers: Record<string, string>, body: unknown) =>
-    testApp.request("/sso/app-logout", {
-      method: "POST",
-      headers: { "content-type": "application/json", ...headers },
-      body: JSON.stringify(body),
-    });
-
-  it("needs a valid secret", async () => {
-    expect((await logout({}, { appId: "exima", email: "a@x.id", central_id: "p1" })).status).toBe(401);
-    expect((await logout({ "x-hub-internal-secret": "nope" }, { appId: "exima", email: "a@x.id", central_id: "p1" })).status).toBe(401);
-  });
-
-  it("needs the person", async () => {
-    expect((await logout({ "x-hub-internal-secret": "test-secret" }, { appId: "exima" })).status).toBe(400);
-  });
-});

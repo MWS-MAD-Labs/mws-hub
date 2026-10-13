@@ -3,7 +3,7 @@ import { ResponseError } from "../error/response-error";
 import { sameSecret } from "../lib/hub-app-secret";
 import { consumeSsoCode } from "../lib/sso-code-store";
 import { logger } from "../lib/logger";
-import { revokeAllSessionsForApp, revokeSessionsForUser } from "../lib/session-revocation";
+import { revokeAllSessionsForApp } from "../lib/session-revocation";
 
 export class SsoExchangeController {
   // Says only whether the sent secret is the master one. Nothing else comes back.
@@ -16,18 +16,6 @@ export class SsoExchangeController {
     if (!provided || !sameSecret(provided, master)) {
       throw new ResponseError(401, "Invalid or missing internal secret.");
     }
-    return c.json({ data: { ok: true } });
-  }
-
-  // A person signed out of an application. Every application ends their session, and the Hub's own stays.
-  // Server-to-server only (see internalSecretAuthMiddleware).
-  static async appLogout(c: Context) {
-    const body = (await c.req.json().catch(() => null)) as Record<string, unknown> | null;
-    const email = typeof body?.email === "string" ? body.email.trim() : "";
-    const personId = typeof body?.central_id === "string" ? body.central_id : undefined;
-    if (!email || !personId) throw new ResponseError(400, "email and central_id are required.");
-    logger.info(`App logout: ${email} signed out of ${String(body?.appId ?? "an application")}, ending the other sessions`);
-    await revokeSessionsForUser(email, personId);
     return c.json({ data: { ok: true } });
   }
 
