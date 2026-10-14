@@ -230,6 +230,9 @@ export interface RefreshDeps {
   // The person as Central knows them now. null: not active any more. A thrown error: Central could not be reached.
   resolveIdentity(centralId: string, source: "employee" | "student"): Promise<HubUser | null>;
   tagsFor(user: HubUser): HubAccessSource[];
+  // The person signed in to the Hub itself (its own cookie), if any. Lets a Hub session from before the shared
+  // session existed turn into one without signing in again.
+  currentHubUser?(c: Context): Promise<HubUser | null>;
 }
 
 type RefreshOutcome = { ok: true } | { ok: false; status: 401 | 503; message: string };
@@ -294,6 +297,17 @@ export async function handleRestore(c: Context, deps: RefreshDeps, hubHome: stri
     back = null;
   }
   if (!back || !refreshOriginAllowed(back.origin)) return c.redirect(hubHome, 302);
+
+  // No refresh token yet, but the person is signed in to the Hub: start the shared session from that.
+  if (!getCookie(c, refreshCookieName()) && deps.currentHubUser) {
+    const user = await deps.currentHubUser(c).catch(() => null);
+    const version = user ? await deps.sessionVersionOf(user.id) : null;
+    if (user && version !== null) {
+      await issueSharedSession(c, user, deps.tagsFor(user), version);
+      back.searchParams.set("restored", "1");
+      return c.redirect(back.toString(), 302);
+    }
+  }
 
   const outcome = await performRefresh(c, deps);
   if (!outcome.ok) return c.redirect(hubHome, 302);

@@ -111,6 +111,7 @@ function refreshDeps(): RefreshDeps {
       (await prisma.userSession.findUnique({ where: { central_id: centralId } }))?.session_version ?? null,
     resolveIdentity: resolveCentralIdentityById,
     tagsFor: (user) => AppsService.accessTagsFor(user),
+    currentHubUser: (c) => sessionUserFromCookie(c),
   };
 }
 

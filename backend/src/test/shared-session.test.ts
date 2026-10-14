@@ -55,6 +55,7 @@ const fakeStore: RefreshStore = {
 const sessions = new Map<string, number>();
 let identity: unknown = null;
 let centralDown = false;
+let hubSignedIn: unknown = null;
 const deps: RefreshDeps = {
   sessionVersionOf: async (id) => sessions.get(id) ?? null,
   resolveIdentity: async () => {
@@ -62,6 +63,7 @@ const deps: RefreshDeps = {
     return identity as never;
   },
   tagsFor: () => [],
+  currentHubUser: async () => hubSignedIn as never,
 };
 
 const person = {
@@ -123,6 +125,7 @@ describe("shared session", () => {
     sessions.set("person-1", 3);
     identity = person;
     centralDown = false;
+    hubSignedIn = null;
   });
 
   it("signs in with an access token and a refresh token", async () => {
@@ -230,6 +233,16 @@ describe("shared session", () => {
       expect(response.headers.get("location")).toBe("http://localhost:5174/some/page?x=1&restored=1");
       expect(claimsOf(cookieValue(response, "hub_at")!).ok).toBe(true);
       expect(cookieValue(response, "hub_rt")).toBeTruthy();
+    });
+
+    it("starts the shared session from the Hub's own sign-in when there is no refresh token yet", async () => {
+      hubSignedIn = person;
+      const response = await restore("http://localhost:5174/", undefined);
+      expect(response.headers.get("location")).toBe("http://localhost:5174/?restored=1");
+      expect(claimsOf(cookieValue(response, "hub_at")!).ok).toBe(true);
+      expect(cookieValue(response, "hub_rt")).toBeTruthy();
+      expect(rows).toHaveLength(1);
+      expect(rows[0].session_version).toBe(3);
     });
 
     it("sends a person without a session to the Hub front page", async () => {
