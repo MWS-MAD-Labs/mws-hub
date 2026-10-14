@@ -237,3 +237,12 @@ model RefreshToken {
   @@index([central_id])
   @@map("refresh_tokens")
 }
+
+// The last time a code was traded for each application. Central asks for it to see that an application signs in
+// the code and token way.
+model SsoExchangeSeen {
+  app_id  String   @id
+  seen_at DateTime
+
+  @@map("sso_exchange_seen")
+}

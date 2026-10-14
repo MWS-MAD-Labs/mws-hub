@@ -57,7 +57,8 @@ export const ModelName = {
   AccessRequest: 'AccessRequest',
   AuditLog: 'AuditLog',
   UserSession: 'UserSession',
-  RefreshToken: 'RefreshToken'
+  RefreshToken: 'RefreshToken',
+  SsoExchangeSeen: 'SsoExchangeSeen'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -184,6 +185,14 @@ export const RefreshTokenScalarFieldEnum = {
 } as const
 
 export type RefreshTokenScalarFieldEnum = (typeof RefreshTokenScalarFieldEnum)[keyof typeof RefreshTokenScalarFieldEnum]
+
+
+export const SsoExchangeSeenScalarFieldEnum = {
+  app_id: 'app_id',
+  seen_at: 'seen_at'
+} as const
+
+export type SsoExchangeSeenScalarFieldEnum = (typeof SsoExchangeSeenScalarFieldEnum)[keyof typeof SsoExchangeSeenScalarFieldEnum]
 
 
 export const SortOrder = {

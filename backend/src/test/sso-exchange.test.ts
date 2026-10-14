@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { ssoRoute } from "../route/sso-route";
 import { createSsoCode } from "../lib/sso-code-store";
 import { ResponseError } from "../error/response-error";
+import { useExchangeSeenStoreForTest } from "../lib/exchange-seen";
 
 const testApp = new Hono();
 testApp.route("/sso", ssoRoute);
@@ -171,5 +172,51 @@ describe("POST /sso/app-retired", () => {
 
   it("refuses a missing address", async () => {
     expect((await retired({ "x-hub-internal-secret": "test-secret" }, { application_id: "exima" })).status).toBe(400);
+  });
+});
+
+describe("POST /sso/exchange-seen", () => {
+  const seen = new Map<string, Date>();
+  const ask = (body: unknown, headers: Record<string, string> = {}) =>
+    testApp.request("/sso/exchange-seen", {
+      method: "POST",
+      headers: { "content-type": "application/json", ...headers },
+      body: JSON.stringify(body),
+    });
+
+  beforeEach(() => {
+    process.env.HUB_INTERNAL_SECRET = "test-secret";
+    seen.clear();
+    useExchangeSeenStoreForTest({
+      save: async (appId, at) => void seen.set(appId, at),
+      find: async (appId) => seen.get(appId) ?? null,
+    });
+  });
+
+  afterEach(() => {
+    process.env.HUB_INTERNAL_SECRET = originalSecret;
+    useExchangeSeenStoreForTest(null);
+  });
+
+  it("says nothing was traded yet, then when a code was traded for that application only", async () => {
+    const headers = { "x-hub-internal-secret": "test-secret" };
+    expect(await (await ask({ application_id: "daily-checkin" }, headers)).json()).toEqual({ data: { seen_at: null } });
+
+    const code = await createSsoCode("jwt-1", "daily-checkin");
+    await exchange({ code, appId: "daily-checkin" }, headers);
+    const body = (await (await ask({ application_id: "daily-checkin" }, headers)).json()) as { data: { seen_at: string } };
+    expect(new Date(body.data.seen_at).getTime()).toBeGreaterThan(Date.now() - 5000);
+    expect(await (await ask({ application_id: "exima" }, headers)).json()).toEqual({ data: { seen_at: null } });
+  });
+
+  it("does not note a code that failed", async () => {
+    await exchange({ code: "nope", appId: "daily-checkin" }, { "x-hub-internal-secret": "test-secret" });
+    expect(seen.size).toBe(0);
+  });
+
+  it("needs the master secret and an application", async () => {
+    expect((await ask({ application_id: "x" })).status).toBe(401);
+    expect((await ask({ application_id: "x" }, { "x-hub-internal-secret": "wrong" })).status).toBe(401);
+    expect((await ask({}, { "x-hub-internal-secret": "test-secret" })).status).toBe(400);
   });
 });

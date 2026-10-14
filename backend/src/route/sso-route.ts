@@ -10,6 +10,9 @@ ssoRoute.post("/secret-check", SsoExchangeController.secretCheck);
 // Central says an application was retired, so the Hub has the application end its sessions.
 ssoRoute.post("/app-retired", SsoExchangeController.appRetired);
 
+// Central asks when a code was last traded for an application, to see it signs in the code and token way.
+ssoRoute.post("/exchange-seen", SsoExchangeController.exchangeSeen);
+
 ssoRoute.post(
   "/exchange",
   internalSecretAuthMiddleware,

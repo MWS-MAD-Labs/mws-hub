@@ -52,3 +52,8 @@ export type UserSession = Prisma.UserSessionModel
  * 
  */
 export type RefreshToken = Prisma.RefreshTokenModel
+/**
+ * Model SsoExchangeSeen
+ * 
+ */
+export type SsoExchangeSeen = Prisma.SsoExchangeSeenModel

@@ -2,6 +2,7 @@ import type { Context } from "hono";
 import { ResponseError } from "../error/response-error";
 import { sameSecret } from "../lib/hub-app-secret";
 import { consumeSsoCode } from "../lib/sso-code-store";
+import { lastExchange, noteExchange } from "../lib/exchange-seen";
 import { logger } from "../lib/logger";
 import { revokeAllSessionsForApp } from "../lib/session-revocation";
 
@@ -65,6 +66,22 @@ export class SsoExchangeController {
       throw new ResponseError(400, "Invalid, expired, or already-used code.");
     }
 
+    await noteExchange(appId);
     return c.json({ data: { token } });
+  }
+
+  // Central asks when a code was last traded for an application. Master secret only.
+  static async exchangeSeen(c: Context) {
+    const master = process.env.HUB_INTERNAL_SECRET;
+    if (!master) throw new ResponseError(503, "HUB_INTERNAL_SECRET is not configured.");
+    const provided = c.req.header("x-hub-internal-secret") || "";
+    if (!provided || !sameSecret(provided, master)) {
+      throw new ResponseError(401, "Invalid or missing internal secret.");
+    }
+    const body = (await c.req.json().catch(() => null)) as Record<string, unknown> | null;
+    const applicationId = typeof body?.application_id === "string" ? body.application_id : "";
+    if (!applicationId) throw new ResponseError(400, "application_id is required.");
+    const seen = await lastExchange(applicationId);
+    return c.json({ data: { seen_at: seen ? seen.toISOString() : null } });
   }
 }
