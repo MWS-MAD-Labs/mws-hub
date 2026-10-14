@@ -142,3 +142,25 @@ The admin area is three pages. **Dashboard** (`GET /admin/api/overview`) shows t
 An application can have a secret of its own, made from the master and its id: `v{version}.` followed by the HMAC-SHA256 of `app:{id}:{version}` with the master as key. Central puts it in the application's `.env` as `HUB_INTERNAL_SECRET`, and the Hub makes it again to check it, so a secret that leaks only opens that application. After a rotation in Central the old version is refused.
 
 The master itself is accepted from every application until `HUB_ALLOW_SHARED_SECRET=false` is set in the Hub's `.env`. Set that once every application has its own secret. Deploy the Hub before Central, since Central starts giving new applications secrets of their own.
+
+## Shared session for apps on the parent domain
+
+Besides its own `hub_session`, the Hub signs a person in to every app on the same parent domain with two cookies.
+
+| Cookie | What it is | Where it goes |
+|---|---|---|
+| `hub_at` | Access token. RS256, 5 minutes, says who the person is (`sub`, email, source, tags, `sid`). Apps verify it against `/.well-known/jwks.json`. | Parent domain (`HUB_COOKIE_DOMAIN`), `HttpOnly`, `Secure`, `SameSite=Lax` |
+| `hub_rt` | Refresh token. Opaque, 8 hours from sign-in, turns over on every use. Only the Hub can use it. | The Hub's own host, path `/auth`, `HttpOnly`, `Secure`, `SameSite=Strict` |
+
+An app's page calls `POST /auth/refresh` (with cookies and an `X-Requested-With` header) shortly before the access token ends. The Hub asks Central whether the person is still active, issues a new access token and a new refresh token, and keeps the old one for 10 seconds so two tabs refreshing together do not fight. An old refresh token shown again after that revokes the whole session. Logging out of the Hub (`POST /auth/logout`) revokes it and deletes both cookies, which signs the person out of every app.
+
+| Setting | Default | |
+|---|---|---|
+| `HUB_COOKIE_DOMAIN` | empty | Parent domain, for example `mws.web.id`. Leave empty on localhost. |
+| `HUB_ACCESS_TTL_SECONDS` | 300 | |
+| `HUB_REFRESH_TTL_SECONDS` | 28800 | |
+| `HUB_ACCESS_AUDIENCE` | `mws-apps` | `aud` of the access token |
+| `HUB_ACCESS_COOKIE_NAME` / `HUB_REFRESH_COOKIE_NAME` | `hub_at` / `hub_rt` | |
+| `HUB_REFRESH_COOKIE_PATH` | `/auth` | Must match where the Hub's `/auth` routes are served |
+
+Run the migration `20261020090000_add_refresh_tokens` before deploying (`bunx prisma migrate deploy`).

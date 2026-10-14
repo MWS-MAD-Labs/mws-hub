@@ -15,6 +15,9 @@ import { getUserUnitId, isHubAdmin } from "../lib/admin-access";
 import { hubAccessMode, resolveHubAccess } from "../lib/hub-access-gate";
 import type { SessionVariables } from "../type/hono-context";
 import { sanitizeLaunchRedirect } from "../lib/sso-state";
+import { endSharedSession, handleRefresh, issueSharedSession } from "../lib/shared-session";
+import { prisma } from "../lib/prisma";
+import { resolveCentralIdentityById } from "../lib/central-client";
 
 const OAUTH_STATE_COOKIE = "hub_google_oauth_state";
 
@@ -62,6 +65,16 @@ function oauthStateCookieOptions() {
     sameSite: "Lax" as const,
     path: "/auth/google",
   };
+}
+
+// The shared session next to Hub's own. A failure here must not stop the person from signing in to the Hub.
+async function startSharedSession(c: Context, user: SessionVariables["user"]) {
+  try {
+    const current = await prisma.userSession.findUnique({ where: { central_id: user.id } });
+    await issueSharedSession(c, user, AppsService.accessTagsFor(user), current?.session_version ?? 0);
+  } catch (error) {
+    logger.error("Could not start the shared session:", error);
+  }
 }
 
 async function hubAccessSummary(user: SessionVariables["user"]) {
@@ -116,6 +129,8 @@ export class AuthController {
       maxAge: 60 * 60 * 8,
     });
 
+    await startSharedSession(c, user);
+
     logger.info("User logged in:", user.email);
     await recordAuditLog({
       actor: user,
@@ -166,6 +181,8 @@ export class AuthController {
       maxAge: 60 * 60 * 8,
     });
 
+    await startSharedSession(c, user);
+
     logger.info("User logged in from Google callback:", user.email);
     await recordAuditLog({
       actor: user,
@@ -183,6 +200,16 @@ export class AuthController {
     return c.redirect(`${frontendOrigin()}${redirect ?? "/support-hub"}`, 302);
   }
 
+  // See handleRefresh in lib/shared-session.ts.
+  static refresh(c: Context) {
+    return handleRefresh(c, {
+      sessionVersionOf: async (centralId) =>
+        (await prisma.userSession.findUnique({ where: { central_id: centralId } }))?.session_version ?? null,
+      resolveIdentity: resolveCentralIdentityById,
+      tagsFor: (user) => AppsService.accessTagsFor(user),
+    });
+  }
+
   static async me(c: Context<{ Variables: SessionVariables }>) {
     const user = c.var.user;
     return c.json({ data: await authUserResponse(user) });
@@ -193,6 +220,7 @@ export class AuthController {
     const user = await sessionUserFromCookie(c);
     const cookieName = process.env.SESSION_COOKIE_NAME || "hub_session";
     deleteCookie(c, cookieName, cookieOptions());
+    await endSharedSession(c).catch((error) => logger.error("Could not end the shared session:", error));
 
     if (user) {
       logger.info("User logged out:", user.email);

@@ -216,3 +216,24 @@ model UserSession {
   @@index([email])
   @@map("user_sessions")
 }
+
+// The long-lived half of the shared session. One row per token: each refresh issues a new row in the same
+// family and marks the old one rotated. Only the hash is kept. A rotated token that comes back after the
+// short grace window means a copy was stolen, so the whole family is revoked.
+model RefreshToken {
+  id                String    @id @default(cuid())
+  family_id         String
+  token_hash        String    @unique
+  central_id        String
+  source            String
+  // UserSession.session_version when the family started: a newer login elsewhere ends the older family.
+  session_version   Int
+  family_expires_at DateTime
+  rotated_at        DateTime?
+  revoked_at        DateTime?
+  created_at        DateTime  @default(now())
+
+  @@index([family_id])
+  @@index([central_id])
+  @@map("refresh_tokens")
+}

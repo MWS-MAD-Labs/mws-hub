@@ -10,6 +10,7 @@ import { logger } from "./lib/logger";
 import { frontendOrigin } from "./lib/frontend-origin";
 import { hubSsoJwks } from "./lib/sso-relay";
 import { startPermissionSync } from "./lib/permission-sync";
+import { refreshOriginAllowed } from "./lib/shared-session";
 
 const app = new Hono();
 
@@ -47,13 +48,27 @@ app.use("*", async (c, next) => {
   );
 });
 
-app.use(
-  "*",
-  cors({
-    origin: frontendOrigin(),
-    credentials: true,
-  }),
-);
+// /auth/refresh is called from the apps' pages on other hosts of the parent domain, so it answers for them itself.
+app.use("/auth/refresh", async (c, next) => {
+  const origin = c.req.header("origin");
+  if (refreshOriginAllowed(origin)) {
+    c.header("Access-Control-Allow-Origin", origin);
+    c.header("Access-Control-Allow-Credentials", "true");
+    c.header("Vary", "Origin");
+  }
+  if (c.req.method === "OPTIONS") {
+    c.header("Access-Control-Allow-Methods", "POST");
+    c.header("Access-Control-Allow-Headers", "Content-Type, X-Requested-With");
+    return c.body(null, 204);
+  }
+  await next();
+});
+
+const hubCors = cors({
+  origin: frontendOrigin(),
+  credentials: true,
+});
+app.use("*", (c, next) => (c.req.path === "/auth/refresh" ? next() : hubCors(c, next)));
 
 app.get("/health", (c) => c.json({ data: "ok" }));
 app.get("/.well-known/jwks.json", (c) => {

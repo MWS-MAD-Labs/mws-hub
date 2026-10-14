@@ -113,6 +113,15 @@ export function hubSsoJwks(): { keys: HubSsoJwk[] } {
   return jwksCache;
 }
 
+// Signs any claims with the Hub's relay key (RS256, same key id as the relay tokens, so the same JWKS verifies it).
+export async function signHubJwt(payload: Record<string, unknown>): Promise<string> {
+  const header = { alg: "RS256", typ: "JWT", kid: keyId() };
+  const signingInput = `${base64UrlEncode(JSON.stringify(header))}.${base64UrlEncode(JSON.stringify(payload))}`;
+  const signingKey = await importSigningKey();
+  const signature = await crypto.subtle.sign("RSASSA-PKCS1-v1_5", signingKey, TEXT_ENCODER.encode(signingInput));
+  return `${signingInput}.${base64UrlEncode(signature)}`;
+}
+
 // Beyond the email assertion, the token also carries the same access tags
 // Hub itself just used to decide this person could open the app (see
 // AppsService.accessTagsFor) - the identical interpretation of Central's
