@@ -106,7 +106,7 @@ const hashToken = (token: string) => createHash("sha256").update(token).digest("
 const newToken = () => randomBytes(32).toString("base64url");
 
 export async function signAccessToken(
-  person: { id: string; email: string; source: string },
+  person: { person_id: string; email: string; source: string },
   tags: HubAccessSource[],
   familyId: string,
 ): Promise<string> {
@@ -114,7 +114,8 @@ export async function signAccessToken(
   return signHubJwt({
     iss: ISSUER,
     aud: accessAudience(),
-    sub: person.id,
+    // Person.id, what Central and the apps know the person by. `HubUser.id` is the Employee.id and stays the refresh key.
+    sub: person.person_id,
     email: person.email,
     source: person.source,
     tags,

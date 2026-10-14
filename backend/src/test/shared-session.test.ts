@@ -68,7 +68,7 @@ const deps: RefreshDeps = {
 
 const person = {
   source: "employee",
-  id: "person-1",
+  id: "employee-1",
   person_id: "person-1",
   employee_id: "E1",
   full_name: "Test Person",
@@ -90,7 +90,7 @@ app.post("/auth/logout", async (c) => {
   return c.json({ ok: true });
 });
 app.post("/login", async (c) => {
-  await issueSharedSession(c, person as never, [], sessions.get("person-1") ?? 0);
+  await issueSharedSession(c, person as never, [], sessions.get("employee-1") ?? 0);
   return c.json({ ok: true });
 });
 
@@ -115,14 +115,14 @@ function claimsOf(token: string) {
   return { ok, claims: JSON.parse(Buffer.from(body, "base64url").toString()) };
 }
 
-const signedIn = () => startFamily(person, sessions.get("person-1") ?? 0);
+const signedIn = () => startFamily(person, sessions.get("employee-1") ?? 0);
 
 describe("shared session", () => {
   beforeEach(() => {
     useRefreshStoreForTest(fakeStore);
     rows.length = 0;
     sessions.clear();
-    sessions.set("person-1", 3);
+    sessions.set("employee-1", 3);
     identity = person;
     centralDown = false;
     hubSignedIn = null;
@@ -185,7 +185,7 @@ describe("shared session", () => {
 
   it("ends the session when a newer sign-in elsewhere replaced it", async () => {
     const { token } = await signedIn();
-    sessions.set("person-1", 4);
+    sessions.set("employee-1", 4);
     expect((await call("/auth/refresh", `hub_rt=${token}`)).status).toBe(401);
     expect(rows.every((row) => row.revoked_at)).toBe(true);
   });
