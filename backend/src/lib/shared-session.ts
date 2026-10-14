@@ -232,28 +232,26 @@ export interface RefreshDeps {
   tagsFor(user: HubUser): HubAccessSource[];
 }
 
-// Gives the person a new access token and turns the refresh token over. Called from the apps' pages, with the
-// cookies, shortly before the access token ends.
-export async function handleRefresh(c: Context, deps: RefreshDeps): Promise<Response> {
-  const fail = (status: 401 | 403 | 503, message: string) => {
-    if (status === 401) clearSharedCookies(c);
-    return c.json({ errors: message }, status);
+type RefreshOutcome = { ok: true } | { ok: false; status: 401 | 503; message: string };
+
+// The shared work of a refresh: checks the refresh token, asks Central, and sets the new cookies on `c`.
+async function performRefresh(c: Context, deps: RefreshDeps): Promise<RefreshOutcome> {
+  const end = (message: string): RefreshOutcome => {
+    clearSharedCookies(c);
+    return { ok: false, status: 401, message };
   };
-  if (!refreshOriginAllowed(c.req.header("origin")) || !c.req.header("x-requested-with")) {
-    return fail(403, "Origin not allowed.");
-  }
   const token = getCookie(c, refreshCookieName());
-  if (!token) return fail(401, "No session.");
+  if (!token) return end("No session.");
 
   const check = await checkRefreshToken(token);
-  if (check.status === "invalid" || check.status === "reuse") return fail(401, "Session ended.");
+  if (check.status === "invalid" || check.status === "reuse") return end("Session ended.");
   const { row } = check;
 
   // A newer sign-in elsewhere ended this one.
   const version = await deps.sessionVersionOf(row.central_id);
   if (version === null || version !== row.session_version) {
     await revokeFamily(row.family_id);
-    return fail(401, "Session ended.");
+    return end("Session ended.");
   }
 
   // The person as Central knows them now, before anything is turned over: a failed lookup leaves the token usable.
@@ -261,15 +259,45 @@ export async function handleRefresh(c: Context, deps: RefreshDeps): Promise<Resp
   try {
     user = await deps.resolveIdentity(row.central_id, row.source as "employee" | "student");
   } catch {
-    return fail(503, "Try again shortly.");
+    return { ok: false, status: 503, message: "Try again shortly." };
   }
   if (!user) {
     await revokeFamily(row.family_id);
-    return fail(401, "Your account is no longer active.");
+    return end("Your account is no longer active.");
   }
 
   const access = await signAccessToken(user, deps.tagsFor(user), row.family_id);
   const refresh = check.status === "ok" ? await rotateRefreshToken(row) : null;
   setSharedCookies(c, { access, ...(refresh ? { refresh } : {}), familyExpiresAt: row.family_expires_at });
+  return { ok: true };
+}
+
+// POST /auth/refresh. Called from the apps' pages, with the cookies, shortly before the access token ends.
+export async function handleRefresh(c: Context, deps: RefreshDeps): Promise<Response> {
+  if (!refreshOriginAllowed(c.req.header("origin")) || !c.req.header("x-requested-with")) {
+    return c.json({ errors: "Origin not allowed." }, 403);
+  }
+  const outcome = await performRefresh(c, deps);
+  if (!outcome.ok) return c.json({ errors: outcome.message }, outcome.status);
   return c.json({ data: { expires_in: accessTtlSeconds() } });
+}
+
+// GET /auth/restore?return=<app url>. A page that arrives without an access token (it ended while nobody was
+// looking) sends the browser here. With a valid refresh token the person goes straight back, signed in; without
+// one they land on the Hub's front page. `return` must be on the parent domain.
+export async function handleRestore(c: Context, deps: RefreshDeps, hubHome: string): Promise<Response> {
+  const target = c.req.query("return");
+  let back: URL | null = null;
+  try {
+    back = target ? new URL(target) : null;
+  } catch {
+    back = null;
+  }
+  if (!back || !refreshOriginAllowed(back.origin)) return c.redirect(hubHome, 302);
+
+  const outcome = await performRefresh(c, deps);
+  if (!outcome.ok) return c.redirect(hubHome, 302);
+  // The app uses this to tell a person it just restored from one who still has no session.
+  back.searchParams.set("restored", "1");
+  return c.redirect(back.toString(), 302);
 }

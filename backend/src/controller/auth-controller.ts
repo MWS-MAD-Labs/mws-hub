@@ -15,7 +15,7 @@ import { getUserUnitId, isHubAdmin } from "../lib/admin-access";
 import { hubAccessMode, resolveHubAccess } from "../lib/hub-access-gate";
 import type { SessionVariables } from "../type/hono-context";
 import { sanitizeLaunchRedirect } from "../lib/sso-state";
-import { endSharedSession, handleRefresh, issueSharedSession } from "../lib/shared-session";
+import { endSharedSession, handleRefresh, handleRestore, issueSharedSession, type RefreshDeps } from "../lib/shared-session";
 import { prisma } from "../lib/prisma";
 import { resolveCentralIdentityById } from "../lib/central-client";
 
@@ -103,6 +103,15 @@ async function sessionUserFromCookie(c: Context): Promise<SessionVariables["user
   const token = getCookie(c, cookieName);
   if (!token) return null;
   return (await verifySession(token))?.user ?? null;
+}
+
+function refreshDeps(): RefreshDeps {
+  return {
+    sessionVersionOf: async (centralId) =>
+      (await prisma.userSession.findUnique({ where: { central_id: centralId } }))?.session_version ?? null,
+    resolveIdentity: resolveCentralIdentityById,
+    tagsFor: (user) => AppsService.accessTagsFor(user),
+  };
 }
 
 export class AuthController {
@@ -200,14 +209,13 @@ export class AuthController {
     return c.redirect(`${frontendOrigin()}${redirect ?? "/support-hub"}`, 302);
   }
 
-  // See handleRefresh in lib/shared-session.ts.
+  // See handleRefresh and handleRestore in lib/shared-session.ts.
   static refresh(c: Context) {
-    return handleRefresh(c, {
-      sessionVersionOf: async (centralId) =>
-        (await prisma.userSession.findUnique({ where: { central_id: centralId } }))?.session_version ?? null,
-      resolveIdentity: resolveCentralIdentityById,
-      tagsFor: (user) => AppsService.accessTagsFor(user),
-    });
+    return handleRefresh(c, refreshDeps());
+  }
+
+  static restore(c: Context) {
+    return handleRestore(c, refreshDeps(), `${frontendOrigin()}/`);
   }
 
   static async me(c: Context<{ Variables: SessionVariables }>) {

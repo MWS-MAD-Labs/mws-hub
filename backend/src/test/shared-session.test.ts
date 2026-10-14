@@ -5,6 +5,7 @@ import { Hono } from "hono";
 import {
   endSharedSession,
   handleRefresh,
+  handleRestore,
   issueSharedSession,
   startFamily,
   useRefreshStoreForTest,
@@ -81,6 +82,7 @@ const person = {
 
 const app = new Hono();
 app.post("/auth/refresh", (c) => handleRefresh(c, deps));
+app.get("/auth/restore", (c) => handleRestore(c, deps, "http://hub.test/"));
 app.post("/auth/logout", async (c) => {
   await endSharedSession(c);
   return c.json({ ok: true });
@@ -213,5 +215,39 @@ describe("shared session", () => {
     const cleared = response.headers.getSetCookie().join(" ");
     expect(cleared).toContain("hub_at=");
     expect(cleared).toContain("hub_rt=");
+  });
+
+  describe("restore", () => {
+    const restore = (returnUrl: string | null, cookie?: string) =>
+      app.request(`/auth/restore${returnUrl ? `?return=${encodeURIComponent(returnUrl)}` : ""}`, {
+        headers: cookie ? { cookie } : {},
+      });
+
+    it("sends a person with a valid refresh token back to the app, signed in", async () => {
+      const { token } = await signedIn();
+      const response = await restore("http://localhost:5174/some/page?x=1", `hub_rt=${token}`);
+      expect(response.status).toBe(302);
+      expect(response.headers.get("location")).toBe("http://localhost:5174/some/page?x=1&restored=1");
+      expect(claimsOf(cookieValue(response, "hub_at")!).ok).toBe(true);
+      expect(cookieValue(response, "hub_rt")).toBeTruthy();
+    });
+
+    it("sends a person without a session to the Hub front page", async () => {
+      const response = await restore("http://localhost:5174/", "hub_rt=unknown");
+      expect(response.headers.get("location")).toBe("http://hub.test/");
+      expect(cookieValue(response, "hub_at")).toBe("");
+    });
+
+    it("never sends anyone to an address outside the parent domain", async () => {
+      const { token } = await signedIn();
+      const response = await restore("https://evil.example/steal", `hub_rt=${token}`);
+      expect(response.headers.get("location")).toBe("http://hub.test/");
+      expect(rows.some((row) => row.rotated_at)).toBe(false);
+    });
+
+    it("sends a request with no return address to the Hub front page", async () => {
+      const response = await restore(null);
+      expect(response.headers.get("location")).toBe("http://hub.test/");
+    });
   });
 });

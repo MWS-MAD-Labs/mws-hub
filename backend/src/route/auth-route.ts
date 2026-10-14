@@ -11,6 +11,8 @@ authRoute.post("/google", AuthController.loginWithGoogle);
 authRoute.post("/logout", AuthController.logout);
 // Called by the apps' pages with the shared session cookies (see lib/shared-session.ts).
 authRoute.post("/refresh", AuthController.refresh);
+// A page without an access token comes here to get one back and return (see lib/shared-session.ts).
+authRoute.get("/restore", AuthController.restore);
 
 // Front-channel logout. A satellite redirects the browser here after clearing
 // its own session; Hub clears the cookie and sends the browser back.
