@@ -164,6 +164,6 @@ An app's page calls `POST /auth/refresh` (with cookies and an `X-Requested-With`
 | `HUB_ACCESS_COOKIE_NAME` / `HUB_REFRESH_COOKIE_NAME` | `hub_at` / `hub_rt` | |
 | `HUB_REFRESH_COOKIE_PATH` | `/auth` | Must match where the Hub's `/auth` routes are served |
 
-An application that reads the shared session (`session_mode` `SHARED` in Central) gets its card opened with no code, and is left out of the logout and session-revoke lists, because it has no session of its own. Every other application keeps the code and relay token flow, including the sign-out it sends the browser to (`GET /auth/logout?redirect=…`), which signs the Hub out too.
+An application that reads the shared session (`session_mode` `SHARED` in Central) gets its card opened with no code, and is left out of the logout and session-revoke lists, because it has no session of its own. Every other application keeps the code and relay token flow. Its own sign-out (`GET /auth/logout?redirect=…`) signs the person out of that application only: the Hub session and the other applications stay as they are, and the browser goes back to `redirect` or the Hub front page. Signing out of the Hub (`POST /auth/logout`) ends every application.
 
 Run the migration `20261020090000_add_refresh_tokens` before deploying (`bunx prisma migrate deploy`).
