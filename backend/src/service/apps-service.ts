@@ -7,6 +7,7 @@ import { centralCatalogState, isWithdrawn } from "./central-catalog-service";
 import type { CentralClaim, HubUser } from "../type/central-type";
 import type { HubAccessSource, HubAppResponse, HubCatalogEntry } from "../type/catalog-type";
 import { appEndpoints } from "../lib/app-endpoints";
+import { entryUsesSharedSession } from "../lib/shared-session";
 
 type ApprovedAccessLookup = (user: HubUser) => Promise<Set<string>>;
 
@@ -160,11 +161,12 @@ function toResponse(
   user: HubUser,
   approvedApplicationIds: Set<string>,
 ): HubAppResponse {
-  const { allowedSources, sso, source, hubSecret, explicitCentralLink, ...rest } = entry;
+  const { allowedSources, sso, source, hubSecret, sessionMode, explicitCentralLink, ...rest } = entry;
   void explicitCentralLink;
   void allowedSources;
   void source;
   void hubSecret;
+  void sessionMode;
 
   return {
     ...rest,
@@ -186,17 +188,21 @@ function toResponse(
 async function effectiveCatalog(): Promise<HubCatalogEntry[]> {
   const [rows, state] = await Promise.all([ApplicationService.listActive(), centralCatalogState()]);
   // A row for an application Central hid, retired or removed does not keep its card alive.
-  const centralSecrets = new Map(state.entries.map((entry) => [entry.id, entry.hubSecret]));
-  // A row that stands for an application Central knows uses the secret Central set for it.
+  const centralFacts = new Map(state.entries.map((entry) => [entry.id, { hubSecret: entry.hubSecret, sessionMode: entry.sessionMode }]));
+  // A row that stands for an application Central knows uses the secret and the sign-in way Central set for it.
   const own = rows
     .filter((entry) => !isWithdrawn(entry, state))
     .map((entry) => {
-      if (entry.hubSecret) return entry;
       const key = [entry.explicitCentralLink, entry.sso?.appId, entry.centralEntitlementAppId, entry.id].find(
-        (candidate) => candidate && centralSecrets.get(candidate),
+        (candidate) => candidate && centralFacts.get(candidate),
       );
-      const hubSecret = key ? centralSecrets.get(key) : undefined;
-      return hubSecret ? { ...entry, hubSecret } : entry;
+      const facts = key ? centralFacts.get(key) : undefined;
+      if (!facts) return entry;
+      return {
+        ...entry,
+        ...(entry.hubSecret || !facts.hubSecret ? {} : { hubSecret: facts.hubSecret }),
+        ...(entry.sessionMode || !facts.sessionMode ? {} : { sessionMode: facts.sessionMode }),
+      };
     });
   const taken = new Set(rows.flatMap((entry) => [entry.id, entry.sso?.appId, entry.centralEntitlementAppId]));
   const added = state.entries.filter((entry) => !taken.has(entry.id));
@@ -256,7 +262,7 @@ export class AppsService {
   static async logoutTargets(): Promise<string[]> {
     const catalog = await effectiveCatalog();
     return catalog
-      .map((entry) => (entry.sso?.logoutUrl ? appEndpoints(entry.sso.logoutUrl)?.silent : undefined))
+      .map((entry) => (entry.sso?.logoutUrl && !entryUsesSharedSession(entry) ? appEndpoints(entry.sso.logoutUrl)?.silent : undefined))
       .filter((url): url is string => Boolean(url));
   }
 
@@ -272,7 +278,8 @@ export class AppsService {
   static async revokeSessionTargets(master: string): Promise<{ url: string; secret: string }[]> {
     const catalog = await effectiveCatalog();
     return catalog
-      .filter((entry) => Boolean(entry.sso?.logoutUrl && appEndpoints(entry.sso.logoutUrl)))
+      // An application that reads the shared session has no session of its own to revoke.
+      .filter((entry) => Boolean(entry.sso?.logoutUrl && !entryUsesSharedSession(entry) && appEndpoints(entry.sso.logoutUrl)))
       .map((entry) => ({
         url: appEndpoints(entry.sso!.logoutUrl!)!.revoke,
         // An application with a secret of its own is sent that one, the others the Hub's own.

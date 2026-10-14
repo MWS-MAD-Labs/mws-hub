@@ -77,6 +77,19 @@ async function startSharedSession(c: Context, user: SessionVariables["user"]) {
   }
 }
 
+const POST_LOGOUT_REDIRECT_COOKIE = "hub_post_logout_redirect";
+
+// Not httpOnly: LogoutRelayPage reads this to know where to send the browser once the fan-out finishes. Safe to
+// expose because only the Hub's own server writes it, and only after resolveLogoutRedirect has vetted the value.
+function postLogoutRedirectCookieOptions() {
+  return {
+    httpOnly: false,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "Strict" as const,
+    path: "/",
+  };
+}
+
 async function hubAccessSummary(user: SessionVariables["user"]) {
   const access = await resolveHubAccess(user, Number(process.env.HUB_CENTRAL_ACCESS_CACHE_SECONDS || 30) * 1000);
   return {
@@ -257,25 +270,41 @@ export class AuthController {
     return c.json({ data: await AppsService.logoutTargets() });
   }
 
-  // Sign-out that starts inside a satellite app. The app clears its own session and sends the browser here, in
-  // the same tab. The person is known from Hub's own cookie (Lax rides along on a top-level GET). Their sessions
-  // in every other app are ended from here, server to server, and Hub's own session stays: Hub is the launcher,
-  // so the browser lands on its front page to pick an app again.
+  // Sign-out that starts inside a satellite app, sent here by the browser (the Hub's session is a cookie on its own
+  // domain, so only the browser can reach it). Two kinds of caller:
+  //  - An application with its own session (the code and token way) sends `redirect`, where to go back to. It
+  //    cleared its own session first. The Hub signs out too and fans the sign-out out to the other applications,
+  //    through their back-channel and then a relay page that ends the rest in the browser.
+  //  - Anything else sends no `redirect`. Applications that read the shared session have no sign-out of their own;
+  //    for a caller without one the Hub keeps its session, ends the person's sessions in the other applications,
+  //    and lands on its front page.
   static async logoutFromApp(c: Context) {
     const user = await sessionUserFromCookie(c);
+    const requestedRedirect = await resolveLogoutRedirect(c.req.query("redirect"));
+    const legacy = Boolean(requestedRedirect);
 
-    const target =
-      (await resolveLogoutRedirect(c.req.query("redirect"))) ||
-      `${frontendOrigin()}/`;
+    const target = requestedRedirect || `${frontendOrigin()}/`;
 
-    // The app says which email it was signed in as. A stale session in one app can sit next to a different
-    // current Hub login. In that case this sign-out is not Hub's to act on: leave everything alone.
+    // The application says which email it was signed in as. A stale session in one application can sit next to a
+    // different current Hub login. Then this sign-out is not the Hub's to act on: leave everything alone.
     const loggedOutEmail = c.req.query("email");
     if (loggedOutEmail && user && loggedOutEmail.toLowerCase() !== user.email.toLowerCase()) {
       logger.info(
         `App logout email mismatch - leaving Hub session alone: app logged out ${loggedOutEmail}, Hub session is ${user.email}`,
       );
       return c.redirect(target, 302);
+    }
+
+    if (legacy) {
+      const cookieName = process.env.SESSION_COOKIE_NAME || "hub_session";
+      deleteCookie(c, cookieName, cookieOptions());
+      await endSharedSession(c).catch((error) => logger.error("Could not end the shared session:", error));
+      // The other applications' own sessions are out of the Hub's reach; a Hub page ends them in the browser
+      // (LogoutRelayPage) and then finishes the trip to `target`.
+      setCookie(c, POST_LOGOUT_REDIRECT_COOKIE, target, {
+        ...postLogoutRedirectCookieOptions(),
+        maxAge: 30,
+      });
     }
 
     if (user) {
@@ -295,6 +324,6 @@ export class AuthController {
       logger.info("App logout reached Hub without a valid Hub session");
     }
 
-    return c.redirect(target, 302);
+    return c.redirect(legacy ? `${frontendOrigin()}/logout-relay` : target, 302);
   }
 }

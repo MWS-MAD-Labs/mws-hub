@@ -284,3 +284,21 @@ describe("usesSharedSession", () => {
     }
   });
 });
+
+describe("entryUsesSharedSession", () => {
+  it("follows Central's setting, and the env list for an older Central", async () => {
+    const { entryUsesSharedSession } = await import("../lib/shared-session");
+    const before = process.env.HUB_SHARED_SESSION_APPS;
+    try {
+      delete process.env.HUB_SHARED_SESSION_APPS;
+      expect(entryUsesSharedSession({ id: "a", sessionMode: "shared" })).toBe(true);
+      expect(entryUsesSharedSession({ id: "a", sessionMode: "relay" })).toBe(false);
+      expect(entryUsesSharedSession({ id: "a" })).toBe(false);
+      process.env.HUB_SHARED_SESSION_APPS = "a";
+      expect(entryUsesSharedSession({ id: "a" })).toBe(true);
+    } finally {
+      if (before === undefined) delete process.env.HUB_SHARED_SESSION_APPS;
+      else process.env.HUB_SHARED_SESSION_APPS = before;
+    }
+  });
+});

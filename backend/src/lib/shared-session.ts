@@ -21,8 +21,8 @@ function numberFrom(raw: string | undefined, fallback: number): number {
   return raw !== undefined && raw !== "" && Number.isFinite(value) && value > 0 ? value : fallback;
 }
 
-// Apps that read the shared session themselves. A card for one of them opens the app with no code to carry.
-// HUB_SHARED_SESSION_APPS is a comma separated list of application ids, or * for all of them.
+// Apps listed by hand that read the shared session themselves (HUB_SHARED_SESSION_APPS, application ids or *).
+// Kept for a Central that does not send `session_mode` yet; Central's own setting is what counts now.
 export function usesSharedSession(...appIds: (string | undefined)[]): boolean {
   const listed = (process.env.HUB_SHARED_SESSION_APPS || "")
     .split(",")
@@ -30,6 +30,11 @@ export function usesSharedSession(...appIds: (string | undefined)[]): boolean {
     .filter(Boolean);
   if (listed.includes("*")) return true;
   return appIds.some((id) => id && listed.includes(id));
+}
+
+// The same, for a catalog entry: Central says so (`session_mode`), and the env list is still honoured.
+export function entryUsesSharedSession(entry: { id: string; sso?: { appId: string }; sessionMode?: "relay" | "shared" }): boolean {
+  return entry.sessionMode === "shared" || usesSharedSession(entry.sso?.appId, entry.id);
 }
 
 export const accessCookieName = () => process.env.HUB_ACCESS_COOKIE_NAME || "hub_at";

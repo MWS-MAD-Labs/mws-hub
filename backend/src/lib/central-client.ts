@@ -250,6 +250,8 @@ export type CentralPublishedApplication = {
   keywords?: string[];
   // How this application proves itself to the Hub, and the version that counts now. Older Central versions send none.
   hub_secret?: { mode: "shared" | "own"; version: number };
+  // shared: the application reads the Hub's session. relay: it gets a one-time code and a token. Older Central versions send none.
+  session_mode?: "relay" | "shared";
 };
 
 export async function listPublishedApplications(): Promise<CentralPublishedApplication[]> {

@@ -156,12 +156,14 @@ An app's page calls `POST /auth/refresh` (with cookies and an `X-Requested-With`
 
 | Setting | Default | |
 |---|---|---|
-| `HUB_SHARED_SESSION_APPS` | empty | Application ids (comma separated, or `*`) whose card opens the app with no code, because the app reads the shared session itself. Every other app keeps the code and relay token flow. |
+| `HUB_SHARED_SESSION_APPS` | empty | Not needed any more: Central sets the sign-in way per application (`session_mode`) and the Hub reads it. Still honoured for a Central that does not send it: application ids (comma separated, or `*`). |
 | `HUB_COOKIE_DOMAIN` | empty | Parent domain, for example `mws.web.id`. Leave empty on localhost. |
 | `HUB_ACCESS_TTL_SECONDS` | 300 | |
 | `HUB_REFRESH_TTL_SECONDS` | 28800 | |
 | `HUB_ACCESS_AUDIENCE` | `mws-apps` | `aud` of the access token |
 | `HUB_ACCESS_COOKIE_NAME` / `HUB_REFRESH_COOKIE_NAME` | `hub_at` / `hub_rt` | |
 | `HUB_REFRESH_COOKIE_PATH` | `/auth` | Must match where the Hub's `/auth` routes are served |
+
+An application that reads the shared session (`session_mode` `SHARED` in Central) gets its card opened with no code, and is left out of the logout and session-revoke lists, because it has no session of its own. Every other application keeps the code and relay token flow, including the sign-out it sends the browser to (`GET /auth/logout?redirect=…`), which signs the Hub out too.
 
 Run the migration `20261020090000_add_refresh_tokens` before deploying (`bunx prisma migrate deploy`).

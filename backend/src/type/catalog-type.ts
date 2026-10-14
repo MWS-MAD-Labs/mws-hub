@@ -53,12 +53,14 @@ export type HubCatalogEntry = {
   source?: "hub" | "central";
   // Set by Central: whether the app has a Hub secret of its own, and which version is current.
   hubSecret?: { mode: "shared" | "own"; version: number };
+  // Set by Central: shared when the application reads the Hub's session, relay when it gets a code and a token.
+  sessionMode?: "relay" | "shared";
 };
 
 // What GET /apps hands the browser. Policy details stay server-side: the
 // client never receives the raw allowedSources, only whether this person can
 // open the card or should see the request-access path.
-export type HubAppResponse = Omit<HubCatalogEntry, "allowedSources" | "sso" | "centralEntitlementAppId" | "explicitCentralLink" | "source" | "hubSecret"> & {
+export type HubAppResponse = Omit<HubCatalogEntry, "allowedSources" | "sso" | "centralEntitlementAppId" | "explicitCentralLink" | "source" | "hubSecret" | "sessionMode"> & {
   access: "granted" | "locked";
   ssoAppId?: string;
 };

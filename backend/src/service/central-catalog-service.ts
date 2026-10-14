@@ -85,6 +85,7 @@ export function toCentralEntry(
         }),
     source: "central",
     ...(app.hub_secret ? { hubSecret: app.hub_secret } : {}),
+    ...(app.session_mode ? { sessionMode: app.session_mode } : {}),
   };
 }
 

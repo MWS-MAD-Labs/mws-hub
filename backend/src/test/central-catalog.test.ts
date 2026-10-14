@@ -194,6 +194,30 @@ describe("applications published in Central", () => {
     }
   });
 
+  it("keeps applications that read the Hub session out of the logout and revoke lists, and a Hub row inherits the way", async () => {
+    spyOn(centralClient, "listPublishedApplications").mockResolvedValue([
+      published("shared-app", { session_mode: "shared", logout_url: "https://shared.example.com/auth/logout", hub_secret: { mode: "own", version: 1 } }),
+      published("relay-app", { session_mode: "relay", logout_url: "https://relay.example.com/auth/logout", hub_secret: { mode: "own", version: 1 } }),
+    ] as never);
+    spyOn(centralClient, "lookupApplicationEntitlement").mockResolvedValue({ is_active: true } as never);
+    own = [
+      entry("hub-row-for-shared", {
+        centralEntitlementAppId: "shared-app",
+        sso: { appId: "shared-app", entryUrl: "https://shared.example.com/auth/sso", logoutUrl: "https://shared.example.com/auth/logout" },
+      }),
+    ];
+    try {
+      const targets = await AppsService.revokeSessionTargets("master-secret-0123456789abcdef");
+      expect(targets.map((target) => target.url)).toEqual(["https://relay.example.com/auth/revoke-session"]);
+      expect(await AppsService.logoutTargets()).toEqual(["https://relay.example.com/auth/logout-silent"]);
+      const found = await AppsService.findByLaunchId("shared-app");
+      expect(found?.sessionMode).toBe("shared");
+      expect(JSON.stringify(await AppsService.listFor(user))).not.toContain("sessionMode");
+    } finally {
+      own = [];
+    }
+  });
+
   it("reads Central once a minute and keeps the last answer when Central is down", async () => {
     const list = spyOn(centralClient, "listPublishedApplications").mockResolvedValue([published("demo")] as never);
     spyOn(centralClient, "lookupApplicationEntitlement").mockResolvedValue({ is_active: true } as never);
