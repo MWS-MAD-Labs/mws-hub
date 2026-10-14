@@ -264,3 +264,23 @@ describe("shared session", () => {
     });
   });
 });
+
+describe("usesSharedSession", () => {
+  it("is off until apps are listed, matches by id, and * means all", async () => {
+    const { usesSharedSession } = await import("../lib/shared-session");
+    const before = process.env.HUB_SHARED_SESSION_APPS;
+    try {
+      delete process.env.HUB_SHARED_SESSION_APPS;
+      expect(usesSharedSession("exima")).toBe(false);
+      process.env.HUB_SHARED_SESSION_APPS = " exima , daily-checkin ";
+      expect(usesSharedSession("exima")).toBe(true);
+      expect(usesSharedSession(undefined, "daily-checkin")).toBe(true);
+      expect(usesSharedSession("mtss")).toBe(false);
+      process.env.HUB_SHARED_SESSION_APPS = "*";
+      expect(usesSharedSession("mtss")).toBe(true);
+    } finally {
+      if (before === undefined) delete process.env.HUB_SHARED_SESSION_APPS;
+      else process.env.HUB_SHARED_SESSION_APPS = before;
+    }
+  });
+});

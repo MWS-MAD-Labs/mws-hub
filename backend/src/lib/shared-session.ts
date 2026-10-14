@@ -21,6 +21,17 @@ function numberFrom(raw: string | undefined, fallback: number): number {
   return raw !== undefined && raw !== "" && Number.isFinite(value) && value > 0 ? value : fallback;
 }
 
+// Apps that read the shared session themselves. A card for one of them opens the app with no code to carry.
+// HUB_SHARED_SESSION_APPS is a comma separated list of application ids, or * for all of them.
+export function usesSharedSession(...appIds: (string | undefined)[]): boolean {
+  const listed = (process.env.HUB_SHARED_SESSION_APPS || "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+  if (listed.includes("*")) return true;
+  return appIds.some((id) => id && listed.includes(id));
+}
+
 export const accessCookieName = () => process.env.HUB_ACCESS_COOKIE_NAME || "hub_at";
 export const refreshCookieName = () => process.env.HUB_REFRESH_COOKIE_NAME || "hub_rt";
 export const accessAudience = () => process.env.HUB_ACCESS_AUDIENCE || "mws-apps";

@@ -156,6 +156,7 @@ An app's page calls `POST /auth/refresh` (with cookies and an `X-Requested-With`
 
 | Setting | Default | |
 |---|---|---|
+| `HUB_SHARED_SESSION_APPS` | empty | Application ids (comma separated, or `*`) whose card opens the app with no code, because the app reads the shared session itself. Every other app keeps the code and relay token flow. |
 | `HUB_COOKIE_DOMAIN` | empty | Parent domain, for example `mws.web.id`. Leave empty on localhost. |
 | `HUB_ACCESS_TTL_SECONDS` | 300 | |
 | `HUB_REFRESH_TTL_SECONDS` | 28800 | |

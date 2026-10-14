@@ -16,6 +16,7 @@ import type { HubUser } from "../type/central-type";
 import type { RelayEntitlement } from "../type/central-type";
 import type { SessionVariables } from "../type/hono-context";
 import { optionalSsoState } from "../lib/sso-state";
+import { usesSharedSession } from "../lib/shared-session";
 
 // Launch is a browser navigation, not an XHR, so a failure here has to land
 // somewhere a person can read. Same shape the satellite apps already use for
@@ -223,6 +224,20 @@ export class AppsController {
         target: "hub",
       });
       return launchFailure(c, "app_coming_soon", entry.name);
+    }
+
+    if (entry.sso && usesSharedSession(entry.sso.appId, entry.id)) {
+      // The app reads the Hub's shared session itself (and restores it from the Hub if needed): no code to carry.
+      logger.info(`Launch redirected to shared-session app: ${entry.id}`, user.email);
+      await recordLaunchAudit({
+        actor: user,
+        appId: entry.id,
+        appName: entry.name,
+        outcome: "redirected",
+        target: "sso",
+        entitlement: relayEntitlement,
+      });
+      return c.redirect(entry.sso.entryUrl, 302);
     }
 
     if (entry.sso) {
