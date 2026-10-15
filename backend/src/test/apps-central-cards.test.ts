@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, mock, spyOn } from "bun:test";
 import * as centralClient from "../lib/central-client";
+import { ApplicationService } from "../service/application-service";
 import type { HubCatalogEntry } from "../type/catalog-type";
 import type { HubUser } from "../type/central-type";
 
@@ -22,12 +23,9 @@ const entry = (id: string, extra: Partial<HubCatalogEntry> = {}): HubCatalogEntr
 
 let catalog: HubCatalogEntry[] = [];
 
-mock.module("../service/application-service", () => ({
-  ApplicationService: { listActive: async () => catalog },
-}));
-
 const { AppsService, setApprovedAccessLookupForTest } = await import("../service/apps-service");
 const gate = await import("../lib/hub-access-gate");
+const { clearCentralCatalogCacheForTest } = await import("../service/central-catalog-service");
 
 setApprovedAccessLookupForTest(async () => new Set());
 
@@ -50,8 +48,11 @@ const user = {
 const gated = (id: string, extra: Partial<HubCatalogEntry> = {}) =>
   entry(id, { centralEntitlementAppId: id, sso: { appId: id, centralEntitlementAppId: id } as HubCatalogEntry["sso"], ...extra });
 
+// A spy, not a module mock: a module mock would stay for the test files after this one.
 beforeEach(() => {
+  spyOn(ApplicationService, "listActive").mockImplementation(async () => catalog);
   gate.clearAppAccessCacheForTest();
+  clearCentralCatalogCacheForTest();
   catalog = [gated("daily-checkin"), entry("plain")];
 });
 

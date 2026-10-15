@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, mock, spyOn } from "bun:test";
 import * as centralClient from "../lib/central-client";
+import { ApplicationService } from "../service/application-service";
 import { deriveAppSecret } from "../lib/hub-app-secret";
 import type { HubCatalogEntry } from "../type/catalog-type";
 import type { HubUser } from "../type/central-type";
@@ -22,10 +23,6 @@ const entry = (id: string, extra: Partial<HubCatalogEntry> = {}): HubCatalogEntr
   }) as HubCatalogEntry;
 
 let own: HubCatalogEntry[] = [];
-
-mock.module("../service/application-service", () => ({
-  ApplicationService: { listActive: async () => own },
-}));
 
 const { AppsService, setApprovedAccessLookupForTest } = await import("../service/apps-service");
 const { centralTaxonomy, clearCentralCatalogCacheForTest } = await import("../service/central-catalog-service");
@@ -60,7 +57,9 @@ const published = (id: string, extra: Record<string, unknown> = {}) => ({
   ...extra,
 });
 
+// A spy, not a module mock: a module mock would stay for the test files after this one.
 beforeEach(() => {
+  spyOn(ApplicationService, "listActive").mockImplementation(async () => own);
   gate.clearAppAccessCacheForTest();
   clearCentralCatalogCacheForTest();
   own = [];

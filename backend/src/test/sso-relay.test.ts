@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from "bun:test";
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from "bun:test";
 import { generateKeyPairSync, verify as verifyRsaSignature } from "node:crypto";
 
 // hubSsoJwks()/mintRelayToken() cache their signing key and JWKS in
@@ -7,7 +7,18 @@ import { generateKeyPairSync, verify as verifyRsaSignature } from "node:crypto";
 // unconfigured state. This file therefore runs the failure cases first, in a
 // single sequential describe block (bun runs tests within a file in
 // declaration order), and only sets a valid key afterwards.
-import { hubSsoJwks, mintRelayToken } from "../lib/sso-relay";
+import { hubSsoJwks, mintRelayToken, resetSsoRelayForTest } from "../lib/sso-relay";
+
+// Other test files may have filled the cache or set a key, and bun runs them in one process.
+const originalKey = process.env.HUB_SSO_PRIVATE_KEY;
+const originalKeyId = process.env.HUB_SSO_KEY_ID;
+afterAll(() => {
+  if (originalKey === undefined) delete process.env.HUB_SSO_PRIVATE_KEY;
+  else process.env.HUB_SSO_PRIVATE_KEY = originalKey;
+  if (originalKeyId === undefined) delete process.env.HUB_SSO_KEY_ID;
+  else process.env.HUB_SSO_KEY_ID = originalKeyId;
+  resetSsoRelayForTest();
+});
 
 const { privateKey, publicKey } = generateKeyPairSync("rsa", {
   modulusLength: 2048,
@@ -23,6 +34,8 @@ function base64UrlDecode(segment: string): Buffer {
 }
 
 describe("hubSsoJwks - misconfiguration is a loud failure, not a silent one", () => {
+  beforeEach(() => resetSsoRelayForTest());
+
   it("throws when HUB_SSO_PRIVATE_KEY is unset", () => {
     delete process.env.HUB_SSO_PRIVATE_KEY;
     expect(() => hubSsoJwks()).toThrow("HUB_SSO_PRIVATE_KEY is not configured");
@@ -68,6 +81,7 @@ describe("hubSsoJwks - misconfiguration is a loud failure, not a silent one", ()
 
 describe("hubSsoJwks / mintRelayToken with a valid key", () => {
   beforeAll(() => {
+    resetSsoRelayForTest();
     process.env.HUB_SSO_PRIVATE_KEY = pkcs8Pem;
     process.env.HUB_SSO_KEY_ID = "test-key-id";
   });
