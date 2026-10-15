@@ -1,4 +1,5 @@
-import { afterAll, afterEach, describe, expect, it, mock } from "bun:test";
+import { afterAll, afterEach, describe, expect, it, spyOn } from "bun:test";
+import { ApplicationService } from "../service/application-service";
 import { HUB_CATALOG } from "../../seed/default-catalog";
 import type { HubCatalogEntry } from "../type/catalog-type";
 import type { HubUser } from "../type/central-type";
@@ -10,11 +11,8 @@ type ApprovedAccessRequest = {
 
 let approvedAccessRequests: ApprovedAccessRequest[] = [];
 
-mock.module("../service/application-service", () => ({
-  ApplicationService: {
-    listActive: async () => HUB_CATALOG,
-  },
-}));
+// A spy, not a module mock: a module mock would stay for the test files after this one.
+const listActive = spyOn(ApplicationService, "listActive").mockImplementation(async () => HUB_CATALOG);
 
 const {
   AppsService,
@@ -36,6 +34,7 @@ afterEach(() => {
 });
 
 afterAll(() => {
+  listActive.mockRestore();
   setApprovedAccessLookupForTest(null);
 });
 

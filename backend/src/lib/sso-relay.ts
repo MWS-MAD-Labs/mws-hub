@@ -16,6 +16,12 @@ type HubSsoJwk = {
 let signingKeyPromise: Promise<CryptoKey> | null = null;
 let jwksCache: { keys: HubSsoJwk[] } | null = null;
 
+// Tests only: the key and the JWKS are kept after the first call, so a test that changes the key starts from here.
+export function resetSsoRelayForTest(): void {
+  signingKeyPromise = null;
+  jwksCache = null;
+}
+
 // The app registry used to live here as SSO_APPS. It now sits in Hub's
 // database catalog alongside every other app, so which apps exist, who may
 // see them and who may open them are one list instead of two that had to be
