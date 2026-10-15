@@ -23,6 +23,11 @@ export * from './enums.ts';
  */
 export type Application = Prisma.ApplicationModel
 /**
+ * Model SsoCode
+ * 
+ */
+export type SsoCode = Prisma.SsoCodeModel
+/**
  * Model AppReport
  * 
  */
@@ -42,3 +47,13 @@ export type AuditLog = Prisma.AuditLogModel
  * 
  */
 export type UserSession = Prisma.UserSessionModel
+/**
+ * Model RefreshToken
+ * 
+ */
+export type RefreshToken = Prisma.RefreshTokenModel
+/**
+ * Model SsoExchangeSeen
+ * 
+ */
+export type SsoExchangeSeen = Prisma.SsoExchangeSeenModel

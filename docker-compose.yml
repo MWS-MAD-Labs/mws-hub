@@ -2,7 +2,6 @@
 services:
   db:
     image: postgres:16-alpine
-    container_name: mws-hub-db
     restart: unless-stopped
     env_file:
       - path: ./.env
@@ -28,7 +27,6 @@ services:
       - internal
 
   backend:
-    container_name: mws-hub-be
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -44,6 +42,7 @@ services:
       PORT: 4001
       SESSION_COOKIE_NAME: ${SESSION_COOKIE_NAME:-hub_session}
       CENTRAL_API_BASE_URL: ${CENTRAL_API_BASE_URL:-http://host.docker.internal:5173/api/internal}
+      SSO_CODE_STORE: ${SSO_CODE_STORE:-postgres}
     command: sh -c "export DATABASE_URL=\"postgresql://$${POSTGRES_USER:-hub}:$${POSTGRES_PASSWORD:-postgress123Abc}@db:5432/$${POSTGRES_DB:-mws-hub}?schema=public\" && bun run db:migrate && bun run src/index.ts"
 
     depends_on:
@@ -75,7 +74,6 @@ services:
         max-file: "3"
 
   frontend:
-    container_name: mws-hub-fe
     build:
       context: ./frontend
       dockerfile: Dockerfile
@@ -89,7 +87,7 @@ services:
     expose:
       - "80"
     ports:
-      - "5175:80" 
+      - "${FRONTEND_PORT:-5175}:80"
 
     environment:
       HUB_API_BASE_URL: ""
@@ -106,7 +104,7 @@ services:
       internal:
       mws-unified:
         aliases:
-          - mws-hub-fe
+          - ${GATEWAY_ALIAS:-mws-hub-fe}
     healthcheck:
       test:
         [
@@ -128,7 +126,7 @@ networks:
     driver: bridge
   mws-unified:
     external: true
-    name: mws-unified
+    name: ${GATEWAY_NETWORK:-mws-unified}
 
 volumes:
   hubdata:

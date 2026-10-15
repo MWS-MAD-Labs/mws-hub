@@ -1,11 +1,13 @@
 import { applyStatusOverrides } from "../lib/status-overrides";
-import {
-  normalizeAccessToken,
-  userMatchesAccessRule,
-} from "../lib/access-rules";
+import { normalizeAccessToken, userMatchesAccessRule } from "../lib/access-rules";
+import { centralAccessForApp } from "../lib/hub-access-gate";
 import { ApplicationService } from "./application-service";
+import { deriveAppSecret } from "../lib/hub-app-secret";
+import { centralCatalogState, isWithdrawn } from "./central-catalog-service";
 import type { CentralClaim, HubUser } from "../type/central-type";
 import type { HubAccessSource, HubAppResponse, HubCatalogEntry } from "../type/catalog-type";
+import { appEndpoints } from "../lib/app-endpoints";
+import { entryUsesSharedSession } from "../lib/shared-session";
 
 type ApprovedAccessLookup = (user: HubUser) => Promise<Set<string>>;
 
@@ -24,23 +26,20 @@ function claimToStrings(claim: CentralClaim): string[] {
   ].filter((value): value is string => Boolean(value));
 }
 
-function addAccessTag(
-  tags: Set<HubAccessSource>,
-  rawValue: string | null | undefined,
-  options: { splitTokens?: boolean } = { splitTokens: true },
-) {
+// Whole-value tags only, deliberately never split on "-" into sub-word
+// tags. A compound label can be a broader role that should admit a narrower
+// rule (e.g. hypothetically "Super Admin" -> also "admin") just as easily
+// as it can be a distinct, unrelated one (e.g. "Assistant Director" is not
+// "Director" and must not silently inherit its access) - the string alone
+// can't tell those apart, so this never guesses. An app that wants to admit
+// a compound role names it exactly in allowedSources.
+function addAccessTag(tags: Set<HubAccessSource>, rawValue: string | null | undefined) {
   if (!rawValue) return;
 
   const normalized = normalizeAccessToken(rawValue);
   if (!normalized) return;
 
   tags.add(normalized);
-  if (options.splitTokens === false) return;
-
-  normalized
-    .split("-")
-    .filter(Boolean)
-    .forEach((token) => tags.add(token));
 }
 
 function namedValue(
@@ -68,7 +67,7 @@ function getUserAccessTags(user: HubUser): Set<HubAccessSource> {
     namedValue(user.job_position),
     namedValue(user.job_level),
     user.employment_type,
-  ].forEach((value) => addAccessTag(tags, value, { splitTokens: false }));
+  ].forEach((value) => addAccessTag(tags, value));
   }
 
   return tags;
@@ -113,10 +112,7 @@ function hasExplicitAppPermission(entry: HubCatalogEntry, user: HubUser): boolea
 // gate, so an app can never be visible to someone who would be turned away
 // on click, or openable by someone it was hidden from.
 export function canAccess(entry: HubCatalogEntry, user: HubUser): boolean {
-  const sourceAllowed = entry.allowedSources.some((source) =>
-    userMatchesAccessRule(source, user),
-  );
-
+  const sourceAllowed = entry.allowedSources.some((source) => userMatchesAccessRule(source, user));
   return sourceAllowed || hasExplicitAppPermission(entry, user);
 }
 
@@ -165,8 +161,12 @@ function toResponse(
   user: HubUser,
   approvedApplicationIds: Set<string>,
 ): HubAppResponse {
-  const { allowedSources, sso, ...rest } = entry;
+  const { allowedSources, sso, source, hubSecret, sessionMode, explicitCentralLink, ...rest } = entry;
+  void explicitCentralLink;
   void allowedSources;
+  void source;
+  void hubSecret;
+  void sessionMode;
 
   return {
     ...rest,
@@ -182,8 +182,31 @@ function toResponse(
 // what makes the admin screen able to add and hide apps without a release.
 // HUB_APP_STATUS_OVERRIDES still applies on top as an emergency lever that
 // works without touching the database.
+//
+// Applications published in Central join the list without a row in Hub. A row in Hub with the
+// same id wins, so Hub can still restyle one or set maintenance on it.
 async function effectiveCatalog(): Promise<HubCatalogEntry[]> {
-  return applyStatusOverrides(await ApplicationService.listActive());
+  const [rows, state] = await Promise.all([ApplicationService.listActive(), centralCatalogState()]);
+  // A row for an application Central hid, retired or removed does not keep its card alive.
+  const centralFacts = new Map(state.entries.map((entry) => [entry.id, { hubSecret: entry.hubSecret, sessionMode: entry.sessionMode }]));
+  // A row that stands for an application Central knows uses the secret and the sign-in way Central set for it.
+  const own = rows
+    .filter((entry) => !isWithdrawn(entry, state))
+    .map((entry) => {
+      const key = [entry.explicitCentralLink, entry.sso?.appId, entry.centralEntitlementAppId, entry.id].find(
+        (candidate) => candidate && centralFacts.get(candidate),
+      );
+      const facts = key ? centralFacts.get(key) : undefined;
+      if (!facts) return entry;
+      return {
+        ...entry,
+        ...(entry.hubSecret || !facts.hubSecret ? {} : { hubSecret: facts.hubSecret }),
+        ...(entry.sessionMode || !facts.sessionMode ? {} : { sessionMode: facts.sessionMode }),
+      };
+    });
+  const taken = new Set(rows.flatMap((entry) => [entry.id, entry.sso?.appId, entry.centralEntitlementAppId]));
+  const added = state.entries.filter((entry) => !taken.has(entry.id));
+  return applyStatusOverrides([...own, ...added]);
 }
 
 export class AppsService {
@@ -192,9 +215,20 @@ export class AppsService {
       effectiveCatalog(),
       approvedApplicationIdsFor(user),
     ]);
-    return catalog
-      .filter((entry) => isVisibleTo(entry, user))
-      .map((entry) => toResponse(entry, user, approvedApplicationIds));
+    const visible = catalog.filter((entry) => isVisibleTo(entry, user));
+    const central = await Promise.all(
+      visible.map((entry) =>
+        entry.centralEntitlementAppId
+          ? centralAccessForApp(user, entry.centralEntitlementAppId)
+          : Promise.resolve(null),
+      ),
+    );
+    // An app Central published has no rule of Hub's own to fall back on, so it needs a clear yes.
+    return visible
+      .filter((entry, index) => (entry.source === "central" ? central[index] === "granted" : central[index] !== "denied"))
+      .map((entry) => entry.centralEntitlementAppId
+        ? toResponse(entry, user, new Set([entry.id]))
+        : toResponse(entry, user, approvedApplicationIds));
   }
 
   static async findByLaunchId(appId: string): Promise<HubCatalogEntry | null> {
@@ -214,7 +248,8 @@ export class AppsService {
     return Array.from(getUserAccessTags(user));
   }
 
-  static canLaunch(entry: HubCatalogEntry, user: HubUser): Promise<boolean> {
+  static async canLaunch(entry: HubCatalogEntry, user: HubUser): Promise<boolean> {
+    if (entry.centralEntitlementAppId) return true;
     return canAccessWithApprovedRequest(entry, user);
   }
 
@@ -226,9 +261,9 @@ export class AppsService {
   // nothing there to clear).
   static async logoutTargets(): Promise<string[]> {
     const catalog = await effectiveCatalog();
-    return catalog.map((entry) => entry.sso?.logoutUrl).filter(
-      (url): url is string => Boolean(url),
-    );
+    return catalog
+      .map((entry) => (entry.sso?.logoutUrl && !entryUsesSharedSession(entry) ? appEndpoints(entry.sso.logoutUrl)?.silent : undefined))
+      .filter((url): url is string => Boolean(url));
   }
 
   // Server-to-server counterpart to logoutTargets() above - same per-app
@@ -239,11 +274,16 @@ export class AppsService {
   // third-party cookies being allowed, or the tab staying open long enough
   // for a hidden iframe to finish - see lib/session-revocation.ts for the
   // caller.
-  static async revokeSessionTargets(): Promise<string[]> {
+  // Where to tell an application's backend that someone signed out, and the secret that application is sent.
+  static async revokeSessionTargets(master: string): Promise<{ url: string; secret: string }[]> {
     const catalog = await effectiveCatalog();
     return catalog
-      .map((entry) => entry.sso?.logoutUrl)
-      .filter((url): url is string => Boolean(url))
-      .map((url) => url.replace(/\/auth\/logout-silent$/, "/auth/revoke-session"));
+      // An application that reads the shared session has no session of its own to revoke.
+      .filter((entry) => Boolean(entry.sso?.logoutUrl && !entryUsesSharedSession(entry) && appEndpoints(entry.sso.logoutUrl)))
+      .map((entry) => ({
+        url: appEndpoints(entry.sso!.logoutUrl!)!.revoke,
+        // An application with a secret of its own is sent that one, the others the Hub's own.
+        secret: entry.hubSecret?.mode === "own" ? deriveAppSecret(master, entry.sso?.appId ?? entry.id, entry.hubSecret.version) : master,
+      }));
   }
 }

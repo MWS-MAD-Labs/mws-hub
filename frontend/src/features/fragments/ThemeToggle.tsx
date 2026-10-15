@@ -70,13 +70,14 @@ export default function ThemeToggle({ variant = "default" }: ThemeToggleProps) {
       <button
         type="button"
         onClick={handleToggleTheme}
-        aria-label="Toggle theme"
-        className="inline-flex h-8 w-8 items-center justify-center rounded-[0.25rem] border border-border bg-card text-foreground transition-colors hover:bg-muted"
+        aria-label={theme === "dark" ? "Switch to Light Theme" : "Switch to Dark Theme"}
+        title={theme === "dark" ? "Switch to Light Theme" : "Switch to Dark Theme"}
+        className="admin-focus inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--admin-border)] bg-[var(--admin-card)] text-[var(--admin-text)] transition-colors hover:bg-[var(--admin-card-subtle)]"
       >
         {theme === "dark" ? (
-          <Sun className="h-4 w-4 text-yellow-500" />
+          <Sun className="h-4 w-4" />
         ) : (
-          <Moon className="h-4 w-4 text-indigo-500" />
+          <Moon className="h-4 w-4" />
         )}
       </button>
     );

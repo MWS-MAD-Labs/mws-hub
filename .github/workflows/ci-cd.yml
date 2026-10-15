@@ -69,9 +69,43 @@ jobs:
       - name: Build FE
         run: bun run build
 
+  sync-permissions-staging:
+    name: Send Permission List To Central (Staging)
+    needs: [test-be, test-fe]
+    if: success() && github.ref == 'refs/heads/staging' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install BE deps
+        run: bun install --frozen-lockfile
+
+      # The permission list of this version has to reach Central before the new container replaces the
+      # old one. If it cannot (Central down, not deployed with the endpoints yet, or it refuses the
+      # list) this job fails, the deploy below does not run, and the version that is running stays.
+      - name: Send permissions
+        env:
+          CENTRAL_API_BASE_URL: ${{ secrets.CENTRAL_API_BASE_URL_STAGING || secrets.CENTRAL_API_BASE_URL }}
+          CENTRAL_API_TOKEN: ${{ secrets.CENTRAL_API_TOKEN_STAGING || secrets.CENTRAL_API_TOKEN }}
+        run: |
+          if [ -z "$CENTRAL_API_BASE_URL" ] || [ -z "$CENTRAL_API_TOKEN" ]; then
+            echo "::error::CENTRAL_API_BASE_URL and CENTRAL_API_TOKEN secrets are not set (Staging)."
+            exit 1
+          fi
+          bun run scripts/sync-permissions.ts sync --retries 5 --wait 20
+
   deploy-staging:
     name: Trigger Komodo Deploy (Staging)
-    needs: [test-be, test-fe]
+    needs: [test-be, test-fe, sync-permissions-staging]
     if: success() && github.ref == 'refs/heads/staging' && github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -102,9 +136,43 @@ jobs:
           cat /tmp/komodo_resp.txt
           [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ] || exit 1
 
+  sync-permissions-production:
+    name: Send Permission List To Central (Production)
+    needs: [test-be, test-fe]
+    if: success() && github.ref == 'refs/heads/master' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install BE deps
+        run: bun install --frozen-lockfile
+
+      # The permission list of this version has to reach Central before the new container replaces the
+      # old one. If it cannot (Central down, not deployed with the endpoints yet, or it refuses the
+      # list) this job fails, the deploy below does not run, and the version that is running stays.
+      - name: Send permissions
+        env:
+          CENTRAL_API_BASE_URL: ${{ secrets.CENTRAL_API_BASE_URL_PRODUCTION || secrets.CENTRAL_API_BASE_URL }}
+          CENTRAL_API_TOKEN: ${{ secrets.CENTRAL_API_TOKEN_PRODUCTION || secrets.CENTRAL_API_TOKEN }}
+        run: |
+          if [ -z "$CENTRAL_API_BASE_URL" ] || [ -z "$CENTRAL_API_TOKEN" ]; then
+            echo "::error::CENTRAL_API_BASE_URL and CENTRAL_API_TOKEN secrets are not set (Production)."
+            exit 1
+          fi
+          bun run scripts/sync-permissions.ts sync --retries 5 --wait 20
+
   deploy-production:
     name: Trigger Komodo Deploy (Production)
-    needs: [test-be, test-fe]
+    needs: [test-be, test-fe, sync-permissions-production]
     if: success() && github.ref == 'refs/heads/master' && github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 5

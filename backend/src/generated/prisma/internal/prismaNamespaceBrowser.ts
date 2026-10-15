@@ -52,10 +52,13 @@ export const AnyNull = runtime.AnyNull
 
 export const ModelName = {
   Application: 'Application',
+  SsoCode: 'SsoCode',
   AppReport: 'AppReport',
   AccessRequest: 'AccessRequest',
   AuditLog: 'AuditLog',
-  UserSession: 'UserSession'
+  UserSession: 'UserSession',
+  RefreshToken: 'RefreshToken',
+  SsoExchangeSeen: 'SsoExchangeSeen'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -90,6 +93,7 @@ export const ApplicationScalarFieldEnum = {
   sso_app_id: 'sso_app_id',
   sso_entry_url: 'sso_entry_url',
   sso_logout_url: 'sso_logout_url',
+  sso_central_entitlement_app_id: 'sso_central_entitlement_app_id',
   sort_order: 'sort_order',
   created_at: 'created_at',
   updated_at: 'updated_at',
@@ -97,6 +101,18 @@ export const ApplicationScalarFieldEnum = {
 } as const
 
 export type ApplicationScalarFieldEnum = (typeof ApplicationScalarFieldEnum)[keyof typeof ApplicationScalarFieldEnum]
+
+
+export const SsoCodeScalarFieldEnum = {
+  code: 'code',
+  token: 'token',
+  app_id: 'app_id',
+  state: 'state',
+  expires_at: 'expires_at',
+  created_at: 'created_at'
+} as const
+
+export type SsoCodeScalarFieldEnum = (typeof SsoCodeScalarFieldEnum)[keyof typeof SsoCodeScalarFieldEnum]
 
 
 export const AppReportScalarFieldEnum = {
@@ -146,12 +162,37 @@ export type AuditLogScalarFieldEnum = (typeof AuditLogScalarFieldEnum)[keyof typ
 
 
 export const UserSessionScalarFieldEnum = {
+  central_id: 'central_id',
   email: 'email',
   session_version: 'session_version',
   updated_at: 'updated_at'
 } as const
 
 export type UserSessionScalarFieldEnum = (typeof UserSessionScalarFieldEnum)[keyof typeof UserSessionScalarFieldEnum]
+
+
+export const RefreshTokenScalarFieldEnum = {
+  id: 'id',
+  family_id: 'family_id',
+  token_hash: 'token_hash',
+  central_id: 'central_id',
+  source: 'source',
+  session_version: 'session_version',
+  family_expires_at: 'family_expires_at',
+  rotated_at: 'rotated_at',
+  revoked_at: 'revoked_at',
+  created_at: 'created_at'
+} as const
+
+export type RefreshTokenScalarFieldEnum = (typeof RefreshTokenScalarFieldEnum)[keyof typeof RefreshTokenScalarFieldEnum]
+
+
+export const SsoExchangeSeenScalarFieldEnum = {
+  app_id: 'app_id',
+  seen_at: 'seen_at'
+} as const
+
+export type SsoExchangeSeenScalarFieldEnum = (typeof SsoExchangeSeenScalarFieldEnum)[keyof typeof SsoExchangeSeenScalarFieldEnum]
 
 
 export const SortOrder = {

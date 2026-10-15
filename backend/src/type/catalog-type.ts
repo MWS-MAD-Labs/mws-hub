@@ -22,6 +22,8 @@ export type HubAppSso = {
   // every app the person opened, not just Hub itself. Optional: an app
   // without one just doesn't get included in the logout fan-out.
   logoutUrl?: string;
+  // Central application id whose active entitlement is required at launch.
+  centralEntitlementAppId?: string;
 };
 
 export type HubCatalogEntry = {
@@ -30,27 +32,35 @@ export type HubCatalogEntry = {
   icon: string;
   description: string;
   category: string;
+  // The product space, set in Central. Rows of Hub's own have none.
+  scope?: string;
   audience: string;
   keywords: string[];
   href: string | null;
   external: boolean;
   status: HubAppStatus;
-  // Display lever: false drops an app from the grid for everyone, for tools
-  // a normal user should not even know about. Distinct from allowedSources,
-  // which is the access lever - a hidden app is still launchable by someone
-  // who has its URL and is admitted below.
+  // Legacy publication flag retained for persisted data compatibility. The
+  // admin UI no longer exposes it; Central entitlement decides per-user cards.
   discoverable: boolean;
-  // Deny by default. Values are Central-backed access keys: identity source
-  // (`student`, `employee`), role/audience keys (`teacher`, `admin`, ...),
-  // or `public` for every active Central user.
+  // Legacy Hub policy retained while old rows are migrated. Runtime access is
+  // Central-only and no longer evaluates these rules.
   allowedSources: HubAccessSource[];
+  centralEntitlementAppId?: string;
+  // The Central application a Hub row was linked to on purpose. A row without one is only matched by its id.
+  explicitCentralLink?: string;
   sso?: HubAppSso;
+  // "central" when Central published the app, so Hub keeps no row for it.
+  source?: "hub" | "central";
+  // Set by Central: whether the app has a Hub secret of its own, and which version is current.
+  hubSecret?: { mode: "shared" | "own"; version: number };
+  // Set by Central: shared when the application reads the Hub's session, relay when it gets a code and a token.
+  sessionMode?: "relay" | "shared";
 };
 
 // What GET /apps hands the browser. Policy details stay server-side: the
 // client never receives the raw allowedSources, only whether this person can
 // open the card or should see the request-access path.
-export type HubAppResponse = Omit<HubCatalogEntry, "allowedSources" | "sso"> & {
+export type HubAppResponse = Omit<HubCatalogEntry, "allowedSources" | "sso" | "centralEntitlementAppId" | "explicitCentralLink" | "source" | "hubSecret" | "sessionMode"> & {
   access: "granted" | "locked";
   ssoAppId?: string;
 };

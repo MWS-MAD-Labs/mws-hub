@@ -242,31 +242,38 @@ export const HUB_ICONS: Record<string, LucideIcon> = {
 
 export const getAppIcon = (name: string): LucideIcon => HUB_ICONS[name] || AppWindow;
 
-// Five buckets derived from what the 19 real apps are FOR, not from which
-// department owns them. Each one holds 3-6 apps, so no category exists just
-// to hold a single item and none is big enough to need scrolling past.
+// What the Hub falls back on until Central has answered. The real lists are Central's master data
+// (Scopes & Categories), so a new one there shows up here without a release.
 export const HUB_CATEGORIES: HubCategory[] = [
   { id: "reporting", label: "Reporting", tone: "violet" },
-  { id: "students", label: "Teaching & Students", tone: "sky" },
+  { id: "students", label: "Students", tone: "sky" },
   { id: "workplace", label: "Workplace", tone: "emerald" },
   { id: "operations", label: "Operations", tone: "amber" },
   { id: "utilities", label: "Utilities", tone: "slate" },
 ];
 
+const TONE_CYCLE: HubCategoryTone[] = ["violet", "sky", "emerald", "amber", "slate"];
+
+// The five original categories keep their colour. A category added later gets one from its id, so it
+// is the same everywhere without a table to keep in step.
+export const toneOf = (id: string): HubCategoryTone => {
+  const known = HUB_CATEGORIES.find((category) => category.id === id);
+  if (known) return known.tone;
+  let hash = 0;
+  for (const char of id) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+  return TONE_CYCLE[hash % TONE_CYCLE.length];
+};
+
 // One solid tile colour per category, so colour groups apps instead of
 // decorating them. Every tone is spelled out in full - Tailwind cannot see
 // class names assembled by string concatenation.
 export const CATEGORY_TONES: Record<HubCategoryTone, string> = {
-  violet: "bg-violet-500/12 text-violet-600 ring-violet-500/20 dark:bg-violet-400/15 dark:text-violet-300 dark:ring-violet-400/25",
-  sky: "bg-sky-500/12 text-sky-600 ring-sky-500/20 dark:bg-sky-400/15 dark:text-sky-300 dark:ring-sky-400/25",
-  emerald: "bg-emerald-500/12 text-emerald-600 ring-emerald-500/20 dark:bg-emerald-400/15 dark:text-emerald-300 dark:ring-emerald-400/25",
-  amber: "bg-amber-500/12 text-amber-600 ring-amber-500/20 dark:bg-amber-400/15 dark:text-amber-300 dark:ring-amber-400/25",
-  slate: "bg-slate-500/12 text-slate-600 ring-slate-500/20 dark:bg-slate-400/15 dark:text-slate-300 dark:ring-slate-400/25",
+  violet: "bg-[#E9EDF6] text-[#1F2A44] ring-[#1F2A44]/15 dark:bg-[#202538] dark:text-[#B9C7EE] dark:ring-[#B9C7EE]/20",
+  sky: "bg-[#EFF8FE] text-[#25638E] ring-[#25638E]/15 dark:bg-[#142536] dark:text-[#D4ECFF] dark:ring-[#9FD1F4]/20",
+  emerald: "bg-[#EDF3EB] text-[#486142] ring-[#6F8B6A]/20 dark:bg-[#1F2B20] dark:text-[#D6EBD0] dark:ring-[#A8C4A0]/20",
+  amber: "bg-[#FBF2DF] text-[#7A5311] ring-[#D6A13A]/20 dark:bg-[#302414] dark:text-[#F0CF82] dark:ring-[#E4BC67]/20",
+  slate: "bg-[#F5E7E8] text-[#7E1518] ring-[#7E1518]/15 dark:bg-[#351719] dark:text-[#FFB2B6] dark:ring-[#FFB2B6]/20",
   neutral: "bg-muted/60 text-muted-foreground ring-border/60",
 };
 
-export const getCategory = (id: string): HubCategory | null =>
-  HUB_CATEGORIES.find((c) => c.id === id) || null;
-export const getCategoryLabel = (id: string): string => getCategory(id)?.label || "Uncategorized";
-export const getCategoryTone = (id: string): string =>
-  CATEGORY_TONES[getCategory(id)?.tone ?? "neutral"] || CATEGORY_TONES.neutral;
+export const getCategoryTone = (id: string): string => CATEGORY_TONES[toneOf(id)] || CATEGORY_TONES.neutral;

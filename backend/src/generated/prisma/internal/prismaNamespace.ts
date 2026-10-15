@@ -398,10 +398,13 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 
 export const ModelName = {
   Application: 'Application',
+  SsoCode: 'SsoCode',
   AppReport: 'AppReport',
   AccessRequest: 'AccessRequest',
   AuditLog: 'AuditLog',
-  UserSession: 'UserSession'
+  UserSession: 'UserSession',
+  RefreshToken: 'RefreshToken',
+  SsoExchangeSeen: 'SsoExchangeSeen'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -417,7 +420,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "application" | "appReport" | "accessRequest" | "auditLog" | "userSession"
+    modelProps: "application" | "ssoCode" | "appReport" | "accessRequest" | "auditLog" | "userSession" | "refreshToken" | "ssoExchangeSeen"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -492,6 +495,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.ApplicationCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.ApplicationCountAggregateOutputType> | number
+        }
+      }
+    }
+    SsoCode: {
+      payload: Prisma.$SsoCodePayload<ExtArgs>
+      fields: Prisma.SsoCodeFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.SsoCodeFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SsoCodePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.SsoCodeFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SsoCodePayload>
+        }
+        findFirst: {
+          args: Prisma.SsoCodeFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SsoCodePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.SsoCodeFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SsoCodePayload>
+        }
+        findMany: {
+          args: Prisma.SsoCodeFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SsoCodePayload>[]
+        }
+        create: {
+          args: Prisma.SsoCodeCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SsoCodePayload>
+        }
+        createMany: {
+          args: Prisma.SsoCodeCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.SsoCodeCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SsoCodePayload>[]
+        }
+        delete: {
+          args: Prisma.SsoCodeDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SsoCodePayload>
+        }
+        update: {
+          args: Prisma.SsoCodeUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SsoCodePayload>
+        }
+        deleteMany: {
+          args: Prisma.SsoCodeDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.SsoCodeUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.SsoCodeUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SsoCodePayload>[]
+        }
+        upsert: {
+          args: Prisma.SsoCodeUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SsoCodePayload>
+        }
+        aggregate: {
+          args: Prisma.SsoCodeAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateSsoCode>
+        }
+        groupBy: {
+          args: Prisma.SsoCodeGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SsoCodeGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.SsoCodeCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SsoCodeCountAggregateOutputType> | number
         }
       }
     }
@@ -791,6 +868,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    RefreshToken: {
+      payload: Prisma.$RefreshTokenPayload<ExtArgs>
+      fields: Prisma.RefreshTokenFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.RefreshTokenFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RefreshTokenPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.RefreshTokenFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RefreshTokenPayload>
+        }
+        findFirst: {
+          args: Prisma.RefreshTokenFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RefreshTokenPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.RefreshTokenFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RefreshTokenPayload>
+        }
+        findMany: {
+          args: Prisma.RefreshTokenFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RefreshTokenPayload>[]
+        }
+        create: {
+          args: Prisma.RefreshTokenCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RefreshTokenPayload>
+        }
+        createMany: {
+          args: Prisma.RefreshTokenCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.RefreshTokenCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RefreshTokenPayload>[]
+        }
+        delete: {
+          args: Prisma.RefreshTokenDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RefreshTokenPayload>
+        }
+        update: {
+          args: Prisma.RefreshTokenUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RefreshTokenPayload>
+        }
+        deleteMany: {
+          args: Prisma.RefreshTokenDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.RefreshTokenUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.RefreshTokenUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RefreshTokenPayload>[]
+        }
+        upsert: {
+          args: Prisma.RefreshTokenUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RefreshTokenPayload>
+        }
+        aggregate: {
+          args: Prisma.RefreshTokenAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateRefreshToken>
+        }
+        groupBy: {
+          args: Prisma.RefreshTokenGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.RefreshTokenGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.RefreshTokenCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.RefreshTokenCountAggregateOutputType> | number
+        }
+      }
+    }
+    SsoExchangeSeen: {
+      payload: Prisma.$SsoExchangeSeenPayload<ExtArgs>
+      fields: Prisma.SsoExchangeSeenFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.SsoExchangeSeenFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SsoExchangeSeenPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.SsoExchangeSeenFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SsoExchangeSeenPayload>
+        }
+        findFirst: {
+          args: Prisma.SsoExchangeSeenFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SsoExchangeSeenPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.SsoExchangeSeenFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SsoExchangeSeenPayload>
+        }
+        findMany: {
+          args: Prisma.SsoExchangeSeenFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SsoExchangeSeenPayload>[]
+        }
+        create: {
+          args: Prisma.SsoExchangeSeenCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SsoExchangeSeenPayload>
+        }
+        createMany: {
+          args: Prisma.SsoExchangeSeenCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.SsoExchangeSeenCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SsoExchangeSeenPayload>[]
+        }
+        delete: {
+          args: Prisma.SsoExchangeSeenDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SsoExchangeSeenPayload>
+        }
+        update: {
+          args: Prisma.SsoExchangeSeenUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SsoExchangeSeenPayload>
+        }
+        deleteMany: {
+          args: Prisma.SsoExchangeSeenDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.SsoExchangeSeenUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.SsoExchangeSeenUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SsoExchangeSeenPayload>[]
+        }
+        upsert: {
+          args: Prisma.SsoExchangeSeenUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SsoExchangeSeenPayload>
+        }
+        aggregate: {
+          args: Prisma.SsoExchangeSeenAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateSsoExchangeSeen>
+        }
+        groupBy: {
+          args: Prisma.SsoExchangeSeenGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SsoExchangeSeenGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.SsoExchangeSeenCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SsoExchangeSeenCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -846,6 +1071,7 @@ export const ApplicationScalarFieldEnum = {
   sso_app_id: 'sso_app_id',
   sso_entry_url: 'sso_entry_url',
   sso_logout_url: 'sso_logout_url',
+  sso_central_entitlement_app_id: 'sso_central_entitlement_app_id',
   sort_order: 'sort_order',
   created_at: 'created_at',
   updated_at: 'updated_at',
@@ -853,6 +1079,18 @@ export const ApplicationScalarFieldEnum = {
 } as const
 
 export type ApplicationScalarFieldEnum = (typeof ApplicationScalarFieldEnum)[keyof typeof ApplicationScalarFieldEnum]
+
+
+export const SsoCodeScalarFieldEnum = {
+  code: 'code',
+  token: 'token',
+  app_id: 'app_id',
+  state: 'state',
+  expires_at: 'expires_at',
+  created_at: 'created_at'
+} as const
+
+export type SsoCodeScalarFieldEnum = (typeof SsoCodeScalarFieldEnum)[keyof typeof SsoCodeScalarFieldEnum]
 
 
 export const AppReportScalarFieldEnum = {
@@ -902,12 +1140,37 @@ export type AuditLogScalarFieldEnum = (typeof AuditLogScalarFieldEnum)[keyof typ
 
 
 export const UserSessionScalarFieldEnum = {
+  central_id: 'central_id',
   email: 'email',
   session_version: 'session_version',
   updated_at: 'updated_at'
 } as const
 
 export type UserSessionScalarFieldEnum = (typeof UserSessionScalarFieldEnum)[keyof typeof UserSessionScalarFieldEnum]
+
+
+export const RefreshTokenScalarFieldEnum = {
+  id: 'id',
+  family_id: 'family_id',
+  token_hash: 'token_hash',
+  central_id: 'central_id',
+  source: 'source',
+  session_version: 'session_version',
+  family_expires_at: 'family_expires_at',
+  rotated_at: 'rotated_at',
+  revoked_at: 'revoked_at',
+  created_at: 'created_at'
+} as const
+
+export type RefreshTokenScalarFieldEnum = (typeof RefreshTokenScalarFieldEnum)[keyof typeof RefreshTokenScalarFieldEnum]
+
+
+export const SsoExchangeSeenScalarFieldEnum = {
+  app_id: 'app_id',
+  seen_at: 'seen_at'
+} as const
+
+export type SsoExchangeSeenScalarFieldEnum = (typeof SsoExchangeSeenScalarFieldEnum)[keyof typeof SsoExchangeSeenScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -1227,10 +1490,13 @@ export interface PrismaClientOptionsWithAdapter extends PrismaClientBaseOptions 
 export type PrismaClientOptions = PrismaClientOptionsWithAccelerateUrl | PrismaClientOptionsWithAdapter
 export type GlobalOmitConfig = {
   application?: Prisma.ApplicationOmit
+  ssoCode?: Prisma.SsoCodeOmit
   appReport?: Prisma.AppReportOmit
   accessRequest?: Prisma.AccessRequestOmit
   auditLog?: Prisma.AuditLogOmit
   userSession?: Prisma.UserSessionOmit
+  refreshToken?: Prisma.RefreshTokenOmit
+  ssoExchangeSeen?: Prisma.SsoExchangeSeenOmit
 }
 
 /* Types for Logging */

@@ -1,5 +1,6 @@
 import { createPublicKey } from "node:crypto";
 import type { HubAccessSource, HubAppSso, IdentitySource } from "../type/catalog-type";
+import type { RelayEntitlement } from "../type/central-type";
 
 const ISSUER = "mws-hub";
 const RELAY_TTL_SECONDS = 30;
@@ -112,6 +113,15 @@ export function hubSsoJwks(): { keys: HubSsoJwk[] } {
   return jwksCache;
 }
 
+// Signs any claims with the Hub's relay key (RS256, same key id as the relay tokens, so the same JWKS verifies it).
+export async function signHubJwt(payload: Record<string, unknown>): Promise<string> {
+  const header = { alg: "RS256", typ: "JWT", kid: keyId() };
+  const signingInput = `${base64UrlEncode(JSON.stringify(header))}.${base64UrlEncode(JSON.stringify(payload))}`;
+  const signingKey = await importSigningKey();
+  const signature = await crypto.subtle.sign("RSASSA-PKCS1-v1_5", signingKey, TEXT_ENCODER.encode(signingInput));
+  return `${signingInput}.${base64UrlEncode(signature)}`;
+}
+
 // Beyond the email assertion, the token also carries the same access tags
 // Hub itself just used to decide this person could open the app (see
 // AppsService.accessTagsFor) - the identical interpretation of Central's
@@ -128,9 +138,10 @@ export function hubSsoJwks(): { keys: HubSsoJwk[] } {
 // for an app that was never looked up, and authorization always happens at
 // the call site before anything is signed.
 export async function mintRelayToken(
-  email: string,
+  user: { id: string; email: string },
   sso: HubAppSso,
   identity: { source: IdentitySource; tags: HubAccessSource[] },
+  entitlement?: RelayEntitlement,
 ): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
   const header = {
@@ -141,9 +152,18 @@ export async function mintRelayToken(
   const payload = {
     iss: ISSUER,
     aud: sso.appId,
-    sub: email,
+    // Central's Person.id - a receiving app's actual identity anchor.
+    // Never email: Central allows editing it (EmployeeValidation.UPDATE),
+    // so a receiving app that keyed its own session by sub-as-email would
+    // silently break the moment someone's email changed there, the exact
+    // bug UserSession here in Hub used to have (see its own migration
+    // note). `email` below is still carried, but only as a display/contact
+    // attribute - it must never be what a receiving app keys anything on.
+    sub: user.id,
+    email: user.email,
     source: identity.source,
     tags: identity.tags,
+    ...(entitlement ? { entitlement } : {}),
     jti: crypto.randomUUID(),
     iat: now,
     exp: now + RELAY_TTL_SECONDS,

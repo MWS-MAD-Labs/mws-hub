@@ -20,7 +20,7 @@ type HubHeaderProps = {
 };
 
 const HubHeader = memo(({ user, isAdmin }: HubHeaderProps) => (
-  <header className="sticky top-0 z-30 border-b border-border/50 bg-background/85 backdrop-blur-xl">
+  <header className="sticky top-0 z-[var(--layer-sticky)] border-b border-border/50 bg-background/85 backdrop-blur-xl">
     <div className="mx-auto flex h-14 max-w-[1600px] items-center px-4 sm:px-6">
       <Link
         to="/support-hub"

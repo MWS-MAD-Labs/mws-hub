@@ -4,23 +4,16 @@ import { toast } from "sonner";
 import Logo from "@/assets/logo.webp";
 import { GoogleLoginButton } from "@/features/auth/components/GoogleLoginButton";
 import { useAuth } from "@/features/auth/hooks/useAuth";
+import { isServerPath, sanitizeRedirectPath } from "@/lib/redirect-path";
 import LoginPages from "@/mobile/pages/LoginPages";
 
 const HOME_PATH = "/support-hub";
 
-// launchSessionAuthMiddleware (apps-route.ts) sends people here with
-// ?redirect=/apps/:appId/launch when they clicked "Sign in with Hub" from
-// a satellite app while signed out - without reading it back, login always
-// dropped them on Support Hub instead of continuing that launch, so
-// finishing sign-in never actually returned them to the app they came
-// from. Only ever a same-origin relative path from our own middleware, but
-// treated as untrusted anyway (it's still a URL query param) - reject
-// anything that isn't a genuine relative path so this can't become an open
-// redirect.
-function sanitizeRedirectPath(value: string | null): string | null {
-  if (!value || !value.startsWith("/") || value.startsWith("//")) return null;
-  return value;
-}
+// launchSessionAuthMiddleware (apps-route.ts) sends people here with ?redirect=/apps/:appId/launch
+// when they opened an app while signed out. After sign-in the launch has to continue. That path
+// belongs to the Hub server, so it is opened with a real page load; the single page app would
+// show an empty page for it (see lib/redirect-path.ts).
+
 const LOGIN_ERRORS: Record<string, { title: string; description: string }> = {
   account_not_registered: {
     title: "Account not registered",
@@ -47,11 +40,35 @@ const LOGIN_ERRORS: Record<string, { title: string; description: string }> = {
     title: "Account not found",
     description: "This account isn't registered yet. Contact an admin for access.",
   },
+  hub_access_denied: {
+    title: "No access to Hub yet",
+    description: "Your account is registered, but it doesn't have access to Hub. Ask a Super Admin to give you access.",
+  },
+  hub_use_missing: {
+    title: "Your role can't use Hub",
+    description: "Your account has access, but its role doesn't include Hub. Ask a Super Admin to add Hub access to your role.",
+  },
+  central_unavailable: {
+    title: "Central isn't reachable",
+    description: "We couldn't check your access right now. Please try again in a moment.",
+  },
   login_failed: {
     title: "Couldn't sign you in",
     description: "Something went wrong on our end. Please try again in a moment.",
   },
 };
+
+// Hands the rest of the sign-in over to the server with a full page load.
+function ContinueOnServer({ path }: { path: string }) {
+  useEffect(() => {
+    window.location.replace(path);
+  }, [path]);
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-background px-4 text-sm text-muted-foreground">
+      Continuing to your app...
+    </main>
+  );
+}
 
 export default function LoginPage() {
   const { isAuthenticated, isSessionLoading } = useAuth();
@@ -80,6 +97,7 @@ export default function LoginPage() {
 
   if (isAuthenticated) {
     const redirect = sanitizeRedirectPath(searchParams.get("redirect"));
+    if (redirect && isServerPath(redirect)) return <ContinueOnServer path={redirect} />;
     return <Navigate to={redirect || HOME_PATH} replace />;
   }
 

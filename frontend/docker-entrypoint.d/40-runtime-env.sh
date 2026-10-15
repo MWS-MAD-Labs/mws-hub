@@ -13,11 +13,13 @@ js_escape() {
 runtime_api_base_url="${VITE_HUB_API_BASE_URL:-${HUB_API_BASE_URL:-}}"
 runtime_google_client_id="${VITE_GOOGLE_CLIENT_ID:-${GOOGLE_CLIENT_ID:-}}"
 runtime_support_email="${VITE_SUPPORT_EMAIL:-${SUPPORT_EMAIL:-}}"
+runtime_deploy_env="${VITE_DEPLOY_ENV:-${DEPLOY_ENV:-production}}"
 
 cat > /usr/share/nginx/html/env.js <<INNER
 window.__MWS_ENV__ = {
   VITE_HUB_API_BASE_URL: '$(js_escape "$runtime_api_base_url")',
   VITE_GOOGLE_CLIENT_ID: '$(js_escape "$runtime_google_client_id")',
   VITE_SUPPORT_EMAIL: '$(js_escape "$runtime_support_email")',
+  VITE_DEPLOY_ENV: '$(js_escape "$runtime_deploy_env")',
 };
 INNER

@@ -1,16 +1,22 @@
 import type { Context } from "hono";
 import { AppsService } from "../service/apps-service";
+import { centralTaxonomy } from "../service/central-catalog-service";
 import { mintRelayToken } from "../lib/sso-relay";
+import { createSsoCode } from "../lib/sso-code-store";
 import {
   listUpcomingEmployeeBirthdays,
-  resolveCentralIdentity,
+  lookupApplicationEntitlement,
+  resolveCentralIdentityById,
 } from "../lib/central-client";
 import { ResponseError } from "../error/response-error";
 import { logger } from "../lib/logger";
 import { frontendOrigin } from "../lib/frontend-origin";
 import { recordAuditLog } from "../service/audit-log-service";
 import type { HubUser } from "../type/central-type";
+import type { RelayEntitlement } from "../type/central-type";
 import type { SessionVariables } from "../type/hono-context";
+import { optionalSsoState } from "../lib/sso-state";
+import { entryUsesSharedSession } from "../lib/shared-session";
 
 // Launch is a browser navigation, not an XHR, so a failure here has to land
 // somewhere a person can read. Same shape the satellite apps already use for
@@ -34,12 +40,14 @@ async function recordLaunchAudit({
   appName,
   outcome,
   target,
+  entitlement,
 }: {
   actor: HubUser;
   appId: string;
   appName?: string;
   outcome: string;
   target?: "sso" | "url" | "hub";
+  entitlement?: RelayEntitlement;
 }) {
   await recordAuditLog({
     actor,
@@ -51,6 +59,15 @@ async function recordLaunchAudit({
       application_name: appName ?? null,
       outcome,
       target: target ?? null,
+      entitlement: entitlement
+        ? {
+            id: entitlement.id,
+            application_id: entitlement.application_id,
+            organization_id: entitlement.organization_id,
+            role: entitlement.role,
+            version: entitlement.version,
+          }
+        : null,
     },
   });
 }
@@ -65,6 +82,10 @@ export class AppsController {
     return c.json({ data: await AppsService.listFor(c.var.user) });
   }
 
+  static async taxonomy(c: Context<{ Variables: SessionVariables }>) {
+    return c.json({ data: await centralTaxonomy() });
+  }
+
   static async birthdays(c: Context<{ Variables: SessionVariables }>) {
     const requestedLimit = Number(c.req.query("limit") || 8);
     const limit = Number.isFinite(requestedLimit)
@@ -77,6 +98,7 @@ export class AppsController {
   static async launch(c: Context<{ Variables: SessionVariables }>) {
     const appId = c.req.param("appId");
     const entry = appId ? await AppsService.findByLaunchId(appId) : null;
+    const state = optionalSsoState(c.req.query("state"));
     if (!entry) {
       logger.info("Launch refused, unknown app:", {
         appId,
@@ -88,7 +110,8 @@ export class AppsController {
         outcome: "unknown_app",
         target: "hub",
       });
-      throw new ResponseError(404, `Unknown app: ${appId}`);
+      // A card that was hidden, retired or removed in Central is still in somebody's open tab, so this lands on a page.
+      return launchFailure(c, "app_unavailable");
     }
 
     // The session cookie is an 8-hour-old snapshot of who this was at login.
@@ -96,10 +119,14 @@ export class AppsController {
     // than that: someone deactivated in Central mid-session would otherwise
     // keep letting themselves into every app until their cookie expired.
     // Central's lookups already filter on ACTIVE, so a resigned employee or
-    // a departed student resolves to null here.
+    // a departed student resolves to null here. Re-resolved by id, not
+    // email - email is editable in Central, so looking this back up by
+    // whatever email happened to be in the session snapshot would wrongly
+    // read as "account_inactive" the moment it changes there, even though
+    // the same person, same id, is still perfectly active.
     let user: HubUser | null;
     try {
-      user = await resolveCentralIdentity(c.var.user.email);
+      user = await resolveCentralIdentityById(c.var.user.id, c.var.user.source);
     } catch (error) {
       // Fail closed. A Central outage means we cannot say who this is, and
       // "cannot say" must never be treated as "allowed".
@@ -129,19 +156,50 @@ export class AppsController {
     // Same predicate the catalog filters on, so an app can never be openable
     // by someone it was hidden from, or hidden from someone who could open
     // it by pasting the URL.
-    if (!(await AppsService.canLaunch(entry, user))) {
-      logger.info(
-        `Launch refused, ${user.source} not admitted by ${entry.id}:`,
-        user.email,
-      );
-      await recordLaunchAudit({
-        actor: user,
-        appId: entry.id,
-        appName: entry.name,
-        outcome: "access_denied",
-        target: "hub",
-      });
-      return launchFailure(c, "app_access_denied", entry.name);
+    let relayEntitlement: RelayEntitlement | undefined;
+    if (entry.centralEntitlementAppId) {
+      try {
+        const entitlement = await lookupApplicationEntitlement(
+          user.person_id,
+          entry.centralEntitlementAppId,
+        );
+        if (!entitlement?.is_active) {
+          await recordLaunchAudit({
+            actor: user,
+            appId: entry.id,
+            appName: entry.name,
+            outcome: "entitlement_denied",
+            target: "hub",
+          });
+          return launchFailure(c, "app_entitlement_denied", entry.name);
+        }
+        const {
+          id,
+          application_id,
+          organization_id,
+          role,
+          permissions,
+          version,
+        } = entitlement;
+        relayEntitlement = {
+          id,
+          application_id,
+          organization_id,
+          role,
+          permissions,
+          version,
+        };
+      } catch (error) {
+        logger.error("Central entitlement lookup failed during launch:", error);
+        await recordLaunchAudit({
+          actor: user,
+          appId: entry.id,
+          appName: entry.name,
+          outcome: "central_unavailable",
+          target: "hub",
+        });
+        return launchFailure(c, "central_unavailable", entry.name);
+      }
     }
 
     if (entry.status === "maintenance") {
@@ -168,11 +226,32 @@ export class AppsController {
       return launchFailure(c, "app_coming_soon", entry.name);
     }
 
-    if (entry.sso) {
-      const token = await mintRelayToken(user.email, entry.sso, {
-        source: user.source,
-        tags: AppsService.accessTagsFor(user),
+    if (entry.sso && entryUsesSharedSession(entry)) {
+      // The app reads the Hub's shared session itself (and restores it from the Hub if needed): no code to carry.
+      logger.info(`Launch redirected to shared-session app: ${entry.id}`, user.email);
+      await recordLaunchAudit({
+        actor: user,
+        appId: entry.id,
+        appName: entry.name,
+        outcome: "redirected",
+        target: "sso",
+        entitlement: relayEntitlement,
       });
+      return c.redirect(entry.sso.entryUrl, 302);
+    }
+
+    if (entry.sso) {
+      const token = await mintRelayToken(
+        { id: user.person_id, email: user.email },
+        entry.sso,
+        { source: user.source, tags: AppsService.accessTagsFor(user) },
+        relayEntitlement,
+      );
+      // The browser only ever carries a short opaque, single-use code - the
+      // actual token is fetched by the receiving app's own backend calling
+      // Hub back directly (see sso-route.ts). Nothing sensitive sits in a
+      // URL, server access log, or browser history anymore.
+      const code = await createSsoCode(token, entry.sso.appId, state);
 
       logger.info(`Launch redirected to SSO: ${entry.id}`, user.email);
       await recordLaunchAudit({
@@ -181,11 +260,12 @@ export class AppsController {
         appName: entry.name,
         outcome: "redirected",
         target: "sso",
+        entitlement: relayEntitlement,
       });
-      return c.redirect(
-        `${entry.sso.entryUrl}?token=${encodeURIComponent(token)}`,
-        302,
-      );
+      const target = new URL(entry.sso.entryUrl);
+      target.searchParams.set("code", code);
+      if (state) target.searchParams.set("state", state);
+      return c.redirect(target.toString(), 302);
     }
 
     if (!entry.href) {

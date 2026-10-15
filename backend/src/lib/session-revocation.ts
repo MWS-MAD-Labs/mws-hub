@@ -1,3 +1,5 @@
+import { appEndpoints } from "./app-endpoints";
+import { deriveAppSecret } from "./hub-app-secret";
 import { AppsService } from "../service/apps-service";
 import { logger } from "./logger";
 
@@ -16,7 +18,20 @@ import { logger } from "./logger";
 // are only logged, never thrown.
 const CALL_TIMEOUT_MS = 5000;
 
-export async function revokeSessionsForUser(email: string): Promise<void> {
+// personId is additive, not a replacement for email - existing satellite
+// apps (mws-mtss-system) only read `email` from this body today and ignore
+// unknown fields harmlessly. An app updated to key its own sessions by
+// Central id (see UserSession here in Hub, or mws-daily-checkin's
+// centralPersonId, for why) can start reading `central_id` instead once
+// it's ready, without every consumer needing to move in lockstep.
+//
+// This is Central's Person.id - the same id space as the relay token's
+// `sub` (mintRelayToken) - not Employee.id/Student.id (HubUser.id, what
+// Hub's own UserSession/resolveCentralIdentityById key by internally).
+// Those are a different id space per source; a receiving app has no
+// `source` to disambiguate them with here, so Person.id is the only one
+// that's safe to match on unconditionally.
+export async function revokeSessionsForUser(email: string, personId?: string): Promise<void> {
   if (!email) return;
 
   const secret = process.env.HUB_INTERNAL_SECRET;
@@ -27,19 +42,19 @@ export async function revokeSessionsForUser(email: string): Promise<void> {
     return;
   }
 
-  const targets = await AppsService.revokeSessionTargets();
+  const targets = await AppsService.revokeSessionTargets(secret);
   if (targets.length === 0) return;
 
   await Promise.allSettled(
-    targets.map(async (url) => {
+    targets.map(async ({ url, secret: sent }) => {
       try {
         const res = await fetch(url, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "X-Hub-Internal-Secret": secret,
+            "X-Hub-Internal-Secret": sent,
           },
-          body: JSON.stringify({ email }),
+          body: JSON.stringify({ email, ...(personId ? { central_id: personId } : {}) }),
           signal: AbortSignal.timeout(CALL_TIMEOUT_MS),
         });
         if (!res.ok) {
@@ -52,4 +67,34 @@ export async function revokeSessionsForUser(email: string): Promise<void> {
       }
     }),
   );
+}
+
+// Central retired an application: tells its backend to end every session it holds. Same endpoint and secret as the
+// per-person revoke above, with `all` instead of a person. Best-effort, returns whether the application took it.
+export async function revokeAllSessionsForApp(
+  master: string,
+  app: { applicationId: string; logoutUrl: string; secretMode: string; secretVersion: number },
+): Promise<boolean> {
+  const endpoints = appEndpoints(app.logoutUrl);
+  if (!endpoints) {
+    logger.error(`revokeAllSessionsForApp: ${app.applicationId} has a logout address that does not end in /auth/logout`);
+    return false;
+  }
+  const url = new URL(endpoints.revoke);
+  const secret =
+    app.secretMode === "OWN" ? deriveAppSecret(master, app.applicationId, app.secretVersion) : master;
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      redirect: "manual",
+      headers: { "Content-Type": "application/json", "X-Hub-Internal-Secret": secret },
+      body: JSON.stringify({ all: true }),
+      signal: AbortSignal.timeout(CALL_TIMEOUT_MS),
+    });
+    if (!res.ok) logger.error(`revokeAllSessionsForApp: ${url} responded ${res.status}`);
+    return res.ok;
+  } catch (error) {
+    logger.error(`revokeAllSessionsForApp: ${url} failed:`, error);
+    return false;
+  }
 }

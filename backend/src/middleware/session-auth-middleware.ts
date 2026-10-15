@@ -1,6 +1,9 @@
 import type { Context, Next } from "hono";
 import { getCookie } from "hono/cookie";
+import { currentSessionUser } from "../lib/identity-refresh";
+import { sessionCookieName } from "../lib/session-cookie";
 import { verifySession } from "../lib/session";
+import { ensureHubAccessForSession } from "../lib/hub-access-gate";
 import { ResponseError } from "../error/response-error";
 import type { SessionVariables } from "../type/hono-context";
 
@@ -8,7 +11,7 @@ export async function sessionAuthMiddleware(
   c: Context<{ Variables: SessionVariables }>,
   next: Next,
 ) {
-  const cookieName = process.env.SESSION_COOKIE_NAME || "hub_session";
+  const cookieName = sessionCookieName();
   const token = getCookie(c, cookieName);
   if (!token) {
     throw new ResponseError(401, "Not signed in.");
@@ -19,6 +22,9 @@ export async function sessionAuthMiddleware(
     throw new ResponseError(401, "Session expired or invalid.");
   }
 
-  c.set("user", session.user);
+  const user = await currentSessionUser(c, session);
+  await ensureHubAccessForSession(user);
+
+  c.set("user", user);
   await next();
 }

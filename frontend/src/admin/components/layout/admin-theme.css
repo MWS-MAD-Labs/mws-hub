@@ -1,0 +1,71 @@
+@import url("https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap");
+
+.admin-theme {
+  --admin-bg: #fffaf4;
+  --admin-card: #ffffff;
+  --admin-card-subtle: #fdf8f3;
+  --admin-text: #241718;
+  --admin-text-secondary: #5d4b4c;
+  --admin-text-tertiary: #6f6061;
+  --admin-border: #eadfda;
+  --admin-border-strong: #d8c9c3;
+  --admin-brand: #7e1518;
+  --admin-brand-soft: #f5e7e8;
+  --admin-gold: #d6a13a;
+  --admin-gold-soft: #fbf2df;
+  --admin-gold-text: #7a5311;
+  --admin-navy: #1f2a44;
+  --admin-navy-soft: #e9edf6;
+  --admin-sky: #b8ddf8;
+  --admin-sky-text: #25638e;
+  --admin-sage: #6f8b6a;
+  --admin-sage-soft: #edf3eb;
+  --admin-sage-text: #486142;
+  --admin-rose: #b94a4e;
+  --admin-rose-soft: #f8eaeb;
+  --admin-shadow: 0 12px 30px rgb(36 23 24 / 6%);
+  color: var(--admin-text);
+  font-family: "Nunito Sans", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Only the page shell paints the cream background. Portalled overlays reuse
+   .admin-theme for tokens without turning the whole viewport cream. */
+.admin-shell {
+  background: var(--admin-bg);
+}
+
+.dark .admin-theme {
+  --admin-bg: #171112;
+  --admin-card: #211718;
+  --admin-card-subtle: #2a1e1f;
+  --admin-text: #fff7f1;
+  --admin-text-secondary: #dfcfca;
+  --admin-text-tertiary: #bdaaa5;
+  --admin-border: #463638;
+  --admin-border-strong: #5c484a;
+  --admin-brand: #ffb2b6;
+  --admin-brand-soft: #351719;
+  --admin-gold: #e4bc67;
+  --admin-gold-soft: #302414;
+  --admin-gold-text: #f0cf82;
+  --admin-navy: #b9c7ee;
+  --admin-navy-soft: #202538;
+  --admin-sky: #9fd1f4;
+  --admin-sky-text: #d4ecff;
+  --admin-sage: #a8c4a0;
+  --admin-sage-soft: #1f2b20;
+  --admin-sage-text: #d6ebd0;
+  --admin-rose: #e69397;
+  --admin-rose-soft: #35191b;
+  --admin-shadow: 0 12px 30px rgb(0 0 0 / 28%);
+}
+
+.admin-heading {
+  font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+}
+
+.admin-focus:focus-visible {
+  outline: none;
+  border-color: var(--admin-brand);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--admin-brand) 24%, transparent);
+}

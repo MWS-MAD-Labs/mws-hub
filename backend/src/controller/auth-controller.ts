@@ -7,11 +7,17 @@ import { resolveLogoutRedirect } from "../lib/logout-redirect";
 import { frontendOrigin } from "../lib/frontend-origin";
 import { logger } from "../lib/logger";
 import { verifySession } from "../lib/session";
+import { sessionCookieOptions } from "../lib/session-cookie";
 import { AppsService } from "../service/apps-service";
 import { revokeSessionsForUser } from "../lib/session-revocation";
 import { recordAuditLog } from "../service/audit-log-service";
-import { getUserUnitId, isMadLabsUser } from "../lib/admin-access";
+import { getUserUnitId, isHubAdmin } from "../lib/admin-access";
+import { hubAccessMode, resolveHubAccess } from "../lib/hub-access-gate";
 import type { SessionVariables } from "../type/hono-context";
+import { sanitizeLaunchRedirect } from "../lib/sso-state";
+import { endSharedSession, handleRefresh, handleRestore, issueSharedSession, type RefreshDeps } from "../lib/shared-session";
+import { prisma } from "../lib/prisma";
+import { resolveCentralIdentityById } from "../lib/central-client";
 
 const OAUTH_STATE_COOKIE = "hub_google_oauth_state";
 
@@ -26,12 +32,6 @@ const RESPONSE_ERROR_CODES: Record<number, string> = {
 // Only ever an app-launch bounce-back (see apps-route.ts), never an arbitrary
 // URL - this is what stands between "resume the app you came from" and an
 // open redirect, so keep it narrow rather than accepting any relative path.
-const APP_LAUNCH_REDIRECT = /^\/apps\/[a-z0-9_-]+\/launch$/;
-
-function sanitizeLaunchRedirect(raw: string | undefined | null): string | null {
-  return raw && APP_LAUNCH_REDIRECT.test(raw) ? raw : null;
-}
-
 // crypto.randomUUID() never contains ':', so packing "nonce:redirect" into
 // the one state cookie/param is unambiguous to split back apart - no need
 // for a second cookie just to carry the redirect through Google's round trip.
@@ -55,12 +55,7 @@ function redirectFromState(state: string): string | null {
 // redirect while continuing to block the cookie from cross-site POST/embed
 // requests - the CSRF vector Strict vs. Lax actually differs on.
 function cookieOptions() {
-  return {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "Lax" as const,
-    path: "/",
-  };
+  return sessionCookieOptions();
 }
 
 function oauthStateCookieOptions() {
@@ -72,19 +67,21 @@ function oauthStateCookieOptions() {
   };
 }
 
-const POST_LOGOUT_REDIRECT_COOKIE = "hub_post_logout_redirect";
+// The shared session next to Hub's own. A failure here must not stop the person from signing in to the Hub.
+async function startSharedSession(c: Context, user: SessionVariables["user"]) {
+  try {
+    const current = await prisma.userSession.findUnique({ where: { central_id: user.id } });
+    await issueSharedSession(c, user, AppsService.accessTagsFor(user), current?.session_version ?? 0);
+  } catch (error) {
+    logger.error("Could not start the shared session:", error);
+  }
+}
 
-// Not httpOnly: LogoutRelayPage reads this to know where to send the browser
-// once fan-out finishes. Safe to expose because only Hub's own server ever
-// writes it, and only after resolveLogoutRedirect has already vetted the
-// value - unlike a ?redirect= query param, nothing a phishing link can set
-// this cookie to reaches this far.
-function postLogoutRedirectCookieOptions() {
+async function hubAccessSummary(user: SessionVariables["user"]) {
+  const access = await resolveHubAccess(user, Number(process.env.HUB_CENTRAL_ACCESS_CACHE_SECONDS || 30) * 1000);
   return {
-    httpOnly: false,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "Strict" as const,
-    path: "/",
+    hubAccess:
+      access.status === "granted" ? { role: access.role, permissions: access.permissions } : null,
   };
 }
 
@@ -93,7 +90,11 @@ async function authUserResponse(user: SessionVariables["user"]) {
     ...user,
     unitId: getUserUnitId(user),
     unit_id: getUserUnitId(user),
-    isAdmin: await isMadLabsUser(user),
+    isAdmin: await isHubAdmin(user),
+    // What Central says about this person's access to Hub, only when it is being checked.
+    ...(hubAccessMode() === "off"
+      ? {}
+      : await hubAccessSummary(user)),
   };
 }
 
@@ -102,6 +103,16 @@ async function sessionUserFromCookie(c: Context): Promise<SessionVariables["user
   const token = getCookie(c, cookieName);
   if (!token) return null;
   return (await verifySession(token))?.user ?? null;
+}
+
+function refreshDeps(): RefreshDeps {
+  return {
+    sessionVersionOf: async (centralId) =>
+      (await prisma.userSession.findUnique({ where: { central_id: centralId } }))?.session_version ?? null,
+    resolveIdentity: resolveCentralIdentityById,
+    tagsFor: (user) => AppsService.accessTagsFor(user),
+    currentHubUser: (c) => sessionUserFromCookie(c),
+  };
 }
 
 export class AuthController {
@@ -128,11 +139,13 @@ export class AuthController {
       maxAge: 60 * 60 * 8,
     });
 
+    await startSharedSession(c, user);
+
     logger.info("User logged in:", user.email);
     await recordAuditLog({
       actor: user,
       action: "auth.login",
-      entity: { type: "user", id: user.email },
+      entity: { type: "user", id: user.id },
       summary: `${user.email} logged in`,
       metadata: {
         method: "google",
@@ -164,7 +177,7 @@ export class AuthController {
     } catch (err) {
       logger.error("Google callback failed:", err);
       const errorCode =
-        err instanceof ResponseError ? RESPONSE_ERROR_CODES[err.status] : undefined;
+        err instanceof ResponseError ? (err.code ?? RESPONSE_ERROR_CODES[err.status]) : undefined;
       return c.redirect(
         `${frontendOrigin()}/login?error=${errorCode ?? "login_failed"}`,
         302,
@@ -178,11 +191,13 @@ export class AuthController {
       maxAge: 60 * 60 * 8,
     });
 
+    await startSharedSession(c, user);
+
     logger.info("User logged in from Google callback:", user.email);
     await recordAuditLog({
       actor: user,
       action: "auth.login",
-      entity: { type: "user", id: user.email },
+      entity: { type: "user", id: user.id },
       summary: `${user.email} logged in`,
       metadata: {
         method: "google_callback",
@@ -195,6 +210,15 @@ export class AuthController {
     return c.redirect(`${frontendOrigin()}${redirect ?? "/support-hub"}`, 302);
   }
 
+  // See handleRefresh and handleRestore in lib/shared-session.ts.
+  static refresh(c: Context) {
+    return handleRefresh(c, refreshDeps());
+  }
+
+  static restore(c: Context) {
+    return handleRestore(c, refreshDeps(), `${frontendOrigin()}/`);
+  }
+
   static async me(c: Context<{ Variables: SessionVariables }>) {
     const user = c.var.user;
     return c.json({ data: await authUserResponse(user) });
@@ -205,14 +229,15 @@ export class AuthController {
     const user = await sessionUserFromCookie(c);
     const cookieName = process.env.SESSION_COOKIE_NAME || "hub_session";
     deleteCookie(c, cookieName, cookieOptions());
+    await endSharedSession(c).catch((error) => logger.error("Could not end the shared session:", error));
 
     if (user) {
       logger.info("User logged out:", user.email);
-      await revokeSessionsForUser(user.email);
+      await revokeSessionsForUser(user.email, user.person_id);
       await recordAuditLog({
         actor: user,
         action: "auth.logout",
-        entity: { type: "user", id: user.email },
+        entity: { type: "user", id: user.id },
         summary: `${user.email} logged out`,
         metadata: { surface: "hub" },
       });
@@ -232,75 +257,25 @@ export class AuthController {
     return c.json({ data: await AppsService.logoutTargets() });
   }
 
-  // Sign-out that starts inside a satellite app. The app clears its own
-  // session and then sends the BROWSER here - it has to be the browser,
-  // because Hub's session is a cookie on Hub's domain and no other server can
-  // delete it. A back-channel call would leave the user still signed in here.
-  //
-  // Works via top-level navigation + SameSite=Lax (see cookieOptions()
-  // above) - Lax cookies ride along on a cross-site top-level GET
-  // regardless of whether Hub and the apps share a registrable domain, so
-  // this part doesn't actually need them to. (The apps' own OTHER local
-  // sessions are a different story - see revokeSessionsForUser() below,
-  // added specifically because the apps and Hub do NOT share a domain in
-  // production, which breaks the browser-driven iframe fan-out this
-  // redirect leads into at /logout-relay.)
+  // An application with its own session sends the browser here after it ended that session. Only that application
+  // signs out: the Hub session and the other applications stay as they are. Signing out of the Hub is the way to
+  // end all of them (POST /auth/logout). Here the browser is only sent back to where the application asked, or to
+  // the Hub front page.
   static async logoutFromApp(c: Context) {
     const user = await sessionUserFromCookie(c);
-
-    const target =
-      (await resolveLogoutRedirect(c.req.query("redirect"))) ||
-      `${frontendOrigin()}/login`;
-
-    // The satellite app tells us which email IT was actually logged in as
-    // (see e.g. mws-daily-checkin's routes/auth.js). Normally that matches
-    // Hub's own current session, but not always - a stale session in one
-    // app can sit alongside a genuinely different, currently-active Hub
-    // login for someone else. In that case this logout isn't Hub's (or any
-    // other app's) to act on: leave Hub's cookie and every other app's
-    // session alone, and just send the browser back to where the satellite
-    // app's own logout already cleared its own cookie.
-    const loggedOutEmail = c.req.query("email");
-    if (loggedOutEmail && user && loggedOutEmail.toLowerCase() !== user.email.toLowerCase()) {
-      logger.info(
-        `App logout email mismatch - leaving Hub session alone: app logged out ${loggedOutEmail}, Hub session is ${user.email}`,
-      );
-      return c.redirect(target, 302);
-    }
-
-    const cookieName = process.env.SESSION_COOKIE_NAME || "hub_session";
-    deleteCookie(c, cookieName, cookieOptions());
-
-    // Hub's own cookie is gone, but every other satellite app the person had
-    // open still has its own separate session that only the browser can
-    // reach - route through a Hub page that fans logout out to those first
-    // (see LogoutRelayPage), then finishes the trip to `target`.
-    setCookie(c, POST_LOGOUT_REDIRECT_COOKIE, target, {
-      ...postLogoutRedirectCookieOptions(),
-      maxAge: 30,
-    });
+    const target = (await resolveLogoutRedirect(c.req.query("redirect"))) || `${frontendOrigin()}/`;
 
     if (user) {
-      logger.info("User logged out from satellite app:", user.email);
-      // Back-channel, server-to-server - the browser-driven iframe fan-out
-      // that /logout-relay does next is a best-effort backup for apps that
-      // don't implement /auth/revoke-session yet, not the primary
-      // mechanism for apps that do.
-      await revokeSessionsForUser(user.email);
+      logger.info("User signed out of a connected app:", user.email);
       await recordAuditLog({
         actor: user,
         action: "auth.logout",
-        entity: { type: "user", id: user.email },
-        summary: `${user.email} logged out from a connected app`,
-        metadata: {
-          surface: "connected_app",
-          redirect_target: target,
-        },
+        entity: { type: "user", id: user.id },
+        summary: `${user.email} signed out of a connected app`,
+        metadata: { surface: "connected_app", redirect_target: target },
       });
-    } else {
-      logger.info("App logout reached Hub without a valid Hub session");
     }
 
-    return c.redirect(`${frontendOrigin()}/logout-relay`, 302);
+    return c.redirect(target, 302);
   }
 }

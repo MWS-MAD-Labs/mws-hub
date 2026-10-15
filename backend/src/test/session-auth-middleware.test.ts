@@ -39,6 +39,7 @@ const { signSession } = await import("../lib/session");
 const testUser: HubUser = {
   source: "employee",
   id: "emp-1",
+  person_id: "person-1",
   employee_id: "E001",
   full_name: "Test Employee",
   nick_name: null,

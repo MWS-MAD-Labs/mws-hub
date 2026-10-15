@@ -18,7 +18,7 @@ type MobileHeaderProps = {
 };
 
 const MobileHeader = memo(({ user }: MobileHeaderProps) => (
-  <header className="sticky top-0 z-30 border-b border-border/50 bg-background/92 backdrop-blur-xl sm:hidden">
+  <header className="sticky top-0 z-[var(--layer-sticky)] border-b border-border/50 bg-background/92 backdrop-blur-xl sm:hidden">
     <div className="flex h-14 items-center gap-3 px-4">
       <Link
         to="/profile"

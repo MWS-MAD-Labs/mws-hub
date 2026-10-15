@@ -48,9 +48,41 @@ export async function recordAuditLog(input: AuditLogInput) {
   }
 }
 
-export function listAuditLogs(take = 100) {
-  return prisma.auditLog.findMany({
-    orderBy: { created_at: "desc" },
-    take,
-  });
+export type AuditLogListOptions = {
+  page: number;
+  pageSize: number;
+  q?: string;
+  action?: string;
+  dateFrom?: Date;
+  dateToExclusive?: Date;
+};
+
+export async function listAuditLogs({ page, pageSize, q, action, dateFrom, dateToExclusive }: AuditLogListOptions) {
+  const search = q?.trim();
+  const where: Prisma.AuditLogWhereInput = {
+    ...(action ? { action } : {}),
+    ...(dateFrom && dateToExclusive ? { created_at: { gte: dateFrom, lt: dateToExclusive } } : {}),
+    ...(search
+      ? {
+          OR: [
+            { actor_email: { contains: search, mode: "insensitive" } },
+            { actor_name: { contains: search, mode: "insensitive" } },
+            { action: { contains: search, mode: "insensitive" } },
+            { entity_type: { contains: search, mode: "insensitive" } },
+            { entity_id: { contains: search, mode: "insensitive" } },
+            { summary: { contains: search, mode: "insensitive" } },
+          ],
+        }
+      : {}),
+  };
+  const [total, rows] = await prisma.$transaction([
+    prisma.auditLog.count({ where }),
+    prisma.auditLog.findMany({
+      where,
+      orderBy: [{ created_at: "desc" }, { id: "desc" }],
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+  ]);
+  return { rows, total };
 }

@@ -17,9 +17,11 @@ async function launchSessionAuthMiddleware(
     await sessionAuthMiddleware(c, next);
   } catch (error) {
     if (error instanceof ResponseError && error.status === 401) {
+      const redirect = new URL(c.req.url);
+      const launchPath = `${redirect.pathname}${redirect.search}`;
       const params = new URLSearchParams({
         error: "session_expired",
-        redirect: c.req.path,
+        redirect: launchPath,
       });
       return c.redirect(`${frontendOrigin()}/login?${params}`, 302);
     }
@@ -28,16 +30,12 @@ async function launchSessionAuthMiddleware(
 }
 
 appsRoute.get("/", sessionAuthMiddleware, AppsController.list);
+appsRoute.get("/taxonomy", sessionAuthMiddleware, AppsController.taxonomy);
 appsRoute.get("/birthdays", sessionAuthMiddleware, AppsController.birthdays);
 appsRoute.post(
   "/:appId/report",
   sessionAuthMiddleware,
   FeedbackController.report,
-);
-appsRoute.post(
-  "/:appId/request-access",
-  sessionAuthMiddleware,
-  FeedbackController.requestAccess,
 );
 appsRoute.get(
   "/:appId/launch",

@@ -140,8 +140,18 @@ describe("canAccess - source-based access", () => {
   });
 
   it("reads structured claim objects (name/slug/role) inside roles/permissions", () => {
-    const app = entry({ allowedSources: ["admin"] });
+    const app = entry({ allowedSources: ["super-admin"] });
     expect(canAccess(app, employee({ roles: [{ name: "Super Admin" }] }))).toBe(true);
+  });
+
+  // Same substring protection as Central job metadata (see "does not mint
+  // substring tags from Central job metadata" below) - a compound role
+  // claim is never split into sub-word tags, since the string alone can't
+  // tell a broader role (which should admit a narrower rule) from a
+  // distinct, unrelated one that merely shares a word.
+  it("does not let a bare admin rule match a Super Admin role claim's substring", () => {
+    const app = entry({ allowedSources: ["admin"] });
+    expect(canAccess(app, employee({ roles: [{ name: "Super Admin" }] }))).toBe(false);
   });
 
   it("does not match a bare rule against a token inside Central job metadata", () => {
@@ -277,6 +287,19 @@ describe("AppsService.accessTagsFor", () => {
     expect(tags).not.toContain("admin");
     expect(tags).toContain("admin-staff");
     expect(tags).toContain("staff");
+  });
+
+  it("does not mint substring tags from a Central role/roles/permissions claim either", () => {
+    const tags = AppsService.accessTagsFor(
+      employee({ roles: [{ name: "Super Admin" }], permissions: ["hub:apps:proofpoint:launch"] }),
+    );
+
+    expect(tags).not.toContain("super");
+    expect(tags).not.toContain("admin");
+    expect(tags).toContain("super-admin");
+    // Colons aren't hyphens - a permission claim like this was never split
+    // by the old logic either, so it stays whole either way.
+    expect(tags).toContain("hub:apps:proofpoint:launch");
   });
 });
 

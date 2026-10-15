@@ -2,6 +2,7 @@ import { memo, useCallback, useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
+import { Dialog } from "radix-ui";
 import HubHeader from "@/features/fragments/HubHeader";
 import HubIntro from "@/features/fragments/HubIntro";
 import HubSearch from "@/features/fragments/HubSearch";
@@ -18,12 +19,13 @@ import { toHubUser } from "@/model/auth-model";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { isMadLabsUser } from "@/lib/admin-access";
 import { apiRequest } from "@/lib/api";
+import { getOverlayRoot } from "@/components/overlays/portal";
 
 const SUPPORT_EMAIL =
   import.meta.env.VITE_SUPPORT_EMAIL || "admin@millennia21.id";
 
 type FeedbackDialogState = {
-  kind: "request" | "report";
+  kind: "report";
   app: HubApplication;
 } | null;
 const LAUNCH_ERRORS: Record<
@@ -34,6 +36,16 @@ const LAUNCH_ERRORS: Record<
     title: `You don't have access to ${app}`,
     description:
       "Your MWS account isn't admitted to this application yet. Ask MAD Labs if you need it.",
+  }),
+  app_entitlement_denied: (app) => ({
+    title: `You don't have access to ${app}`,
+    description:
+      "Your MWS account isn't admitted to this application. Ask the people who run it, or MAD Labs, if you need it.",
+  }),
+  app_unavailable: () => ({
+    title: "This application is no longer available",
+    description:
+      "It was hidden or removed, so its card can't be opened anymore. Refresh the page to see what you can open.",
   }),
   app_maintenance: (app) => ({
     title: `${app} is under maintenance`,
@@ -79,22 +91,15 @@ function FeedbackDialog({
     setError("");
   }, [state]);
 
-  if (!state) return null;
-
-  const isRequest = state.kind === "request";
-  const title = isRequest
-    ? `Request access to ${state.app.name}`
-    : `Report ${state.app.name}`;
-  const label = isRequest ? "Reason" : "Problem";
-  const placeholder = isRequest
-    ? "Tell MAD Labs why you need this app."
-    : "Tell MAD Labs what is broken or missing.";
+  const title = `Report ${state?.app.name}`;
+  const label = "Problem";
+  const placeholder = "Tell MAD Labs what is broken or missing.";
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const trimmed = text.trim();
     if (!trimmed) {
-      setError(isRequest ? "Reason is required." : "Problem description is required.");
+      setError("Problem description is required.");
       return;
     }
 
@@ -102,21 +107,18 @@ function FeedbackDialog({
     await onSubmit(trimmed);
   }
 
+  const portalRoot = getOverlayRoot();
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end bg-black/35 px-4 py-4 sm:items-center sm:justify-center"
-      role="presentation"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget && !isSubmitting) onClose();
-      }}
-    >
-      <form
-        onSubmit={handleSubmit}
-        className="w-full rounded-lg border border-border bg-card p-4 text-card-foreground shadow-xl sm:max-w-md sm:p-5"
-      >
+    <Dialog.Root open={Boolean(state)} onOpenChange={(open) => { if (!open && !isSubmitting) onClose(); }}>
+      <Dialog.Portal container={portalRoot ?? undefined}>
+        <div className="fixed inset-0 z-[var(--layer-modal)]">
+          <Dialog.Overlay className="absolute inset-0 bg-black/55 backdrop-blur-[1px]" />
+          <div className="pointer-events-none absolute inset-0 flex items-end justify-center overflow-y-auto p-4 sm:items-center">
+            <Dialog.Content className="pointer-events-auto max-h-[calc(100dvh-2rem)] w-full overflow-y-auto rounded-xl border border-border bg-card p-4 text-card-foreground shadow-2xl sm:max-w-md sm:p-5">
+              <form onSubmit={handleSubmit}>
         <div className="space-y-1">
-          <h2 className="text-base font-semibold">{title}</h2>
-          <p className="text-sm text-muted-foreground">{state.app.audience}</p>
+          <Dialog.Title className="text-base font-semibold">{title}</Dialog.Title>
+          <Dialog.Description className="text-sm text-muted-foreground">{state?.app.audience}</Dialog.Description>
         </div>
 
         <label className="mt-4 block text-sm font-medium">
@@ -133,14 +135,13 @@ function FeedbackDialog({
         {error ? <p className="mt-2 text-sm text-destructive">{error}</p> : null}
 
         <div className="mt-4 flex justify-end gap-2">
-          <button
+          <Dialog.Close asChild><button
             type="button"
-            onClick={onClose}
             disabled={isSubmitting}
             className="rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-muted disabled:opacity-60"
           >
             Cancel
-          </button>
+          </button></Dialog.Close>
           <button
             type="submit"
             disabled={isSubmitting}
@@ -149,8 +150,12 @@ function FeedbackDialog({
             {isSubmitting ? "Sending..." : "Send"}
           </button>
         </div>
-      </form>
-    </div>
+              </form>
+            </Dialog.Content>
+          </div>
+        </div>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }
 
@@ -168,6 +173,9 @@ const SupportHubPage = memo(() => {
     hasCatalog,
     categories,
     activeCategory,
+    scopes,
+    activeScope,
+    setScope,
     setQuery,
     setCategory,
     clearFilters,
@@ -218,10 +226,6 @@ const SupportHubPage = memo(() => {
     );
   }, [searchParams, setSearchParams]);
 
-  const handleRequestAccess = useCallback((app: HubApplication) => {
-    setFeedbackDialog({ kind: "request", app });
-  }, []);
-
   const handleReportProblem = useCallback((app: HubApplication) => {
     setFeedbackDialog({ kind: "report", app });
   }, []);
@@ -236,21 +240,11 @@ const SupportHubPage = memo(() => {
 
       setIsFeedbackSubmitting(true);
       try {
-        const path =
-          feedbackDialog.kind === "request"
-            ? `/apps/${encodeURIComponent(feedbackDialog.app.id)}/request-access`
-            : `/apps/${encodeURIComponent(feedbackDialog.app.id)}/report`;
-        const body =
-          feedbackDialog.kind === "request"
-            ? { reason: text }
-            : { message: text };
-
-        await apiRequest(path, { method: "POST", body });
-        toast.success(
-          feedbackDialog.kind === "request"
-            ? "Access request sent"
-            : "Problem report sent",
-        );
+        await apiRequest(`/apps/${encodeURIComponent(feedbackDialog.app.id)}/report`, {
+          method: "POST",
+          body: { message: text },
+        });
+        toast.success("Problem report sent");
         setFeedbackDialog(null);
       } catch (error: unknown) {
         toast.error(
@@ -299,6 +293,16 @@ const SupportHubPage = memo(() => {
               activeCategory={activeCategory}
               onSelect={setCategory}
             />
+            {scopes.length > 0 && (
+              <div className="mt-1">
+                <CategoryFilter
+                  categories={scopes}
+                  activeCategory={activeScope}
+                  onSelect={setScope}
+                  label="Application scopes"
+                />
+              </div>
+            )}
           </div>
         )}
 
@@ -341,7 +345,6 @@ const SupportHubPage = memo(() => {
                 query={query}
                 user={user ? toHubUser(user) : undefined}
                 onQueryChange={setQuery}
-                onRequestAccess={handleRequestAccess}
                 onReportProblem={handleReportProblem}
               />
 
@@ -350,7 +353,6 @@ const SupportHubPage = memo(() => {
                   <AppCard
                     key={app.id}
                     app={app}
-                    onRequestAccess={handleRequestAccess}
                     onReportProblem={handleReportProblem}
                   />
                 ))}

@@ -61,6 +61,9 @@ async function main() {
       allowed_sources: entry.allowedSources,
       sso_app_id: entry.sso?.appId ?? null,
       sso_entry_url: entry.sso?.entryUrl ?? null,
+      sso_logout_url: entry.sso?.logoutUrl ?? null,
+      sso_central_entitlement_app_id:
+        entry.sso?.centralEntitlementAppId ?? null,
       // Keeps the order the file had, so the grid looks unchanged after the
       // move. The admin screen can reorder from here.
       sort_order: (index + 1) * 10,

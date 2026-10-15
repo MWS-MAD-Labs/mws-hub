@@ -6,15 +6,16 @@ type CategoryFilterProps = {
   categories: HubCategoryFilterOption[];
   activeCategory: string;
   onSelect: (id: string) => void;
+  label?: string;
 };
 
 // Horizontal filter row, not a sidebar. Five categories never justify a
 // permanent 200px column - that width is worth an extra card per row instead.
 // Same control on every breakpoint; below sm it simply scrolls sideways.
-const CategoryFilter = memo(({ categories, activeCategory, onSelect }: CategoryFilterProps) => (
+const CategoryFilter = memo(({ categories, activeCategory, onSelect, label = "Application categories" }: CategoryFilterProps) => (
   <div
     role="tablist"
-    aria-label="Application categories"
+    aria-label={label}
     className="scrollbar-hide -mx-4 flex gap-1 overflow-x-auto px-4 sm:mx-0 sm:px-0"
   >
     {categories.map((category) => {

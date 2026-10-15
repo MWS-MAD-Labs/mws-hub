@@ -21,58 +21,11 @@ export type AdminAccessOptions = {
   centralRulePrefixes: AdminAccessRuleOption[];
 };
 
-export type AdminApplication = {
-  id: string;
-  name: string;
-  icon: string;
-  description: string;
-  audience: string;
-  category: string;
-  keywords: string[];
-  href: string | null;
-  external: boolean;
-  status: AdminApplicationStatus;
-  discoverable: boolean;
-  allowed_sources: AdminAccessSource[];
-  sso_app_id: string | null;
-  sso_entry_url: string | null;
-  sso_logout_url: string | null;
-  sort_order: number;
-};
-
-export type AdminApplicationInput = {
-  id?: string;
-  name: string;
-  icon?: string;
-  description: string;
-  audience: string;
-  category: string;
-  keywords?: string[];
-  href?: string | null;
-  external?: boolean;
-  status?: Lowercase<AdminApplicationStatus>;
-  discoverable?: boolean;
-  allowedSources?: AdminAccessSource[];
-  ssoAppId?: string | null;
-  ssoEntryUrl?: string | null;
-  ssoLogoutUrl?: string | null;
-  sortOrder?: number;
-};
-
 export type AdminReport = {
   id: string;
   reporter_email: string;
   message: string;
   status: "OPEN" | "IN_PROGRESS" | "RESOLVED";
-  created_at: string;
-  application: { id: string; name: string };
-};
-
-export type AdminAccessRequest = {
-  id: string;
-  requester_email: string;
-  reason: string | null;
-  status: "PENDING" | "APPROVED" | "REJECTED";
   created_at: string;
   application: { id: string; name: string };
 };
@@ -89,10 +42,39 @@ export type AdminAuditLog = {
   created_at: string;
 };
 
+// What the dashboard shows: health of the Hub, launch activity and open reports. Built on the server from Central,
+// the database and the audit trail.
+export type AdminOverview = {
+  generated_at: string;
+  health: {
+    status: "ok" | "warning" | "problem";
+    checks: { id: string; label: string; status: "ok" | "warning" | "problem"; detail: string }[];
+    apps: { id: string; name: string; address: string | null; status: "up" | "down" | "no_address"; detail: string }[];
+    not_in_central: { id: string; name: string }[];
+  };
+  activity: {
+    launches7: number;
+    launches30: number;
+    failures30: Record<string, number>;
+    apps: { id: string; name: string; launches7: number; launches30: number; failures30: number; last_launch_at: string | null }[];
+    never_opened: { id: string; name: string }[];
+  };
+  reports: { open: number; by_app: { application_id: string; name: string; open: number }[] };
+};
+
 export type AdminDashboardData = {
   message: string;
   unit: string;
   unitId: string | null;
+};
+
+export type AdminPaginationMeta = {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
 };
 
 export const adminApi = {
@@ -103,48 +85,15 @@ export const adminApi = {
     return response!.data;
   },
 
-  async listApplications(): Promise<AdminApplication[]> {
-    const response = await apiRequest<{ data: AdminApplication[] }>(
-      "/admin/api/catalog",
-    );
-    return response?.data ?? [];
-  },
-
-  async getApplication(id: string): Promise<AdminApplication> {
-    const response = await apiRequest<{ data: AdminApplication }>(
-      `/admin/api/catalog/${encodeURIComponent(id)}`,
-    );
-    return response!.data;
-  },
-
-  async createApplication(
-    input: AdminApplicationInput,
-  ): Promise<AdminApplication> {
-    const response = await apiRequest<{ data: AdminApplication }>(
-      "/admin/api/catalog",
-      {
-        method: "POST",
-        body: input,
-      },
-    );
-    return response!.data;
-  },
-
-  async updateApplication(
-    id: string,
-    input: AdminApplicationInput,
-  ): Promise<AdminApplication> {
-    const response = await apiRequest<{ data: AdminApplication }>(
-      `/admin/api/catalog/${encodeURIComponent(id)}`,
-      { method: "PATCH", body: input },
-    );
-    return response!.data;
-  },
-
   async deleteApplication(id: string): Promise<void> {
     await apiRequest(`/admin/api/catalog/${encodeURIComponent(id)}`, {
       method: "DELETE",
     });
+  },
+
+  async overview(): Promise<AdminOverview> {
+    const response = await apiRequest<{ data: AdminOverview }>("/admin/api/overview");
+    return response!.data;
   },
 
   async accessOptions(): Promise<AdminAccessOptions> {
@@ -161,18 +110,29 @@ export const adminApi = {
     return response?.data ?? [];
   },
 
-  async listAccessRequests() {
-    const response = await apiRequest<{ data: AdminAccessRequest[] }>(
-      "/admin/api/access-requests",
+  async listAuditLogs(query: { page?: number; pageSize?: number; q?: string; action?: string; dateFrom?: string; dateTo?: string } = {}) {
+    const params = new URLSearchParams();
+    if (query.page) params.set("page", String(query.page));
+    if (query.pageSize) params.set("pageSize", String(query.pageSize));
+    if (query.q) params.set("q", query.q);
+    if (query.action) params.set("action", query.action);
+    if (query.dateFrom) params.set("dateFrom", query.dateFrom);
+    if (query.dateTo) params.set("dateTo", query.dateTo);
+    const suffix = params.size ? `?${params.toString()}` : "";
+    const response = await apiRequest<{ data: AdminAuditLog[]; meta: { pagination: AdminPaginationMeta } }>(
+      `/admin/api/audit-logs${suffix}`,
     );
-    return response?.data ?? [];
-  },
-
-  async listAuditLogs() {
-    const response = await apiRequest<{ data: AdminAuditLog[] }>(
-      "/admin/api/audit-logs",
-    );
-    return response?.data ?? [];
+    return {
+      data: response?.data ?? [],
+      pagination: response?.meta.pagination ?? {
+        page: 1,
+        pageSize: query.pageSize || 10,
+        total: 0,
+        totalPages: 1,
+        hasPreviousPage: false,
+        hasNextPage: false,
+      },
+    };
   },
 
   async updateReport(id: string, status: AdminReport["status"]) {
@@ -182,10 +142,4 @@ export const adminApi = {
     });
   },
 
-  async updateAccessRequest(id: string, status: AdminAccessRequest["status"]) {
-    await apiRequest(`/admin/api/access-requests/${encodeURIComponent(id)}`, {
-      method: "PATCH",
-      body: { status },
-    });
-  },
 };

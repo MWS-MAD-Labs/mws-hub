@@ -6,14 +6,13 @@ import { RequireAuth } from "@/features/auth/components/RequireAuth";
 import { RequireAdmin } from "@/features/auth/components/RequireAdmin";
 
 const SupportHubPage = lazy(() => import("@/pages/SupportHubPage"));
+const SupportHubConceptsPage = lazy(
+  () => import("@/pages/SupportHubConceptsPage"),
+);
 const ProfilePage = lazy(() => import("@/pages/ProfilePage"));
 const LoginPage = lazy(() => import("@/pages/LoginPage"));
 const LogoutRelayPage = lazy(() => import("@/pages/LogoutRelayPage"));
 const Dashboard = lazy(() => import("@/admin/pages/Dashboard"));
-const ApplicationsPage = lazy(() => import("@/admin/pages/ApplicationsPage"));
-const ApplicationEditorPage = lazy(() => import("@/admin/pages/ApplicationEditorPage"));
-const FeedbackPage = lazy(() => import("@/admin/pages/FeedbackPage"));
-const AccessRequest = lazy(() => import("@/admin/pages/AccessRequest"));
 const BrokenTools = lazy(() => import("@/admin/pages/BrokenTools"));
 const AuditLogsPage = lazy(() => import("@/admin/pages/AuditLogsPage"));
 
@@ -64,6 +63,14 @@ export default function App() {
             }
           />
           <Route
+            path="/support-hub/concepts"
+            element={
+              <PageLoader>
+                <SupportHubConceptsPage />
+              </PageLoader>
+            }
+          />
+          <Route
             path="/profile"
             element={
               <PageLoader>
@@ -84,50 +91,20 @@ export default function App() {
             }
           />
           <Route
-            path="/admin/catalog"
-            element={
-              <PageLoader>
-                <RequireAdmin>
-                  <ApplicationsPage />
-                </RequireAdmin>
-              </PageLoader>
-            }
+            path="/admin/catalog/*"
+            element={<Navigate to="/admin" replace />}
           />
           <Route
-            path="/admin/catalog/new"
-            element={
-              <PageLoader>
-                <RequireAdmin>
-                  <ApplicationEditorPage />
-                </RequireAdmin>
-              </PageLoader>
-            }
-          />
-          <Route
-            path="/admin/catalog/:id/edit"
-            element={
-              <PageLoader>
-                <RequireAdmin>
-                  <ApplicationEditorPage />
-                </RequireAdmin>
-              </PageLoader>
-            }
+            path="/admin/display"
+            element={<Navigate to="/admin" replace />}
           />
           <Route
             path="/admin/applications"
-            element={
-              <Navigate to="/admin/catalog" replace />
-            }
+            element={<Navigate to="/admin" replace />}
           />
           <Route
             path="/admin/feedback"
-            element={
-              <PageLoader>
-                <RequireAdmin>
-                  <FeedbackPage />
-                </RequireAdmin>
-              </PageLoader>
-            }
+            element={<Navigate to="/admin/broken-tools" replace />}
           />
           <Route
             path="/admin/broken-tools"
@@ -145,13 +122,7 @@ export default function App() {
           />
           <Route
             path="/admin/access-requests"
-            element={
-              <PageLoader>
-                <RequireAdmin>
-                  <AccessRequest />
-                </RequireAdmin>
-              </PageLoader>
-            }
+            element={<Navigate to="/admin" replace />}
           />
           <Route
             path="/admin/audit-logs"
@@ -165,7 +136,7 @@ export default function App() {
           />
         </Routes>
 
-        <Toaster />
+        <Toaster style={{ zIndex: "var(--layer-toast)" }} />
       </AuthProvider>
     </BrowserRouter>
   );

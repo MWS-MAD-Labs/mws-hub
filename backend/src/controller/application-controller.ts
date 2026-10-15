@@ -23,6 +23,8 @@ function applicationMetadata(application: Application) {
     category: application.category,
     href: application.href,
     sso_app_id: application.sso_app_id,
+    sso_central_entitlement_app_id:
+      application.sso_central_entitlement_app_id,
     allowed_sources: application.allowed_sources,
   };
 }

@@ -7,6 +7,7 @@ export type HubApplication = {
   icon: string;
   description: string;
   category: string;
+  scope?: string;
   audience: string;
   keywords: string[];
   href: string | null;
@@ -18,6 +19,12 @@ export type HubApplication = {
   // routes every click through Hub's own /apps/:id/launch; this value tells
   // Hub which SSO audience to mint when it differs from the catalog id.
   ssoAppId?: string;
+};
+
+// The categories and scopes Central keeps as master data.
+export type HubTaxonomy = {
+  categories: { key: string; name: string }[];
+  scopes: { key: string; name: string }[];
 };
 
 export type HubCategoryTone = "violet" | "sky" | "emerald" | "amber" | "slate" | "neutral";

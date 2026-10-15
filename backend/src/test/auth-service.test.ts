@@ -1,6 +1,7 @@
 import { describe, it, expect, spyOn, afterEach, beforeAll, mock } from "bun:test";
 import { GoogleAuth } from "../lib/google-auth";
 import * as centralClient from "../lib/central-client";
+import * as sessionRevocation from "../lib/session-revocation";
 import type { HubUser } from "../type/central-type";
 import type { GooglePayload } from "../type/google-type";
 
@@ -40,6 +41,7 @@ const { verifySession } = await import("../lib/session");
 const centralUser: HubUser = {
   source: "employee",
   id: "emp-1",
+  person_id: "person-1",
   employee_id: "E001",
   full_name: "Test Employee",
   nick_name: null,
@@ -65,6 +67,21 @@ beforeAll(() => {
 afterEach(() => {
   mock.restore();
   process.env.ALLOWED_DOMAIN = "millennia21.id";
+});
+
+describe("AuthService.loginWithGoogle and the Central access gate", () => {
+  it("refuses a person without Hub access before any session or revocation happens", async () => {
+    process.env.HUB_CENTRAL_ACCESS_MODE = "enforce";
+    spyOn(GoogleAuth, "verifyCode").mockResolvedValue(googlePayload);
+    spyOn(centralClient, "resolveCentralIdentity").mockResolvedValue({ ...centralUser, person_id: "person-gate" } as HubUser);
+    spyOn(centralClient, "lookupApplicationEntitlement").mockResolvedValue(null);
+
+    const error = await AuthService.loginWithGoogle("code").catch((caught) => caught);
+    expect(error.status).toBe(403);
+    expect(error.code).toBe("hub_access_denied");
+    expect(sessionVersions.has("employee@millennia21.id")).toBe(false);
+    delete process.env.HUB_CENTRAL_ACCESS_MODE;
+  });
 });
 
 describe("AuthService.loginWithGoogle", () => {
@@ -120,5 +137,23 @@ describe("AuthService.loginWithGoogle", () => {
 
     const session = await verifySession(token);
     expect(session?.user).toEqual(centralUser);
+  });
+
+  // Regression: revokeSessionsForUser's second argument must be the
+  // Central Person.id (what a receiving satellite app's centralPersonId
+  // field stores, and what mintRelayToken's `sub` carries), not
+  // Employee.id/Student.id (HubUser.id, a different id space entirely,
+  // scoped to a source the receiving app has no way to know here). The
+  // fixture's id ("emp-1") and person_id ("person-1") are deliberately
+  // different values so a regression fails loudly instead of coincidentally
+  // passing.
+  it("revokes other sessions using the Central Person.id, not Employee.id/Student.id", async () => {
+    spyOn(GoogleAuth, "verifyCode").mockResolvedValue(googlePayload);
+    spyOn(centralClient, "resolveCentralIdentity").mockResolvedValue(centralUser);
+    const revokeSpy = spyOn(sessionRevocation, "revokeSessionsForUser").mockResolvedValue(undefined);
+
+    await AuthService.loginWithGoogle("code");
+
+    expect(revokeSpy).toHaveBeenCalledWith(centralUser.email, "person-1");
   });
 });

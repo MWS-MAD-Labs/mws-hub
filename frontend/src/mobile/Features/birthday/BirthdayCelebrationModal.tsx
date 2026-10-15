@@ -1,7 +1,9 @@
 import { Cake, Crown, X } from "lucide-react";
 import type { CSSProperties } from "react";
 import { useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getOverlayRoot } from "@/components/overlays/portal";
 import type { HubBirthday } from "@/model/hub-model";
 
 const FIREWORK_PARTICLES = Array.from({ length: 12 }, (_, index) => index);
@@ -79,13 +81,15 @@ export default function BirthdayCelebrationModal({
   const scrollRef = useRef<HTMLDivElement>(null);
 
   if (!open || birthdays.length === 0) return null;
+  const portalRoot = getOverlayRoot();
+  if (!portalRoot) return null;
 
   const hasMultipleBirthdays = birthdays.length > 1;
 
-  return (
+  return createPortal(
     <div
       data-birthday-modal
-      className="fixed inset-0 z-[70] flex items-center justify-center overflow-hidden bg-black/60 px-4 backdrop-blur-[2px] motion-safe:animate-[birthday-overlay-in_180ms_ease-out_both] [padding-bottom:calc(env(safe-area-inset-bottom)+1rem)] [padding-top:calc(env(safe-area-inset-top)+1rem)]"
+      className="fixed inset-0 z-[var(--layer-modal)] flex items-center justify-center overflow-hidden bg-black/60 px-4 backdrop-blur-[2px] motion-safe:animate-[birthday-overlay-in_180ms_ease-out_both] [padding-bottom:calc(env(safe-area-inset-bottom)+1rem)] [padding-top:calc(env(safe-area-inset-top)+1rem)]"
       role="dialog"
       aria-modal="true"
       aria-label="Birthday celebration"
@@ -357,6 +361,7 @@ export default function BirthdayCelebrationModal({
           </div>
         )}
       </section>
-    </div>
+    </div>,
+    portalRoot,
   );
 }

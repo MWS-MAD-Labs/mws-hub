@@ -2,10 +2,16 @@ import type { Context } from "hono";
 import { BASE_ACCESS_RULE_OPTIONS, CENTRAL_RULE_PREFIXES } from "../lib/access-rules";
 import { getUserUnitId, getUserUnitName } from "../lib/admin-access";
 import { ResponseError } from "../error/response-error";
+import { hubOverview } from "../service/overview-service";
 import { CentralDirectoryService } from "../service/central-directory-service";
 import type { SessionVariables } from "../type/hono-context";
 
 export class AdminController {
+  // Health, launch activity and open reports for the dashboard.
+  static async overview(c: Context<{ Variables: SessionVariables }>) {
+    return c.json({ data: await hubOverview() });
+  }
+
   static async dashboard(c: Context<{ Variables: SessionVariables }>) {
     const user = c.var.user;
     const unit = getUserUnitName(user) || "MAD Labs";

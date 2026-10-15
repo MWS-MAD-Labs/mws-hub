@@ -25,26 +25,8 @@ export class FeedbackController {
     );
   }
 
-  static async requestAccess(c: Context<{ Variables: SessionVariables }>) {
-    const { reason } = await c.req.json<{ reason?: string }>();
-    return c.json(
-      {
-        data: await FeedbackService.createAccessRequest(
-          appId(c),
-          c.var.user.email,
-          reason,
-        ),
-      },
-      201,
-    );
-  }
-
   static async reports(c: Context<{ Variables: SessionVariables }>) {
     return c.json({ data: await FeedbackService.listReports() });
-  }
-
-  static async accessRequests(c: Context<{ Variables: SessionVariables }>) {
-    return c.json({ data: await FeedbackService.listAccessRequests() });
   }
 
   static async updateReport(c: Context<{ Variables: SessionVariables }>) {
@@ -70,37 +52,6 @@ export class FeedbackController {
     });
     return c.json({
       data: report,
-    });
-  }
-
-  static async updateAccessRequest(
-    c: Context<{ Variables: SessionVariables }>,
-  ) {
-    const { status, decisionNote } = await c.req.json<{
-      status: "PENDING" | "APPROVED" | "REJECTED";
-      decisionNote?: string;
-    }>();
-    const request = await FeedbackService.updateAccessRequest(
-      c.req.param("id") || "",
-      status,
-      c.var.user.email,
-      decisionNote,
-    );
-    await recordAuditLog({
-      actor: c.var.user,
-      action: "access_request.update_status",
-      entity: { type: "access_request", id: request.id },
-      summary: `Updated access request for ${request.application.name} to ${request.status}`,
-      metadata: {
-        status: request.status,
-        application_id: request.application.id,
-        application_name: request.application.name,
-        requester_email: request.requester_email,
-        decision_note: request.decision_note,
-      },
-    });
-    return c.json({
-      data: request,
     });
   }
 }

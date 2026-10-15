@@ -1,5 +1,6 @@
 import type { HubUser } from "../type/central-type";
 import { listActiveEmployees } from "./central-client";
+import { HUB_ADMIN_PERMISSION, userHasHubPermission } from "./hub-access-gate";
 
 const MAD_LABS_UNIT_NAMES = new Set(["mad lab", "mad labs"]);
 const MAD_LABS_UNIT_CACHE_TTL_MS = 5 * 60 * 1000;
@@ -72,4 +73,14 @@ export async function isMadLabsUser(user: HubUser | null | undefined): Promise<b
 export function clearMadLabsUnitIdCacheForTest() {
   madLabsUnitIdCache = null;
   madLabsUnitIdInFlight = null;
+}
+
+// Who may use the Admin Dashboard. With the Central gate on, the `hub.admin` permission of
+// the person's role in Central decides. MAD Labs membership stays as the way in until
+// HUB_ADMIN_FALLBACK=off, so switching the gate on cannot lock the admins out.
+export async function isHubAdmin(user: HubUser | null | undefined): Promise<boolean> {
+  if (!user) return false;
+  if (await userHasHubPermission(user, HUB_ADMIN_PERMISSION)) return true;
+  if ((process.env.HUB_ADMIN_FALLBACK || "mad-labs").trim().toLowerCase() === "off") return false;
+  return isMadLabsUser(user);
 }
