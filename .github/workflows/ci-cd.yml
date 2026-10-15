@@ -16,7 +16,7 @@ permissions:
 jobs:
   test-be:
     name: Backend Validation (Bun, Hono)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
       DATABASE_URL: postgresql://hub_ci:hub_ci@127.0.0.1:5432/mws_hub_ci_test
@@ -47,7 +47,7 @@ jobs:
 
   test-fe:
     name: Frontend Validation (Vite)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     defaults:
       run:
@@ -73,7 +73,7 @@ jobs:
     name: Send Permission List To Central (Staging)
     needs: [test-be, test-fe]
     if: success() && github.ref == 'refs/heads/staging' && github.event_name == 'push'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     defaults:
       run:
@@ -107,7 +107,7 @@ jobs:
     name: Trigger Komodo Deploy (Staging)
     needs: [test-be, test-fe, sync-permissions-staging]
     if: success() && github.ref == 'refs/heads/staging' && github.event_name == 'push'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
 
     steps:
@@ -140,7 +140,7 @@ jobs:
     name: Send Permission List To Central (Production)
     needs: [test-be, test-fe]
     if: success() && github.ref == 'refs/heads/master' && github.event_name == 'push'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     defaults:
       run:
@@ -174,7 +174,7 @@ jobs:
     name: Trigger Komodo Deploy (Production)
     needs: [test-be, test-fe, sync-permissions-production]
     if: success() && github.ref == 'refs/heads/master' && github.event_name == 'push'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
 
     steps:
