@@ -75,6 +75,7 @@ jobs:
     if: success() && github.ref == 'refs/heads/staging' && github.event_name == 'push'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    environment: staging
     defaults:
       run:
         working-directory: backend
@@ -94,11 +95,11 @@ jobs:
       # list) this job fails, the deploy below does not run, and the version that is running stays.
       - name: Send permissions
         env:
-          CENTRAL_API_BASE_URL: ${{ secrets.CENTRAL_API_BASE_URL_STAGING || secrets.CENTRAL_API_BASE_URL }}
+          CENTRAL_API_BASE_URL: ${{ vars.CENTRAL_API_BASE_URL || secrets.CENTRAL_API_BASE_URL_STAGING || secrets.CENTRAL_API_BASE_URL }}
           CENTRAL_API_TOKEN: ${{ secrets.CENTRAL_API_TOKEN_STAGING || secrets.CENTRAL_API_TOKEN }}
         run: |
           if [ -z "$CENTRAL_API_BASE_URL" ] || [ -z "$CENTRAL_API_TOKEN" ]; then
-            echo "::error::CENTRAL_API_BASE_URL and CENTRAL_API_TOKEN secrets are not set (Staging)."
+            echo "::error::CENTRAL_API_BASE_URL and CENTRAL_API_TOKEN are not set in the GitHub Environment (staging)."
             exit 1
           fi
           bun run scripts/sync-permissions.ts sync --retries 5 --wait 20
@@ -142,6 +143,7 @@ jobs:
     if: success() && github.ref == 'refs/heads/master' && github.event_name == 'push'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    environment: production
     defaults:
       run:
         working-directory: backend
@@ -161,11 +163,11 @@ jobs:
       # list) this job fails, the deploy below does not run, and the version that is running stays.
       - name: Send permissions
         env:
-          CENTRAL_API_BASE_URL: ${{ secrets.CENTRAL_API_BASE_URL_PRODUCTION || secrets.CENTRAL_API_BASE_URL }}
+          CENTRAL_API_BASE_URL: ${{ vars.CENTRAL_API_BASE_URL || secrets.CENTRAL_API_BASE_URL_PRODUCTION || secrets.CENTRAL_API_BASE_URL }}
           CENTRAL_API_TOKEN: ${{ secrets.CENTRAL_API_TOKEN_PRODUCTION || secrets.CENTRAL_API_TOKEN }}
         run: |
           if [ -z "$CENTRAL_API_BASE_URL" ] || [ -z "$CENTRAL_API_TOKEN" ]; then
-            echo "::error::CENTRAL_API_BASE_URL and CENTRAL_API_TOKEN secrets are not set (Production)."
+            echo "::error::CENTRAL_API_BASE_URL and CENTRAL_API_TOKEN are not set in the GitHub Environment (production)."
             exit 1
           fi
           bun run scripts/sync-permissions.ts sync --retries 5 --wait 20
