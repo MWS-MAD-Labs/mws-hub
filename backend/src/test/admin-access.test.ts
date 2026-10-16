@@ -1,112 +1,94 @@
-import { afterEach, describe, expect, it } from "bun:test";
-import {
-  clearMadLabsUnitIdCacheForTest,
-  isMadLabsUser,
-  madLabsUnitId,
-} from "../lib/admin-access";
-import type { HubUser } from "../type/central-type";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
+import * as centralClient from "../lib/central-client";
+import { isHubAdmin } from "../lib/admin-access";
+import { clearHubAccessCacheForTest } from "../lib/hub-access-gate";
+import type { CentralApplicationEntitlement, HubUser } from "../type/central-type";
 
-const TEST_MAD_LABS_UNIT_ID = "cmsr1gmkh000akz7bzjgdv6dq";
-const originalFetch = global.fetch;
+const user = {
+  source: "employee",
+  id: "emp-1",
+  person_id: "person-1",
+  employee_id: "15.26.905",
+  full_name: "MAD Labs User",
+  nick_name: null,
+  email: "mad@millennia21.id",
+  photo_url: null,
+  unit: "MAD Lab",
+  unit_id: "unit-mad",
+  job_position: "Developer",
+  job_level: "Staff",
+  status: "ACTIVE",
+  employment_type: "PERMANENT",
+} as HubUser;
 
+const entitlement = (permissions: string[]): CentralApplicationEntitlement =>
+  ({
+    id: "group:rule-1",
+    person_id: "person-1",
+    application_id: "hub",
+    organization_id: "org-1",
+    role: "STAFF",
+    permissions,
+    is_active: true,
+    version: 1,
+  }) as CentralApplicationEntitlement;
+
+const KEYS = ["HUB_CENTRAL_ACCESS_MODE", "HUB_CENTRAL_ACCESS_BYPASS_EMAILS", "HUB_ADMIN_FALLBACK"] as const;
+
+beforeEach(() => clearHubAccessCacheForTest());
 afterEach(() => {
-  clearMadLabsUnitIdCacheForTest();
-  global.fetch = originalFetch;
+  for (const key of KEYS) delete process.env[key];
 });
 
-function jsonResponse(status: number, body: unknown): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { "Content-Type": "application/json" },
-  });
-}
-
-function mockCentralEmployees(unitId = TEST_MAD_LABS_UNIT_ID) {
-  global.fetch = (async () =>
-    jsonResponse(200, {
-      success: true,
-      data: [
-        {
-          id: "emp-1",
-          employee_id: "15.26.905",
-          full_name: "MAD Labs User",
-          nick_name: "MAD",
-          email: "mad@millennia21.id",
-          photo_url: null,
-          unit: "MAD Lab",
-          unit_id: unitId,
-          job_position: "Developer",
-          job_level: "Staff",
-          status: "ACTIVE",
-          employment_type: "PROBATION",
-        },
-      ],
-      paging: { current_page: 1, total_page: 1 },
-    })) as unknown as typeof fetch;
-}
-
-function employee(overrides: Partial<Extract<HubUser, { source: "employee" }>> = {}): HubUser {
-  return {
-    source: "employee",
-    id: "emp-1",
-    person_id: "person-1",
-    employee_id: "15.26.905",
-    full_name: "MAD Labs User",
-    nick_name: "MAD",
-    email: "mad@millennia21.id",
-    photo_url: null,
-    unit: null,
-    job_position: "Developer",
-    job_level: "Staff",
-    status: "ACTIVE",
-    employment_type: "PROBATION",
-    ...overrides,
-  };
-}
-
-describe("isMadLabsUser", () => {
-  it("loads the MAD Labs unit id from Central employees", async () => {
-    mockCentralEmployees();
-
-    expect(await madLabsUnitId()).toBe(TEST_MAD_LABS_UNIT_ID);
+describe("isHubAdmin", () => {
+  it("is admin only when the role in Central carries hub.admin, in every mode", async () => {
+    spyOn(centralClient, "lookupApplicationEntitlement").mockResolvedValue(entitlement(["hub.use", "hub.admin"]));
+    for (const mode of ["off", "warn", "enforce"]) {
+      process.env.HUB_CENTRAL_ACCESS_MODE = mode;
+      clearHubAccessCacheForTest();
+      expect(await isHubAdmin(user)).toBe(true);
+    }
   });
 
-  it("admits an employee whose Central unit_id matches the MAD Labs id from Central", async () => {
-    mockCentralEmployees();
-
-    expect(await isMadLabsUser(employee({ unit_id: TEST_MAD_LABS_UNIT_ID }))).toBe(true);
+  it("is not admin with a staff role, even in the MAD Labs unit", async () => {
+    spyOn(centralClient, "lookupApplicationEntitlement").mockResolvedValue(entitlement(["hub.use"]));
+    for (const mode of ["off", "warn", "enforce"]) {
+      process.env.HUB_CENTRAL_ACCESS_MODE = mode;
+      clearHubAccessCacheForTest();
+      expect(await isHubAdmin(user)).toBe(false);
+    }
   });
 
-  it("admits an employee whose Central unitId matches the MAD Labs id from Central", async () => {
-    mockCentralEmployees();
-
-    expect(await isMadLabsUser(employee({ unitId: TEST_MAD_LABS_UNIT_ID }))).toBe(true);
+  it("ignores the old MAD Labs fallback setting", async () => {
+    process.env.HUB_CENTRAL_ACCESS_MODE = "enforce";
+    process.env.HUB_ADMIN_FALLBACK = "mad-labs";
+    spyOn(centralClient, "lookupApplicationEntitlement").mockResolvedValue(null);
+    expect(await isHubAdmin(user)).toBe(false);
   });
 
-  it("does not admit a user from name alone when Central did not send a unit id", async () => {
-    mockCentralEmployees();
-
-    expect(await isMadLabsUser(employee({ unit: "MAD Lab", unit_id: null, unitId: null }))).toBe(false);
+  it("is not admin without access in Central, and for nobody", async () => {
+    process.env.HUB_CENTRAL_ACCESS_MODE = "enforce";
+    spyOn(centralClient, "lookupApplicationEntitlement").mockResolvedValue(null);
+    expect(await isHubAdmin(user)).toBe(false);
+    expect(await isHubAdmin(null)).toBe(false);
   });
 
-  it("refuses non-MAD Labs employees and students", async () => {
-    mockCentralEmployees();
+  it("makes an emergency account admin only while Central gives it no access or cannot be reached", async () => {
+    process.env.HUB_CENTRAL_ACCESS_MODE = "enforce";
+    process.env.HUB_CENTRAL_ACCESS_BYPASS_EMAILS = "MAD@millennia21.id";
+    const lookup = spyOn(centralClient, "lookupApplicationEntitlement").mockResolvedValue(null);
+    expect(await isHubAdmin(user)).toBe(true);
 
-    expect(await isMadLabsUser(employee({ unit_id: "unit-junior-high" }))).toBe(false);
-    expect(
-      await isMadLabsUser({
-        source: "student",
-        id: "stu-1",
-        person_id: "person-2",
-        nis: null,
-        nisn: null,
-        full_name: "Student",
-        nick_name: null,
-        email: "student@millennia21.id",
-        status: "ACTIVE",
-        current_grade: null,
-        current_class: null,
-      }),
-    ).toBe(false);
+    lookup.mockRejectedValue(new Error("down"));
+    clearHubAccessCacheForTest();
+    expect(await isHubAdmin(user)).toBe(true);
+
+    lookup.mockResolvedValue(entitlement(["hub.use"]));
+    clearHubAccessCacheForTest();
+    expect(await isHubAdmin(user)).toBe(false);
+
+    lookup.mockResolvedValue(entitlement(["hub.use", "hub.admin"]));
+    clearHubAccessCacheForTest();
+    expect(await isHubAdmin(user)).toBe(true);
   });
 });

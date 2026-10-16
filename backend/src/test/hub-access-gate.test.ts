@@ -183,10 +183,6 @@ describe("Hub access gate for a session", () => {
 describe("Hub admin from Central permission", () => {
   const { isHubAdmin } = require("../lib/admin-access") as typeof import("../lib/admin-access");
 
-  afterEach(() => {
-    delete process.env.HUB_ADMIN_FALLBACK;
-  });
-
   it("is admin when the role carries hub.admin", async () => {
     process.env.HUB_CENTRAL_ACCESS_MODE = "enforce";
     spyOn(centralClient, "lookupApplicationEntitlement").mockResolvedValue(
@@ -195,23 +191,18 @@ describe("Hub admin from Central permission", () => {
     expect(await isHubAdmin(user)).toBe(true);
   });
 
-  it("is not admin with a member role and no unit to fall back on", async () => {
+  it("is not admin with a member role, whatever the unit", async () => {
     process.env.HUB_CENTRAL_ACCESS_MODE = "enforce";
-    spyOn(centralClient, "lookupApplicationEntitlement").mockResolvedValue(entitlement());
-    expect(await isHubAdmin(user)).toBe(false);
-  });
-
-  it("does not ask Central when the mode is off", async () => {
-    const lookup = spyOn(centralClient, "lookupApplicationEntitlement");
-    expect(await isHubAdmin(user)).toBe(false);
-    expect(lookup).not.toHaveBeenCalled();
-  });
-
-  it("ignores the MAD Labs fallback when HUB_ADMIN_FALLBACK is off", async () => {
-    process.env.HUB_CENTRAL_ACCESS_MODE = "enforce";
-    process.env.HUB_ADMIN_FALLBACK = "off";
     spyOn(centralClient, "lookupApplicationEntitlement").mockResolvedValue(entitlement());
     expect(await isHubAdmin({ ...user, unit_id: "u-mad" } as HubUser)).toBe(false);
+  });
+
+  it("reads the role in every mode, also when the sign-in check is off", async () => {
+    const lookup = spyOn(centralClient, "lookupApplicationEntitlement").mockResolvedValue(
+      entitlement({ role: "ADMIN", permissions: ["hub.use", "hub.admin"] }),
+    );
+    expect(await isHubAdmin(user)).toBe(true);
+    expect(lookup).toHaveBeenCalled();
   });
 
   it("is false for no user", async () => {

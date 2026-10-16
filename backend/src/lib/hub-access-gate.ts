@@ -30,7 +30,7 @@ function accessAppId(): string {
   return process.env.HUB_CENTRAL_ACCESS_APP_ID || "hub";
 }
 
-// Accounts that always get in, so a wrong Central setup cannot lock everyone out.
+// Emergency accounts: let in, as admin, when Central gives them no way in, so a wrong Central setup cannot lock everyone out.
 function bypassEmails(): Set<string> {
   return new Set(
     (process.env.HUB_CENTRAL_ACCESS_BYPASS_EMAILS || "")
@@ -125,9 +125,10 @@ async function audit(user: HubUser, action: string, summary: string) {
 // What Hub authorizes on is the permission the role carries, not the role's name.
 export { HUB_ADMIN_PERMISSION };
 
+// An emergency account has every Hub permission while Central gives it no access, so it can fix the setup.
 export async function userHasHubPermission(user: HubUser, permission: string): Promise<boolean> {
-  if (hubAccessMode() === "off") return false;
   const access = await resolveHubAccess(user, cacheMs());
+  if (access.status === "bypass") return true;
   return access.status === "granted" && access.permissions.includes(permission);
 }
 

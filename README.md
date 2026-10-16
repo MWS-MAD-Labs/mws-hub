@@ -74,15 +74,15 @@ Routes:
   not checked), `warn` (checked and logged, nobody turned away) or `enforce`
   (turned away without access, signed out within 5 minutes when it is taken
   away). `HUB_CENTRAL_ACCESS_APP_ID` changes the application (default `hub`).
-  `HUB_CENTRAL_ACCESS_BYPASS_EMAILS` lists accounts that get in when Central gives them
-  no access, or cannot be reached. When Central gives them a role, that role applies. Roll out
+  `HUB_CENTRAL_ACCESS_BYPASS_EMAILS` lists the emergency admins: accounts that get in, as
+  admin, when Central gives them no access or cannot be reached. When Central gives them a
+  role, that role applies like for anyone else. Roll out
   as `warn`, read the `hub.login_would_deny` audit entries until nobody is left
   out, then switch to `enforce`. Only turn it on where Central has Application
   Access groups for `hub`, otherwise everyone is turned away.
-- With the gate on, Admin Dashboard access comes from the `hub.admin` permission
-  on the person's Hub role in Central. `HUB_ADMIN_FALLBACK` defaults to
-  `mad-labs`, which keeps MAD Labs members as admins too. Set it to `off` once
-  the Central role carries `hub.admin` for every admin.
+- Admin Dashboard access comes only from the `hub.admin` permission on the person's
+  Hub role in Central, in every mode. Unit membership gives nothing. The emergency
+  admins above are the only exception.
 - App cards for apps with a `centralEntitlementAppId` are left out for people
   Central gives no access to. In `enforce`, apps without it are left out too
   (and cannot be launched), so link an app to Central before anyone can open it.

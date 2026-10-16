@@ -30,7 +30,7 @@ export async function adminAuthMiddleware(
   if (!(await isHubAdmin(user))) {
     throw new ResponseError(
       403,
-      "Access denied. Only MAD Labs members can access the Admin Dashboard.",
+      "Access denied. The Admin Dashboard needs the hub.admin permission in Central.",
     );
   }
 
