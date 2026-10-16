@@ -53,3 +53,39 @@ describe("userMatchesAccessRule - teaching-role", () => {
     expect(userMatchesAccessRule("teacher", teacher)).toBe(true);
   });
 });
+
+describe("userMatchesAccessRule - interns", () => {
+  const intern = {
+    source: "intern",
+    id: "int-1",
+    person_id: "per-1",
+    full_name: "An Intern",
+    nick_name: null,
+    email: "intern@millennia21.id",
+    photo_url: null,
+    unit: "Elementary",
+    unit_id: "unit-1",
+    job_position: "Teaching Intern",
+    job_position_id: "pos-1",
+    status: "ACTIVE",
+  } as HubUser;
+
+  it("admits an intern on the intern and public rules", () => {
+    expect(userMatchesAccessRule("intern", intern)).toBe(true);
+    expect(userMatchesAccessRule("source:intern", intern)).toBe(true);
+    expect(userMatchesAccessRule("public", intern)).toBe(true);
+  });
+
+  it("does not admit an intern on the employee or student rules", () => {
+    expect(userMatchesAccessRule("employee", intern)).toBe(false);
+    expect(userMatchesAccessRule("student", intern)).toBe(false);
+  });
+
+  it("does not admit an employee on the intern rule", () => {
+    expect(userMatchesAccessRule("intern", employee())).toBe(false);
+  });
+
+  it("does not admit an intern on a teaching-role rule", () => {
+    expect(userMatchesAccessRule("teaching-role", intern)).toBe(false);
+  });
+});

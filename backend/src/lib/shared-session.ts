@@ -1,7 +1,7 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import type { Context } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
-import type { HubUser } from "../type/central-type";
+import type { HubSource, HubUser } from "../type/central-type";
 import type { HubAccessSource } from "../type/catalog-type";
 import { prisma } from "./prisma";
 import { signHubJwt } from "./sso-relay";
@@ -245,7 +245,7 @@ export interface RefreshDeps {
   // UserSession.session_version of the person, or null when there is none.
   sessionVersionOf(centralId: string): Promise<number | null>;
   // The person as Central knows them now. null: not active any more. A thrown error: Central could not be reached.
-  resolveIdentity(centralId: string, source: "employee" | "student"): Promise<HubUser | null>;
+  resolveIdentity(centralId: string, source: HubSource): Promise<HubUser | null>;
   tagsFor(user: HubUser): HubAccessSource[];
   // The person signed in to the Hub itself (its own cookie), if any. Lets a Hub session from before the shared
   // session existed turn into one without signing in again.
@@ -277,7 +277,7 @@ async function performRefresh(c: Context, deps: RefreshDeps): Promise<RefreshOut
   // The person as Central knows them now, before anything is turned over: a failed lookup leaves the token usable.
   let user: HubUser | null;
   try {
-    user = await deps.resolveIdentity(row.central_id, row.source as "employee" | "student");
+    user = await deps.resolveIdentity(row.central_id, row.source as HubSource);
   } catch {
     return { ok: false, status: 503, message: "Try again shortly." };
   }

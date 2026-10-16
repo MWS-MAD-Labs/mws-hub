@@ -62,12 +62,16 @@ function getUserAccessTags(user: HubUser): Set<HubAccessSource> {
   });
 
   if (user.source === "employee") {
-  [
-    namedValue(user.unit),
-    namedValue(user.job_position),
-    namedValue(user.job_level),
-    user.employment_type,
-  ].forEach((value) => addAccessTag(tags, value));
+    [
+      namedValue(user.unit),
+      namedValue(user.job_position),
+      namedValue(user.job_level),
+      user.employment_type,
+    ].forEach((value) => addAccessTag(tags, value));
+  }
+  // An intern has a unit and a job position, and no job level.
+  if (user.source === "intern") {
+    [namedValue(user.unit), namedValue(user.job_position)].forEach((value) => addAccessTag(tags, value));
   }
 
   return tags;

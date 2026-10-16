@@ -3,7 +3,7 @@ import type { AuthUser } from "@/model/auth-model";
 export function getUserUnitId(
   user: AuthUser | null | undefined,
 ): string | null {
-  if (!user || user.source !== "employee") return null;
+  if (!user || user.source === "student") return null;
   return user.unitId || user.unit_id || null;
 }
 

@@ -218,6 +218,38 @@ describe("resolveCentralIdentity", () => {
     expect(calls).toEqual([expect.stringContaining("/persons/lookup")]);
   });
 
+  it("returns an intern identity when Central's combined lookup says source: intern", async () => {
+    global.fetch = (async () =>
+      jsonResponse(200, {
+        data: { source: "intern", id: "int-1", person_id: "per-1", email: "c@millennia21.id", unit: { id: "u-1", name: "Elementary" } },
+      })) as unknown as typeof fetch;
+
+    const user = await resolveCentralIdentity("c@millennia21.id");
+    expect(user?.source).toBe("intern");
+    expect(user).toMatchObject({ unit: "Elementary", unitId: "u-1" });
+  });
+
+  it("returns null for a source it does not know instead of calling it a student", async () => {
+    global.fetch = (async () =>
+      jsonResponse(200, {
+        data: { source: "alumni", id: "x-1", email: "d@millennia21.id" },
+      })) as unknown as typeof fetch;
+
+    expect(await resolveCentralIdentity("d@millennia21.id")).toBeNull();
+  });
+
+  it("resolves an intern by id, hitting only the interns endpoint", async () => {
+    const calls: string[] = [];
+    global.fetch = (async (input: string | URL | Request) => {
+      calls.push(String(input));
+      return jsonResponse(200, { data: { id: "int-1", email: "c@millennia21.id" } });
+    }) as unknown as typeof fetch;
+
+    const user = await resolveCentralIdentityById("int-1", "intern");
+    expect(user?.source).toBe("intern");
+    expect(calls).toEqual([expect.stringContaining("/interns/lookup?id=int-1")]);
+  });
+
   // The whole point of the combined endpoint: a student sign-in used to cost
   // an employee-lookup 404 before falling through - this is now always
   // exactly one HTTP round-trip to Central, employee or student alike.

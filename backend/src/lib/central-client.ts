@@ -2,6 +2,8 @@ import { failureForNetwork, failureForResponse } from "./central-failure";
 import type {
   CentralApplicationEntitlement,
   EmployeeLookupResponse,
+  HubSource,
+  InternLookupResponse,
   HubUser,
   StudentLookupResponse,
 } from "../type/central-type";
@@ -365,7 +367,23 @@ async function listPage<T>(path: string): Promise<CentralPage<T>> {
 // student fallback resolveCentralIdentity used to do into one HTTP call.
 type PersonLookupResponse =
   | ({ source: "employee" } & EmployeeLookupResponse)
+  | ({ source: "intern" } & InternLookupResponse)
   | ({ source: "student" } & StudentLookupResponse);
+
+function normalizeIntern(intern: InternLookupResponse): Extract<HubUser, { source: "intern" }> {
+  const unitId = unitIdOf(intern);
+  const jobPositionId = namedRefIdOf(intern, "job_position_id", "jobPositionId", "job_position");
+  return {
+    source: "intern",
+    ...intern,
+    unit: unitNameOf(intern),
+    unit_id: unitId,
+    unitId: unitId,
+    job_position: namedRefNameOf(intern.job_position),
+    job_position_id: jobPositionId,
+    jobPositionId: jobPositionId,
+  };
+}
 
 function normalizeStudent(
   student: StudentLookupResponse,
@@ -436,9 +454,18 @@ export async function resolveCentralIdentity(
   });
   if (!person) return null;
 
-  return person.source === "employee"
-    ? normalizeEmployee(person)
-    : normalizeStudent(person);
+  // An answer from a source this Hub does not know is refused, never read as a student.
+  switch (person.source) {
+    case "employee":
+      return normalizeEmployee(person);
+    case "intern":
+      return normalizeIntern(person);
+    case "student":
+      return normalizeStudent(person);
+    default:
+      logger.error("Central answered with a source the Hub does not know");
+      return null;
+  }
 }
 
 // Re-resolves someone Hub already identified once, by Central's own stable
@@ -452,13 +479,18 @@ export async function resolveCentralIdentity(
 // know the source yet.
 export async function resolveCentralIdentityById(
   id: string,
-  source: "employee" | "student",
+  source: HubSource,
 ): Promise<HubUser | null> {
   if (source === "employee") {
     const employee = await lookup<EmployeeLookupResponse>("/employees/lookup", {
       id,
     });
     return employee ? normalizeEmployee(employee) : null;
+  }
+
+  if (source === "intern") {
+    const intern = await lookup<InternLookupResponse>("/interns/lookup", { id });
+    return intern ? normalizeIntern(intern) : null;
   }
 
   const student = await lookup<StudentLookupResponse>("/students/lookup", {

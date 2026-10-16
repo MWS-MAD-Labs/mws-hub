@@ -288,6 +288,27 @@ describe("AppsService.accessTagsFor", () => {
     expect(tags).toContain("staff");
   });
 
+  it("tags an intern by source, unit and position, with no level tags", () => {
+    const tags = AppsService.accessTagsFor({
+      source: "intern",
+      id: "int-1",
+      person_id: "per-1",
+      full_name: "An Intern",
+      nick_name: null,
+      email: "intern@millennia21.id",
+      photo_url: null,
+      unit: "Elementary",
+      job_position: "Teaching Intern",
+      status: "ACTIVE",
+    } as never);
+
+    expect(tags).toContain("intern");
+    expect(tags).toContain("public");
+    expect(tags).toContain("elementary");
+    expect(tags).toContain("teaching-intern");
+    expect(tags).not.toContain("employee");
+  });
+
   it("does not mint substring tags from a Central role/roles/permissions claim either", () => {
     const tags = AppsService.accessTagsFor(
       employee({ roles: [{ name: "Super Admin" }], permissions: ["hub:apps:proofpoint:launch"] }),
