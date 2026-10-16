@@ -1,5 +1,6 @@
 import { describe, it, expect, afterEach, beforeAll } from "bun:test";
 import {
+  centralAuthHeaders,
   listActiveEmployees,
   lookupApplicationEntitlement,
   resolveCentralIdentity,
@@ -23,6 +24,41 @@ function jsonResponse(status: number, body: unknown): Response {
     headers: { "Content-Type": "application/json" },
   });
 }
+
+describe("centralAuthHeaders", () => {
+  it("sends the token, and the Organization ID the Hub was set up with when there is one", () => {
+    const previous = process.env.CENTRAL_ORGANIZATION_ID;
+    try {
+      delete process.env.CENTRAL_ORGANIZATION_ID;
+      expect(centralAuthHeaders()).toEqual({ Authorization: `Bearer ${process.env.CENTRAL_API_TOKEN}` });
+      process.env.CENTRAL_ORGANIZATION_ID = " org_hub_aaaaaaaaaaaaaaaaaaaa ";
+      expect(centralAuthHeaders()).toEqual({
+        Authorization: `Bearer ${process.env.CENTRAL_API_TOKEN}`,
+        "X-Central-Organization-Id": "org_hub_aaaaaaaaaaaaaaaaaaaa",
+      });
+    } finally {
+      if (previous === undefined) delete process.env.CENTRAL_ORGANIZATION_ID;
+      else process.env.CENTRAL_ORGANIZATION_ID = previous;
+    }
+  });
+
+  it("goes with a lookup", async () => {
+    const previous = process.env.CENTRAL_ORGANIZATION_ID;
+    let sent: Headers | null = null;
+    global.fetch = (async (_input: string | URL | Request, init?: RequestInit) => {
+      sent = new Headers(init?.headers);
+      return jsonResponse(404, {});
+    }) as unknown as typeof fetch;
+    try {
+      process.env.CENTRAL_ORGANIZATION_ID = "org_hub_aaaaaaaaaaaaaaaaaaaa";
+      await lookupApplicationEntitlement("person-1", "exima");
+      expect(sent!.get("x-central-organization-id")).toBe("org_hub_aaaaaaaaaaaaaaaaaaaa");
+    } finally {
+      if (previous === undefined) delete process.env.CENTRAL_ORGANIZATION_ID;
+      else process.env.CENTRAL_ORGANIZATION_ID = previous;
+    }
+  });
+});
 
 describe("lookupApplicationEntitlement", () => {
   const entitlement = {
