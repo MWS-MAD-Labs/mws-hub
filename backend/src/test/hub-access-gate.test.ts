@@ -123,12 +123,30 @@ describe("Hub access gate at sign-in", () => {
     await gate.enforceHubAccessOnLogin(user);
   });
 
-  it("always lets the bypass accounts in, without asking Central", async () => {
+  it("lets the bypass accounts in when Central gives them no access, or cannot be reached", async () => {
     process.env.HUB_CENTRAL_ACCESS_MODE = "enforce";
     process.env.HUB_CENTRAL_ACCESS_BYPASS_EMAILS = " Someone@x.id , EMPLOYEE@millennia21.id ";
     const lookup = spyOn(centralClient, "lookupApplicationEntitlement").mockResolvedValue(null);
     await gate.enforceHubAccessOnLogin(user);
-    expect(lookup).not.toHaveBeenCalled();
+    expect(audits.map((entry) => entry.action)).toEqual(["hub.login_bypass"]);
+
+    lookup.mockRejectedValue(new Error("down"));
+    await gate.enforceHubAccessOnLogin(user);
+  });
+
+  it("gives a bypass account the role Central gave it, and records no bypass", async () => {
+    process.env.HUB_CENTRAL_ACCESS_MODE = "enforce";
+    process.env.HUB_CENTRAL_ACCESS_BYPASS_EMAILS = "employee@millennia21.id";
+    spyOn(centralClient, "lookupApplicationEntitlement").mockResolvedValue(entitlement());
+    await gate.enforceHubAccessOnLogin(user);
+    expect(audits).toEqual([]);
+    expect(await gate.userHasHubPermission(user, "hub.admin")).toBe(false);
+
+    gate.clearHubAccessCacheForTest();
+    spyOn(centralClient, "lookupApplicationEntitlement").mockResolvedValue(
+      entitlement({ role: "ADMIN", permissions: ["hub.use", "hub.admin"] }),
+    );
+    expect(await gate.userHasHubPermission(user, "hub.admin")).toBe(true);
   });
 
   it("asks Central once for a person within a minute and can use another application id", async () => {

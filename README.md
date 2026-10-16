@@ -74,7 +74,8 @@ Routes:
   not checked), `warn` (checked and logged, nobody turned away) or `enforce`
   (turned away without access, signed out within 5 minutes when it is taken
   away). `HUB_CENTRAL_ACCESS_APP_ID` changes the application (default `hub`).
-  `HUB_CENTRAL_ACCESS_BYPASS_EMAILS` lists accounts that always get in. Roll out
+  `HUB_CENTRAL_ACCESS_BYPASS_EMAILS` lists accounts that get in when Central gives them
+  no access, or cannot be reached. When Central gives them a role, that role applies. Roll out
   as `warn`, read the `hub.login_would_deny` audit entries until nobody is left
   out, then switch to `enforce`. Only turn it on where Central has Application
   Access groups for `hub`, otherwise everyone is turned away.
