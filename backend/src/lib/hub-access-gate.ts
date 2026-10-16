@@ -53,11 +53,17 @@ export function clearHubAccessCacheForTest() {
   revoked.clear();
 }
 
+// Central decides. An account in the bypass list only gets in on its own when Central gives it no way in, so a role
+// set in Central (staff, admin) always applies to it too.
 export async function resolveHubAccess(user: HubUser, maxAgeMs: number): Promise<HubAccess> {
-  if (bypassEmails().has(user.email.trim().toLowerCase())) {
+  const access = await resolveCentralAccess(user, maxAgeMs);
+  if (access.status !== "granted" && bypassEmails().has(user.email.trim().toLowerCase())) {
     return { status: "bypass", role: null, permissions: [] };
   }
+  return access;
+}
 
+async function resolveCentralAccess(user: HubUser, maxAgeMs: number): Promise<HubAccess> {
   const key = `${accessAppId()}:${user.person_id}`;
   const cached = cache.get(key);
   let entitlement: CentralApplicationEntitlement | null;
