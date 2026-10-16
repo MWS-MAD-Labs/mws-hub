@@ -78,9 +78,33 @@ export type StudentLookupResponse = {
   unitId?: string | null;
 } & CentralAccessClaims;
 
+// An intern has a unit and a job position. There is no employee ID, job level or employment type.
+export type InternLookupResponse = {
+  id: string;
+  // Person.id, what the entitlements and the shared session know the person by.
+  person_id: string;
+  full_name: string;
+  nick_name: string | null;
+  email: string;
+  photo_url: string | null;
+  unit: string | CentralUnitRef | null;
+  unit_id?: string | null;
+  unitId?: string | null;
+  job_position: string | CentralNamedRef | null;
+  job_position_id?: string | null;
+  jobPositionId?: string | null;
+  building?: string | null;
+  join_date?: string | null;
+  end_date?: string | null;
+  status: string;
+} & CentralAccessClaims;
+
 export type HubUser =
   | ({ source: "employee" } & EmployeeLookupResponse)
+  | ({ source: "intern" } & InternLookupResponse)
   | ({ source: "student" } & StudentLookupResponse);
+
+export type HubSource = HubUser["source"];
 
 export type CentralApplicationEntitlement = {
   id: string;

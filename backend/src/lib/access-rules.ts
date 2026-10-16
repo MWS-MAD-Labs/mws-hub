@@ -16,12 +16,17 @@ export const BASE_ACCESS_RULE_OPTIONS: AccessRuleOption[] = [
     // this out explicitly since "public" alone reads like the opposite in
     // most security contexts.
     label: "Semua anggota Central (tetap wajib login)",
-    hint: "Karyawan dan siswa aktif yang berhasil login Google + ketemu di Central - bukan akses tanpa login/terbuka ke publik internet. Gabungan dari \"Semua karyawan\" + \"Semua siswa\".",
+    hint: "Karyawan, intern dan siswa aktif yang berhasil login Google + ketemu di Central - bukan akses tanpa login/terbuka ke publik internet. Gabungan dari \"Semua karyawan\" + \"Semua intern\" + \"Semua siswa\".",
   },
   {
     value: "employee",
     label: "Semua karyawan",
     hint: "Semua identity dengan source employee dari Central.",
+  },
+  {
+    value: "intern",
+    label: "Semua intern",
+    hint: "Semua identity dengan source intern dari Central.",
   },
   {
     value: "student",
@@ -87,8 +92,8 @@ export function normalizeAccessToken(value: string): string {
 export function isValidAccessRule(rule: string): boolean {
   const trimmed = rule.trim();
   if (!trimmed) return false;
-  if (["public", "employee", "student"].includes(trimmed)) return true;
-  if (["source:employee", "source:student"].includes(trimmed)) return true;
+  if (["public", "employee", "intern", "student"].includes(trimmed)) return true;
+  if (["source:employee", "source:intern", "source:student"].includes(trimmed)) return true;
   if (/^[a-zA-Z0-9][a-zA-Z0-9-]*$/.test(trimmed)) return true;
 
   return VALID_PREFIXES.some(
@@ -151,13 +156,15 @@ function unitIdOf(user: HubUser): string | null {
   return user.unitId || user.unit_id || null;
 }
 
+// Employees have a job position and a job level, interns a job position only.
 function employeeFieldId(
   user: HubUser,
   snakeKey: "job_position_id" | "job_level_id",
   camelKey: "jobPositionId" | "jobLevelId",
 ): string | null {
-  if (user.source !== "employee") return null;
-  return user[camelKey] || user[snakeKey] || null;
+  if (user.source === "employee") return user[camelKey] || user[snakeKey] || null;
+  if (user.source === "intern" && snakeKey === "job_position_id") return user.jobPositionId || user.job_position_id || null;
+  return null;
 }
 
 export function userMatchesAccessRule(rule: string, user: HubUser): boolean {
@@ -190,7 +197,7 @@ export function userMatchesAccessRule(rule: string, user: HubUser): boolean {
 
   if (normalizedRule.startsWith("job-position-label:")) {
     return (
-      normalizeAccessToken(namedValue(user.source === "employee" ? user.job_position : null) || "") ===
+      normalizeAccessToken(namedValue(user.source === "student" ? null : user.job_position) || "") ===
       normalizeAccessToken(rule.slice("job-position-label:".length))
     );
   }
@@ -234,8 +241,8 @@ export function userMatchesAccessRule(rule: string, user: HubUser): boolean {
   [
     namedValue(user.unit),
     namedValue(user.job_position),
-    namedValue(user.job_level),
-    user.employment_type,
+    user.source === "employee" ? namedValue(user.job_level) : null,
+    user.source === "employee" ? user.employment_type : null,
   ].forEach((value) => addClaim(centralIdentityLabels, value));
 
   return centralIdentityLabels.has(normalizedRule);

@@ -62,6 +62,15 @@ export default function ProfilePage() {
             </dl>
           )}
 
+          {user.source === "intern" && (
+            <dl className="mt-6 space-y-2 text-sm">
+              <div className="flex justify-between">
+                <dt className="text-muted-foreground">Unit</dt>
+                <dd>{user.unit || "-"}</dd>
+              </div>
+            </dl>
+          )}
+
           {user.source === "student" && (
             <dl className="mt-6 space-y-2 text-sm">
               <div className="flex justify-between">
