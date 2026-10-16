@@ -91,6 +91,9 @@ app.onError((err, c) => {
 
 // Not while the tests import the app.
 if (process.env.NODE_ENV !== "test") startPermissionSync();
+if (process.env.NODE_ENV !== "test" && process.env.CENTRAL_API_TOKEN && !process.env.CENTRAL_ORGANIZATION_ID?.trim()) {
+  logger.error("CENTRAL_ORGANIZATION_ID is not set, so Central cannot check which organization this Hub belongs to.");
+}
 
 const port = Number(process.env.PORT) || 4001;
 logger.info(`listening on :${port}`);

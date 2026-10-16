@@ -11,6 +11,15 @@ import { logger } from "./logger";
 const baseUrl = () => process.env.CENTRAL_API_BASE_URL;
 const apiToken = () => process.env.CENTRAL_API_TOKEN;
 
+// The Hub says which Organization ID it was set up with, so Central can show whether it is the one it made.
+export function centralAuthHeaders(): Record<string, string> {
+  const organization = process.env.CENTRAL_ORGANIZATION_ID?.trim();
+  return {
+    Authorization: `Bearer ${apiToken()}`,
+    ...(organization ? { "X-Central-Organization-Id": organization } : {}),
+  };
+}
+
 // Without this, a Central that's slow (not fully down/erroring) hangs
 // sign-in, launch(), and the admin middleware indefinitely - the existing
 // fail-closed handling below only triggers on a thrown error, never on a
@@ -157,7 +166,7 @@ async function lookup<T>(
 ): Promise<T | null> {
   const params = new URLSearchParams(query);
   const res = await fetch(`${baseUrl()}${path}?${params.toString()}`, {
-    headers: { Authorization: `Bearer ${apiToken()}` },
+    headers: centralAuthHeaders(),
     signal: AbortSignal.timeout(CALL_TIMEOUT_MS),
   });
 
@@ -304,7 +313,7 @@ async function permissionCall<T>(path: string, init: { method: "GET" | "PUT"; bo
     res = await fetch(`${baseUrl()}/application-permissions${path}`, {
       method: init.method,
       headers: {
-        Authorization: `Bearer ${apiToken()}`,
+        ...centralAuthHeaders(),
         ...(init.body !== undefined ? { "Content-Type": "application/json" } : {}),
       },
       ...(init.body !== undefined ? { body: JSON.stringify(init.body) } : {}),
@@ -336,7 +345,7 @@ export function permissionUsage(applicationId: string) {
 
 async function listPage<T>(path: string): Promise<CentralPage<T>> {
   const res = await fetch(`${baseUrl()}${path}`, {
-    headers: { Authorization: `Bearer ${apiToken()}` },
+    headers: centralAuthHeaders(),
     signal: AbortSignal.timeout(CALL_TIMEOUT_MS),
   });
 
