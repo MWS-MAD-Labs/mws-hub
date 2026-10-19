@@ -114,11 +114,11 @@ jobs:
     steps:
       - name: Trigger Komodo webhook (Staging)
         env:
-          KOMODO_WEBHOOK_URL: ${{ secrets.KOMODO_WEBHOOK_URL_STAGING || secrets.KOMODO_STAGING_WEBHOOK_URL || secrets.KOMODO_WEBHOOK_URL }}
+          KOMODO_WEBHOOK_URL: ${{ secrets.KOMODO_WEBHOOK_URL_STAGING || secrets.KOMODO_STAGING_WEBHOOK_URL }}
           KOMODO_WEBHOOK_SECRET: ${{ secrets.KOMODO_WEBHOOK_SECRET_STAGING || secrets.KOMODO_STAGING_WEBHOOK_SECRET || secrets.KOMODO_WEBHOOK_SECRET }}
         run: |
           if [ -z "$KOMODO_WEBHOOK_URL" ] || [ -z "$KOMODO_WEBHOOK_SECRET" ]; then
-            echo "::error::Staging webhook secrets are not set."
+            echo "::error::Set KOMODO_WEBHOOK_URL_STAGING and KOMODO_WEBHOOK_SECRET_STAGING (the webhook of the staging stack in Komodo). The secret may also be the shared KOMODO_WEBHOOK_SECRET."
             exit 1
           fi
 
