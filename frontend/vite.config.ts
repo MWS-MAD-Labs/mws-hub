@@ -3,6 +3,7 @@ import { VitePWA } from "vite-plugin-pwa";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
+import { NAVIGATION_DENYLIST, NETWORK_ONLY_PREFIXES } from "./pwa-routes";
 
 export default defineConfig({
   plugins: [
@@ -73,25 +74,11 @@ export default defineConfig({
         globPatterns: ["**/*.{js,css,html,ico,png,svg,webp}"],
         globIgnores: ["**/env.js"],
         navigateFallback: "/index.html",
-        navigateFallbackDenylist: [
-          /^\/auth/,
-          /^\/apps/,
-          /^\/admin\/dashboard-data$/,
-          /^\/admin\/api/,
-          /^\/\.well-known/,
-          /^\/env\.js$/,
-        ],
+        navigateFallbackDenylist: NAVIGATION_DENYLIST,
         runtimeCaching: [
           {
             urlPattern: ({ url }) =>
-              [
-                "/auth",
-                "/apps",
-                "/admin/dashboard-data",
-                "/admin/api",
-                "/.well-known",
-                "/env.js",
-              ].some((prefix) => url.pathname.startsWith(prefix)),
+              NETWORK_ONLY_PREFIXES.some((prefix) => url.pathname.startsWith(prefix)),
             handler: "NetworkOnly",
             method: "GET",
           },
