@@ -4,14 +4,9 @@ import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Dialog } from "radix-ui";
 import HubHeader from "@/features/fragments/HubHeader";
-import HubIntro from "@/features/fragments/HubIntro";
-import HubSearch from "@/features/fragments/HubSearch";
-import CategoryFilter from "@/features/fragments/CategoryFilter";
-import AppCard from "@/features/fragments/AppCard";
 import MobileAppLauncher from "@/features/fragments/MobileAppLauncher";
 import HubEmptyState from "@/features/fragments/HubEmptyState";
 import { AppCardSkeletonGrid } from "@/features/fragments/AppCardSkeleton";
-import { HUB_GRID_CLASS } from "@/features/fragments/hubGrid";
 import MobileHeader from "@/mobile/components/MobileHeader";
 import useHubCatalog from "@/hooks/useHubCatalog";
 import type { HubApplication } from "@/model/hub-model";
@@ -109,47 +104,60 @@ function FeedbackDialog({
 
   const portalRoot = getOverlayRoot();
   return (
-    <Dialog.Root open={Boolean(state)} onOpenChange={(open) => { if (!open && !isSubmitting) onClose(); }}>
+    <Dialog.Root
+      open={Boolean(state)}
+      onOpenChange={(open) => {
+        if (!open && !isSubmitting) onClose();
+      }}
+    >
       <Dialog.Portal container={portalRoot ?? undefined}>
         <div className="fixed inset-0 z-[var(--layer-modal)]">
           <Dialog.Overlay className="absolute inset-0 bg-black/55 backdrop-blur-[1px]" />
           <div className="pointer-events-none absolute inset-0 flex items-end justify-center overflow-y-auto p-4 sm:items-center">
             <Dialog.Content className="pointer-events-auto max-h-[calc(100dvh-2rem)] w-full overflow-y-auto rounded-xl border border-border bg-card p-4 text-card-foreground shadow-2xl sm:max-w-md sm:p-5">
               <form onSubmit={handleSubmit}>
-        <div className="space-y-1">
-          <Dialog.Title className="text-base font-semibold">{title}</Dialog.Title>
-          <Dialog.Description className="text-sm text-muted-foreground">{state?.app.audience}</Dialog.Description>
-        </div>
+                <div className="space-y-1">
+                  <Dialog.Title className="text-base font-semibold">
+                    {title}
+                  </Dialog.Title>
+                  <Dialog.Description className="text-sm text-muted-foreground">
+                    {state?.app.audience}
+                  </Dialog.Description>
+                </div>
 
-        <label className="mt-4 block text-sm font-medium">
-          {label}
-          <textarea
-            value={text}
-            onChange={(event) => setText(event.target.value)}
-            placeholder={placeholder}
-            className="mt-1 min-h-28 w-full resize-none rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-            disabled={isSubmitting}
-          />
-        </label>
+                <label className="mt-4 block text-sm font-medium">
+                  {label}
+                  <textarea
+                    value={text}
+                    onChange={(event) => setText(event.target.value)}
+                    placeholder={placeholder}
+                    className="mt-1 min-h-28 w-full resize-none rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                    disabled={isSubmitting}
+                  />
+                </label>
 
-        {error ? <p className="mt-2 text-sm text-destructive">{error}</p> : null}
+                {error ? (
+                  <p className="mt-2 text-sm text-destructive">{error}</p>
+                ) : null}
 
-        <div className="mt-4 flex justify-end gap-2">
-          <Dialog.Close asChild><button
-            type="button"
-            disabled={isSubmitting}
-            className="rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-muted disabled:opacity-60"
-          >
-            Cancel
-          </button></Dialog.Close>
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
-          >
-            {isSubmitting ? "Sending..." : "Send"}
-          </button>
-        </div>
+                <div className="mt-4 flex justify-end gap-2">
+                  <Dialog.Close asChild>
+                    <button
+                      type="button"
+                      disabled={isSubmitting}
+                      className="rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-muted disabled:opacity-60"
+                    >
+                      Cancel
+                    </button>
+                  </Dialog.Close>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+                  >
+                    {isSubmitting ? "Sending..." : "Send"}
+                  </button>
+                </div>
               </form>
             </Dialog.Content>
           </div>
@@ -162,13 +170,13 @@ function FeedbackDialog({
 const SupportHubPage = memo(() => {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [feedbackDialog, setFeedbackDialog] = useState<FeedbackDialogState>(null);
+  const [feedbackDialog, setFeedbackDialog] =
+    useState<FeedbackDialogState>(null);
   const [isFeedbackSubmitting, setIsFeedbackSubmitting] = useState(false);
   const {
     isLoading,
     hasError,
     query,
-    isFiltering,
     visibleApplications,
     hasCatalog,
     categories,
@@ -195,12 +203,6 @@ const SupportHubPage = memo(() => {
       const failure = build(searchParams.get("app") || "That app");
       toast.error(failure.title, { description: failure.description });
 
-      // A satellite app's own silent-relogin iframe (utils/hubSilentLogin.js
-      // in daily-checkin/MTSS) landing here means its launch attempt was
-      // refused - tell it directly so it can show this same message itself
-      // instead of leaving the user staring at a toast on a hidden iframe
-      // they never see. The toast above still fires unconditionally - a
-      // genuine top-level visit to this page must keep showing it too.
       if (window.parent !== window) {
         window.parent.postMessage(
           {
@@ -240,10 +242,13 @@ const SupportHubPage = memo(() => {
 
       setIsFeedbackSubmitting(true);
       try {
-        await apiRequest(`/apps/${encodeURIComponent(feedbackDialog.app.id)}/report`, {
-          method: "POST",
-          body: { message: text },
-        });
+        await apiRequest(
+          `/apps/${encodeURIComponent(feedbackDialog.app.id)}/report`,
+          {
+            method: "POST",
+            body: { message: text },
+          },
+        );
         toast.success("Problem report sent");
         setFeedbackDialog(null);
       } catch (error: unknown) {
@@ -260,8 +265,6 @@ const SupportHubPage = memo(() => {
   );
 
   const isSettled = !isLoading && !hasError;
-  const showNoResults =
-    isSettled && hasCatalog && visibleApplications.length === 0;
   const showEmptyCatalog = isSettled && !hasCatalog;
   const isAdmin = isMadLabsUser(user);
 
@@ -269,55 +272,31 @@ const SupportHubPage = memo(() => {
     <div className="h-screen overflow-hidden bg-background text-foreground sm:h-auto sm:min-h-screen sm:overflow-visible">
       <MobileHeader user={user ? toHubUser(user) : undefined} />
       <div className="hidden sm:block">
-        <HubHeader user={user ? toHubUser(user) : undefined} isAdmin={isAdmin} />
+        <HubHeader
+          user={user ? toHubUser(user) : undefined}
+          isAdmin={isAdmin}
+        />
       </div>
 
-      <main className="mx-auto flex h-[calc(100svh-3.5rem)] max-w-[1600px] flex-col overflow-hidden px-4 pb-0 pt-4 sm:block sm:h-auto sm:overflow-visible sm:px-6 sm:py-9">
-        <div className="hidden sm:block">
-          <HubIntro />
-        </div>
+      <main
+        className="
+  flex
+  h-[calc(100svh-3.5rem)]
+  w-full
+  flex-col
+  overflow-hidden
+  px-4
+  pb-0
+  pt-4
 
-        {/* Capped rather than stretched to the full 1600px: a search
-            field wider than its own results is harder to aim at. */}
-        <div className="mt-5 hidden max-w-xl sm:block">
-          <HubSearch query={query} onQueryChange={setQuery} />
-        </div>
-
-        {/* Sits between search and results because that is the order the
-            filtering happens in - type first, then narrow. Desktop only, the
-            same as HubSearch: mobile has its own spotlight search. */}
-        {isSettled && hasCatalog && (
-          <div className="mt-4 hidden sm:block">
-            <CategoryFilter
-              categories={categories}
-              activeCategory={activeCategory}
-              onSelect={setCategory}
-            />
-            {scopes.length > 0 && (
-              <div className="mt-1">
-                <CategoryFilter
-                  categories={scopes}
-                  activeCategory={activeScope}
-                  onSelect={setScope}
-                  label="Application scopes"
-                />
-              </div>
-            )}
-          </div>
-        )}
-
-        <section className="min-h-0 flex-1 sm:mt-6 sm:block sm:h-auto">
-          <div className="mb-3 hidden items-baseline gap-2 sm:flex">
-            <h2 className="text-sm font-medium text-foreground">
-              {isFiltering ? "Results" : "All applications"}
-            </h2>
-            {isSettled && (
-              <p className="text-xs text-muted-foreground">
-                {visibleApplications.length}
-              </p>
-            )}
-          </div>
-
+  sm:block
+  sm:h-auto
+  sm:overflow-visible
+  sm:px-0
+  sm:py-0
+"
+      >
+        <section className="min-h-0 flex-1 sm:block sm:h-auto">
           {isLoading && <AppCardSkeletonGrid />}
 
           {hasError && <HubEmptyState variant="error" onAction={retry} />}
@@ -328,35 +307,22 @@ const SupportHubPage = memo(() => {
             </div>
           )}
 
-          {showNoResults && (
-            <div className="hidden sm:block">
-              <HubEmptyState
-                variant="no-results"
-                query={query}
-                onAction={clearFilters}
-              />
-            </div>
-          )}
-
           {isSettled && hasCatalog && (
             <>
               <MobileAppLauncher
                 apps={visibleApplications}
+                categories={categories}
+                activeCategory={activeCategory}
+                scopes={scopes}
+                activeScope={activeScope}
                 query={query}
                 user={user ? toHubUser(user) : undefined}
                 onQueryChange={setQuery}
+                onCategorySelect={setCategory}
+                onScopeSelect={setScope}
+                onClearFilters={clearFilters}
                 onReportProblem={handleReportProblem}
               />
-
-              <div className={HUB_GRID_CLASS}>
-                {visibleApplications.map((app) => (
-                  <AppCard
-                    key={app.id}
-                    app={app}
-                    onReportProblem={handleReportProblem}
-                  />
-                ))}
-              </div>
             </>
           )}
         </section>

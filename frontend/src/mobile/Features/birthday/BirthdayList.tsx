@@ -2,6 +2,7 @@ import { memo, useEffect, useState } from "react";
 import { Cake, LoaderCircle } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { hubApi } from "@/features/hub/api/hubApi";
+import { cn } from "@/lib/utils";
 import type { HubBirthday } from "@/model/hub-model";
 import BirthdayCelebrationModal from "./BirthdayCelebrationModal";
 import BirthdayModal from "./BirthdayModal";
@@ -36,7 +37,11 @@ function relativeLabelOf(birthday: HubBirthday): string {
   return `${birthday.days_until} days`;
 }
 
-const BirthdayList = memo(() => {
+type BirthdayListProps = {
+  className?: string;
+};
+
+const BirthdayList = memo(({ className }: BirthdayListProps) => {
   const [birthdays, setBirthdays] = useState<HubBirthday[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
@@ -85,9 +90,16 @@ const BirthdayList = memo(() => {
 
   return (
     <>
-      <section className="mx-1 mb-3 shrink-0 rounded-lg border border-border/60 bg-card/95 px-3 py-2.5 shadow-sm">
+      <section
+        className={cn(
+          "mx-1 mb-3 shrink-0 rounded-lg border border-border/60 bg-card/95 px-3 py-2.5 shadow-sm",
+          "sm:mx-0 sm:mb-0 sm:rounded-xl sm:border-border/70 sm:bg-card/65 sm:px-4 sm:py-4 sm:shadow-none",
+          "lg:w-full lg:rounded-lg lg:bg-card lg:px-4 lg:py-4",
+          className,
+        )}
+      >
         <div className="flex items-center gap-2">
-          <span className="flex h-7 w-7 items-center justify-center rounded-md border border-primary/15 bg-primary/10 text-primary">
+          <span className="flex h-7 w-7 items-center justify-center rounded-md border border-primary/15 bg-primary/10 text-primary sm:h-8 sm:w-8 sm:rounded-lg">
             <Cake className="h-3.5 w-3.5" />
           </span>
 
@@ -104,7 +116,7 @@ const BirthdayList = memo(() => {
           <button
             type="button"
             onClick={() => setIsModalOpen(true)}
-            className="ml-auto shrink-0 rounded-md border border-primary/15 bg-primary/5 px-2.5 py-1 text-[10px] font-semibold text-primary transition-colors hover:bg-primary/10"
+            className="ml-auto shrink-0 rounded-md border border-primary/15 bg-primary/5 px-2.5 py-1 text-[10px] font-semibold text-primary transition-colors hover:bg-primary/10 sm:border-0 sm:bg-transparent sm:px-1 sm:hover:bg-transparent sm:hover:underline"
           >
             All Birthday
           </button>
@@ -130,7 +142,7 @@ const BirthdayList = memo(() => {
         )}
 
         {!isLoading && !hasError && visibleBirthdays.length > 0 && (
-          <div className="mt-2 flex snap-x snap-mandatory gap-2 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="mt-2 flex snap-x snap-mandatory gap-2 overflow-x-auto pb-0.5 [scrollbar-width:none] sm:flex-col sm:overflow-visible sm:pb-0 lg:gap-0 lg:divide-y lg:divide-border/60 [&::-webkit-scrollbar]:hidden">
             {visibleBirthdays.map((birthday) => (
               <article
                 key={birthday.id}
@@ -138,7 +150,7 @@ const BirthdayList = memo(() => {
                   visibleBirthdays.length === 1
                     ? "w-full"
                     : "w-[13.5rem] max-w-[85%]"
-                }`}
+                } sm:w-full sm:max-w-none sm:snap-none sm:rounded-lg sm:border-border/60 sm:bg-background/50 sm:px-3 sm:py-2.5 lg:rounded-none lg:border-0 lg:bg-transparent lg:px-0 lg:py-3`}
               >
                 <Avatar className="row-span-2 h-8 w-8">
                   {birthday.photo_url && (

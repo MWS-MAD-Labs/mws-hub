@@ -28,11 +28,11 @@ const CategoryFilter = memo(({ categories, activeCategory, onSelect, label = "Ap
           aria-selected={isActive}
           onClick={() => onSelect(category.id)}
           className={cn(
-            "shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-sm transition-colors",
+            "shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-sm transition-colors sm:px-2.5 sm:text-xs",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             isActive
-              ? "bg-foreground/90 font-medium text-background"
-              : "text-muted-foreground hover:bg-card hover:text-foreground",
+              ? "bg-foreground/90 font-medium text-background sm:bg-primary/10 sm:text-primary sm:ring-1 sm:ring-primary/15"
+              : "text-muted-foreground hover:bg-card hover:text-foreground sm:hover:bg-muted/60",
           )}
         >
           {category.label}
