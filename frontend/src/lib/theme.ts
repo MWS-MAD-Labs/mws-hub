@@ -3,13 +3,6 @@ export type Theme = "light" | "dark";
 const THEME_STORAGE_KEY = "theme";
 export const THEME_SPELL_EVENT = "mws:theme-spell";
 
-const getSystemTheme = (): Theme => {
-  if (typeof window === "undefined") return "light";
-  return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
-    ? "dark"
-    : "light";
-};
-
 export const getStoredTheme = (): Theme => {
   if (typeof window === "undefined") return "light";
   try {
@@ -20,7 +13,7 @@ export const getStoredTheme = (): Theme => {
   } catch {
     // ignore storage access errors
   }
-  return getSystemTheme();
+  return "light";
 };
 
 export const persistTheme = (theme: Theme): void => {
