@@ -11,6 +11,8 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: "autoUpdate",
+      // Not sw.js: Cloudflare kept an old copy of /sw.js for hours. A new name is always fetched from the server.
+      filename: "hub-sw.js",
       // The plugin disables its service worker during `vite dev` by default.
       // Enable it so localhost can satisfy Chrome's PWA installability checks
       // and emit `beforeinstallprompt` for the custom Install App button.
