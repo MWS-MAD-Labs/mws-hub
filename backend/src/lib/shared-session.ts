@@ -13,7 +13,7 @@ import { signHubJwt } from "./sso-relay";
 //    get a new access token, and it turns over on every use.
 // Logging out of the Hub deletes both, which signs the person out of every app at once.
 
-const ISSUER = "mws-hub";
+export const ISSUER = "mws-hub";
 const GRACE_SECONDS = 10;
 
 function numberFrom(raw: string | undefined, fallback: number): number {
@@ -40,6 +40,14 @@ export function entryUsesSharedSession(entry: { id: string; sso?: { appId: strin
 export const accessCookieName = () => process.env.HUB_ACCESS_COOKIE_NAME || "hub_at";
 export const refreshCookieName = () => process.env.HUB_REFRESH_COOKIE_NAME || "hub_rt";
 export const accessAudience = () => process.env.HUB_ACCESS_AUDIENCE || "mws-apps";
+// What an app needs to know to read the shared session. Public, nothing secret. Apps only use the cookie name from
+// it; they decide for themselves which audience and issuer to trust.
+export const hubConfig = () => ({
+  version: 1,
+  access_cookie_name: accessCookieName(),
+  audience: accessAudience(),
+  issuer: ISSUER,
+});
 export const accessTtlSeconds = () => numberFrom(process.env.HUB_ACCESS_TTL_SECONDS, 300);
 const refreshTtlSeconds = () => numberFrom(process.env.HUB_REFRESH_TTL_SECONDS, 8 * 60 * 60);
 // Empty on localhost, where cookies are shared between ports anyway.

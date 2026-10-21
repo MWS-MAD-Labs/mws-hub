@@ -10,7 +10,7 @@ import { logger } from "./lib/logger";
 import { frontendOrigin } from "./lib/frontend-origin";
 import { hubSsoJwks } from "./lib/sso-relay";
 import { startPermissionSync } from "./lib/permission-sync";
-import { refreshOriginAllowed } from "./lib/shared-session";
+import { hubConfig, refreshOriginAllowed } from "./lib/shared-session";
 
 const app = new Hono();
 
@@ -74,6 +74,11 @@ app.get("/health", (c) => c.json({ data: "ok" }));
 app.get("/.well-known/jwks.json", (c) => {
   c.header("Cache-Control", "public, max-age=300");
   return c.json(hubSsoJwks());
+});
+
+app.get("/.well-known/hub-config", (c) => {
+  c.header("Cache-Control", "public, max-age=300");
+  return c.json(hubConfig());
 });
 
 app.route("/auth", authRoute);

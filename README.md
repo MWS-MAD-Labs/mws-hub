@@ -19,7 +19,10 @@ conventions from [ticketing-school](https://github.com/Rhzslya/ticketing-school)
 - [x] Frontend wired to the real `/auth/me` - `/login` page with a Google
       sign-in button, `RequireAuth` guard redirects unauthenticated visits to
       `/support-hub`/`/profile` back to `/login`
-- [x] Token-relay SSO handoff into satellite apps - `GET /apps/:appId/launch`
+- [x] Token-relay SSO handoff into satellite apps - `GET /.well-known/hub-config` - public, `{ version, access_cookie_name,
+  audience, issuer }`. `mws-central-auth` 0.10 and newer reads the cookie name
+  from here when the app has no `HUB_ACCESS_COOKIE_NAME` of its own.
+- `GET /apps/:appId/launch`
       mints a short-lived, audience-scoped RS256 relay token with Hub's private
       key and redirects into the app's own `/auth/sso` exchange endpoint.
       Satellite apps verify with Hub's public key only, so they cannot mint

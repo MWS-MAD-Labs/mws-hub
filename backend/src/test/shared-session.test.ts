@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { createPublicKey, generateKeyPairSync, verify } from "node:crypto";
 import { hubSsoJwks } from "../lib/sso-relay";
 import { Hono } from "hono";
@@ -6,6 +6,7 @@ import {
   endSharedSession,
   handleRefresh,
   handleRestore,
+  hubConfig,
   issueSharedSession,
   startFamily,
   useRefreshStoreForTest,
@@ -300,5 +301,27 @@ describe("entryUsesSharedSession", () => {
       if (before === undefined) delete process.env.HUB_SHARED_SESSION_APPS;
       else process.env.HUB_SHARED_SESSION_APPS = before;
     }
+  });
+});
+
+describe("hub-config", () => {
+  const saved = { name: process.env.HUB_ACCESS_COOKIE_NAME, aud: process.env.HUB_ACCESS_AUDIENCE };
+  afterEach(() => {
+    if (saved.name === undefined) delete process.env.HUB_ACCESS_COOKIE_NAME;
+    else process.env.HUB_ACCESS_COOKIE_NAME = saved.name;
+    if (saved.aud === undefined) delete process.env.HUB_ACCESS_AUDIENCE;
+    else process.env.HUB_ACCESS_AUDIENCE = saved.aud;
+  });
+
+  it("reports the defaults", () => {
+    delete process.env.HUB_ACCESS_COOKIE_NAME;
+    delete process.env.HUB_ACCESS_AUDIENCE;
+    expect(hubConfig()).toEqual({ version: 1, access_cookie_name: "hub_at", audience: "mws-apps", issuer: "mws-hub" });
+  });
+
+  it("follows the env", () => {
+    process.env.HUB_ACCESS_COOKIE_NAME = "hub_at_stg";
+    process.env.HUB_ACCESS_AUDIENCE = "mws-stg";
+    expect(hubConfig()).toMatchObject({ access_cookie_name: "hub_at_stg", audience: "mws-stg" });
   });
 });
