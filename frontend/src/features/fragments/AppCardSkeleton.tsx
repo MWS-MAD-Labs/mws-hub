@@ -20,18 +20,20 @@ const AppCardSkeleton = memo(() => (
       items-center
       text-center
 
-      sm:h-auto
-      sm:flex-row
+      sm:h-full
+      sm:min-h-[9.5rem]
+      sm:flex-col
       sm:items-start
       sm:justify-start
       sm:gap-3
       sm:overflow-visible
       sm:rounded-xl
       sm:border
-      sm:border-border/50
-      sm:bg-card/30
-      sm:p-3.5
+      sm:border-border/70
+      sm:bg-card/65
+      sm:p-4
       sm:text-left
+      sm:shadow-none
     "
   >
     <Skeleton
@@ -41,9 +43,9 @@ const AppCardSkeleton = memo(() => (
         shrink-0
         rounded-xl
 
-        sm:h-10
-        sm:w-10
-        sm:rounded-lg
+        sm:h-12
+        sm:w-12
+        sm:rounded-xl
       "
     />
 
@@ -58,6 +60,7 @@ const AppCardSkeleton = memo(() => (
 
         sm:mt-0
         sm:items-start
+        sm:h-full
         sm:flex-1
         sm:pt-0.5
       "
@@ -70,7 +73,7 @@ const AppCardSkeleton = memo(() => (
           h-2.5
           w-12
 
-          sm:mt-2
+          sm:mt-3
           sm:h-3
           sm:w-4/5
         "

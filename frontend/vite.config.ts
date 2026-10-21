@@ -32,7 +32,7 @@ export default defineConfig({
         scope: "/",
         display: "standalone",
         orientation: "portrait-primary",
-        theme_color: "#101827",
+        theme_color: "#f8fafc",
         background_color: "#f8fafc",
         categories: ["education", "productivity"],
         // "any" and "maskable" are separate files on purpose: the rounded

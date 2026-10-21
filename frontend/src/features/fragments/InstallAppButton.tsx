@@ -30,9 +30,9 @@ export default function InstallAppButton({ variant = "default" }: InstallAppButt
     <button
       type="button"
       onClick={() => void promptInstall()}
-      className="flex items-center gap-1.5 rounded-md border border-border/60 px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="flex h-9 items-center gap-2 rounded-lg bg-primary px-3.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
     >
-      <Download className="h-3.5 w-3.5" />
+      <Download className="h-4 w-4" />
       Install App
     </button>
   );

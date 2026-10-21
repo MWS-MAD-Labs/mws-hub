@@ -48,7 +48,7 @@ const HubSearch = memo(({ query, onQueryChange }: HubSearchProps) => {
         onChange={(event) => onQueryChange(event.target.value)}
         placeholder="Search applications…"
         aria-label="Search applications"
-        className="h-11 w-full rounded-lg border border-border/60 bg-card/50 pl-10 pr-16 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-ring focus:bg-card focus:ring-2 focus:ring-ring/25"
+        className="h-11 w-full rounded-lg border border-border/60 bg-card/50 pl-10 pr-16 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground sm:h-10 sm:border-border/70 sm:bg-card/65 focus:border-ring focus:bg-card focus:ring-2 focus:ring-ring/20"
       />
       {query ? (
         <button

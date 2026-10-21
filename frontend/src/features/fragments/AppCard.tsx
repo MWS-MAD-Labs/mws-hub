@@ -82,9 +82,6 @@ const AppCard = memo(
     )}/launch`;
     const launchWindowName = `mws-launch-${launchId}`;
 
-    // Modifier/middle clicks (open in background tab, etc.) are left alone
-    // and fall through to the anchor's own target/rel below - those always
-    // open a new tab anyway, regardless of what this handler does.
     const handleLaunchClick = async (
       event: React.MouseEvent<HTMLAnchorElement>,
     ) => {
@@ -98,22 +95,12 @@ const AppCard = memo(
         return;
       }
 
-      // On phones, long-press preview proves the anchor URL itself is fine.
-      // The fragile part is the desktop-only reuse/silent-refresh flow below:
-      // mobile browsers can leave the named window at about:blank after a
-      // prevented click plus async work. Let mobile use the native anchor
-      // navigation instead; the backend launch route still redirects expired
-      // sessions back to Hub login.
       if (window.matchMedia("(pointer: coarse)").matches) {
         return;
       }
 
       event.preventDefault();
 
-      // Mobile browsers are strict about popups: if window.open happens
-      // after an awaited request, the tap gesture is already gone and the
-      // browser may leave users staring at about:blank. Claim/find the
-      // target synchronously, then do the session check before navigating it.
       let target = window.open("", launchWindowName);
       if (!target) {
         window.location.assign(launchHref);
@@ -136,16 +123,6 @@ const AppCard = memo(
       } catch {
         isFreshWindow = false;
       }
-
-      // Hub's session is a cookie, which - unlike localStorage - never
-      // fires a cross-tab event this tab could react to. So this tab has
-      // no passive way to learn its own session was cleared elsewhere
-      // (e.g. by signing out of a satellite app in another tab): it just
-      // keeps rendering as signed in until something asks. Check right
-      // here, before opening or navigating anything, so a stale Hub tab
-      // lands on Hub's own login screen immediately - instead of opening a
-      // blank tab that dead-ends on the satellite's own "Session ended"
-      // while this tab sits frozen until a manual refresh.
       const currentUser = await refreshUser();
       if (!currentUser) {
         if (isFreshWindow) target.close();
@@ -158,18 +135,6 @@ const AppCard = memo(
         return;
       }
 
-      // Existing tab: replay the handshake in a hidden iframe instead of
-      // navigating this one, so there's usually no visible redirect chain.
-      // The satellite app's own auth callback writes the fresh token to its
-      // own localStorage regardless of visibility; the visible tab picks
-      // it up live via the browser's `storage` event (see
-      // mws-mtss-system's useCrossTabAuthSync) instead of ever reloading -
-      // when that actually reaches it. Some browsers partition a hidden
-      // iframe's storage away from the real tab's, so the write can
-      // silently never arrive. probeAuthenticated asks the tab itself
-      // whether it worked; if not, fall back to a real (visible, but
-      // guaranteed) navigation of that same tab instead of leaving it
-      // stuck on whatever it was showing before.
       loadHiddenIframe(launchHref, 8000)
         .then(() => probeAuthenticated(target, 1500))
         .then((authenticated) => {
@@ -200,19 +165,18 @@ const AppCard = memo(
           // ============================================================
           // DESKTOP
           // ============================================================
-          "sm:h-auto sm:max-w-none sm:flex-row sm:items-start",
+          "sm:h-full sm:min-h-[9.5rem] sm:max-w-none sm:flex-col sm:items-start",
           "sm:justify-start sm:gap-3",
-          "sm:overflow-visible sm:rounded-xl",
-          "sm:border sm:border-border/50",
-          "sm:bg-card/40 sm:p-3.5",
-          "sm:text-left sm:transition-colors",
+          "sm:overflow-visible sm:rounded-none",
+          "sm:border sm:border-border/70",
+          "sm:bg-card/65 sm:p-4",
+          "sm:text-left sm:shadow-none sm:transition-colors",
 
           isOpenable
-            ? "sm:active:scale-100 sm:hover:border-border sm:hover:bg-card"
+            ? "sm:active:scale-100 sm:hover:border-primary/25 sm:hover:bg-card"
             : "sm:opacity-70",
 
-          "sm:focus-within:border-ring",
-          "sm:focus-within:bg-card",
+          "sm:focus-within:border-ring sm:focus-within:bg-card",
         )}
       >
         {/* ============================================================
@@ -258,25 +222,21 @@ const AppCard = memo(
               !isOpenable && "grayscale opacity-60",
 
               // Desktop
-              "sm:h-10 sm:w-10",
-              "sm:rounded-lg",
-              "sm:ring-black/[0.04]",
+              "sm:h-12 sm:w-12",
+              "sm:rounded-none",
+              "sm:ring-border/45",
               "sm:shadow-none",
             )}
           >
             <Icon
               className="
                 h-5 w-5
-                sm:h-[18px] sm:w-[18px]
+                sm:h-5 sm:w-5
               "
               strokeWidth={1.8}
             />
           </span>
         </span>
-
-        {/* ============================================================
-            APP NAME
-            ============================================================ */}
         <div
           className="
             mt-1
@@ -289,9 +249,12 @@ const AppCard = memo(
             gap-0.5
 
             sm:mt-0
-            sm:block
+            sm:flex
+            sm:h-full
             sm:w-auto
             sm:flex-1
+            sm:flex-col
+            sm:items-start
           "
         >
           <div
@@ -321,9 +284,9 @@ const AppCard = memo(
                 sm:max-w-full
                 sm:truncate
                 sm:text-sm
-                sm:font-medium
+                sm:font-semibold
                 sm:leading-normal
-                sm:tracking-[-0.01em]
+                sm:tracking-normal
               "
             >
               <span className="line-clamp-2">{app.name}</span>
@@ -340,6 +303,12 @@ const AppCard = memo(
                   uppercase
                   tracking-wide
                   text-primary
+                  sm:rounded-full
+                  sm:bg-primary/10
+                  sm:px-1.5
+                  sm:py-0.5
+                  sm:text-[9px]
+                  sm:leading-none
                   sm:inline
                 "
               >
@@ -366,6 +335,10 @@ const AppCard = memo(
               />
             )}
           </div>
+
+          <p className="mt-1.5 hidden text-xs leading-relaxed text-muted-foreground sm:line-clamp-2">
+            {app.description}
+          </p>
 
           {/* ============================================================
               BLOCKED — DESKTOP ONLY
@@ -434,7 +407,7 @@ const AppCard = memo(
             <button
               type="button"
               onClick={() => onReportProblem?.(app)}
-              className="relative z-10 mt-2 hidden text-[11px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline sm:block"
+              className="relative z-10 mt-1 hidden text-[10px] text-muted-foreground/70 underline-offset-2 transition-colors hover:text-foreground hover:underline sm:mt-auto sm:block sm:pt-3"
             >
               Report a problem
             </button>
@@ -447,26 +420,16 @@ const AppCard = memo(
         {isOpenable && launchHref && (
           <a
             href={launchHref}
-            // Named per-app, not "_blank": re-launching an app that's
-            // already open in another tab reuses that tab instead of
-            // stacking a fresh one that replays the whole SSO redirect
-            // chain from a blank page every click. Reuse only actually
-            // happens through handleLaunchClick below - this target/rel
-            // pair is the fallback for modifier/middle clicks, which
-            // always open a new tab regardless.
             target={launchWindowName}
             rel="noopener noreferrer"
             onClick={handleLaunchClick}
             className="
-              absolute
-              inset-0
-              rounded-xl
-              focus:outline-none
-              focus-visible:ring-2
-              focus-visible:ring-ring
-
-              sm:rounded-xl
-            "
+    absolute
+    inset-0
+    focus:outline-none
+    focus-visible:ring-2
+    focus-visible:ring-ring
+  "
           >
             <span className="sr-only">{`Open ${app.name} in a new tab`}</span>
           </a>
