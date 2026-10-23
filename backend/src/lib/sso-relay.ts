@@ -146,7 +146,7 @@ export async function signHubJwt(payload: Record<string, unknown>): Promise<stri
 export async function mintRelayToken(
   user: { id: string; email: string },
   sso: HubAppSso,
-  identity: { source: IdentitySource; tags: HubAccessSource[] },
+  identity: { source: IdentitySource; tags: HubAccessSource[]; unitId?: string | null },
   entitlement?: RelayEntitlement,
 ): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
@@ -169,6 +169,7 @@ export async function mintRelayToken(
     email: user.email,
     source: identity.source,
     tags: identity.tags,
+    ...(identity.unitId ? { unit_id: identity.unitId } : {}),
     ...(entitlement ? { entitlement } : {}),
     jti: crypto.randomUUID(),
     iat: now,

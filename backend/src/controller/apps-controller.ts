@@ -244,7 +244,11 @@ export class AppsController {
       const token = await mintRelayToken(
         { id: user.person_id, email: user.email },
         entry.sso,
-        { source: user.source, tags: AppsService.accessTagsFor(user) },
+        {
+          source: user.source,
+          tags: AppsService.accessTagsFor(user),
+          unitId: user.unitId || user.unit_id || null,
+        },
         relayEntitlement,
       );
       // The browser only ever carries a short opaque, single-use code - the
