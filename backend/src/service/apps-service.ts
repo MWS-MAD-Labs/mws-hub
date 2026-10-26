@@ -3,7 +3,7 @@ import { normalizeAccessToken, userMatchesAccessRule } from "../lib/access-rules
 import { centralAccessForApp } from "../lib/hub-access-gate";
 import { ApplicationService } from "./application-service";
 import { deriveAppSecret } from "../lib/hub-app-secret";
-import { centralCatalogState, isWithdrawn } from "./central-catalog-service";
+import { centralCatalogState, centralEntryFor, isWithdrawn } from "./central-catalog-service";
 import type { CentralClaim, HubUser } from "../type/central-type";
 import type { HubAccessSource, HubAppResponse, HubCatalogEntry } from "../type/catalog-type";
 import { appEndpoints } from "../lib/app-endpoints";
@@ -202,8 +202,12 @@ async function effectiveCatalog(): Promise<HubCatalogEntry[]> {
       );
       const facts = key ? centralFacts.get(key) : undefined;
       if (!facts) return entry;
+      // The address belongs to Central: a row cannot keep its own, whatever it was seeded with.
+      const central = centralEntryFor(entry, state);
+      const fromCentral = entry.sso && central?.sso ? { entryUrl: central.sso.entryUrl, ...(central.sso.logoutUrl ? { logoutUrl: central.sso.logoutUrl } : {}) } : null;
       return {
         ...entry,
+        ...(fromCentral && entry.sso ? { sso: { ...entry.sso, ...fromCentral } } : {}),
         ...(entry.hubSecret || !facts.hubSecret ? {} : { hubSecret: facts.hubSecret }),
         ...(entry.sessionMode || !facts.sessionMode ? {} : { sessionMode: facts.sessionMode }),
       };

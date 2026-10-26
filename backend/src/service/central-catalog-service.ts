@@ -118,6 +118,17 @@ export async function centralCatalogEntries(): Promise<HubCatalogEntry[]> {
   return (await centralCatalogState()).entries;
 }
 
+// The application Central publishes that a Hub row stands for, by the same keys everywhere: the link set on purpose,
+// the sign-in app id, the access id, then the row id. Undefined when Central does not publish it, or has not answered.
+export function centralEntryFor(
+  row: Pick<HubCatalogEntry, "id" | "explicitCentralLink" | "centralEntitlementAppId"> & { sso?: { appId: string } },
+  state: CentralCatalogState,
+): HubCatalogEntry | undefined {
+  const byId = new Map(state.entries.map((entry) => [entry.id, entry]));
+  const key = [row.explicitCentralLink, row.sso?.appId, row.centralEntitlementAppId, row.id].find((candidate) => candidate && byId.has(candidate));
+  return key ? byId.get(key) : undefined;
+}
+
 // Whether a Hub row points at an application Central no longer shows: hidden, retired or removed. A row linked on
 // purpose is withdrawn as soon as Central does not publish it. A row only matched by its id is withdrawn when Central
 // knows that id and does not publish it, so an application that Central never heard of is left alone.

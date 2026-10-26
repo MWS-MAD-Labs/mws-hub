@@ -1,7 +1,7 @@
 import { prisma } from "../lib/prisma";
 import { listCentralApplicationIds } from "../lib/central-client";
 import { ResponseError } from "../error/response-error";
-import { centralTaxonomy } from "./central-catalog-service";
+import { centralCatalogState, centralEntryFor, centralTaxonomy } from "./central-catalog-service";
 import type {
   HubAccessSource,
   HubAppStatus,
@@ -174,6 +174,28 @@ async function assertCentralApplicationId(
   }
 }
 
+// Central owns the sign-in and sign-out address of an application it publishes. A row can be restyled, not re-addressed.
+async function assertCentralOwnsAddress(
+  id: string,
+  input: ApplicationInput,
+  current: { sso_entry_url: string | null; sso_logout_url: string | null; sso_app_id: string | null; sso_central_entitlement_app_id: string | null } | null,
+) {
+  const central = centralEntryFor(
+    {
+      id,
+      centralEntitlementAppId: input.centralEntitlementAppId || current?.sso_central_entitlement_app_id || undefined,
+      ...((input.ssoAppId || current?.sso_app_id) ? { sso: { appId: (input.ssoAppId || current?.sso_app_id) as string } } : {}),
+    },
+    await centralCatalogState(),
+  );
+  if (!central?.sso) return;
+  const entryChanged = (input.ssoEntryUrl ?? null) !== (current ? current.sso_entry_url : central.sso.entryUrl);
+  const logoutChanged = (input.ssoLogoutUrl ?? null) !== (current ? current.sso_logout_url : (central.sso.logoutUrl ?? null));
+  if (entryChanged || logoutChanged) {
+    throw new ResponseError(400, "Central owns the sign-in address of this application. Change it in Application Access.");
+  }
+}
+
 function toRow(input: ApplicationInput) {
   return {
     name: input.name,
@@ -251,6 +273,7 @@ export class ApplicationService {
         `An application with id "${id}" already exists.`,
       );
     }
+    await assertCentralOwnsAddress(id, input, null);
 
     if (input.ssoAppId) {
       const existingSsoApp = await prisma.application.findFirst({
@@ -292,6 +315,7 @@ export class ApplicationService {
       input,
       existing.sso_central_entitlement_app_id,
     );
+    await assertCentralOwnsAddress(id, input, existing);
 
     if (input.ssoAppId) {
       const existingSsoApp = await prisma.application.findFirst({
