@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, mock, spyOn } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, mock, spyOn } from "bun:test";
 import * as centralClient from "../lib/central-client";
 
 let stored: Record<string, unknown> | null = null;
@@ -14,6 +14,8 @@ mock.module("../lib/prisma", () => ({
     },
   },
 }));
+
+const { clearCentralCatalogCacheForTest } = await import("../service/central-catalog-service");
 
 // Query string loads the real module even where other tests mock it.
 // @ts-expect-error bun resolves the query string, tsc does not
@@ -39,6 +41,12 @@ async function failure(promise: Promise<unknown>) {
   }
   return null;
 }
+
+// The address guard asks which applications Central publishes. Here Central publishes none.
+beforeEach(() => {
+  clearCentralCatalogCacheForTest();
+  spyOn(centralClient, "listPublishedApplications").mockResolvedValue([] as never);
+});
 
 afterEach(() => {
   mock.restore();
@@ -68,7 +76,7 @@ describe("Central application id on save", () => {
   });
 
   it("does not ask again on update when the id did not change", async () => {
-    stored = { id: "exima", sso_central_entitlement_app_id: "exima" };
+    stored = { id: "exima", sso_central_entitlement_app_id: "exima", sso_entry_url: "https://exima.test/sso", sso_logout_url: null };
     const list = spyOn(centralClient, "listCentralApplicationIds");
     await ApplicationService.update("exima", input("exima"));
     expect(list).not.toHaveBeenCalled();

@@ -180,6 +180,14 @@ async function assertCentralOwnsAddress(
   input: ApplicationInput,
   current: { sso_entry_url: string | null; sso_logout_url: string | null; sso_app_id: string | null; sso_central_entitlement_app_id: string | null } | null,
 ) {
+  // Saving a row without touching its address needs no answer from Central.
+  if (
+    current &&
+    (input.ssoEntryUrl ?? null) === current.sso_entry_url &&
+    (input.ssoLogoutUrl ?? null) === current.sso_logout_url
+  ) {
+    return;
+  }
   const central = centralEntryFor(
     {
       id,
