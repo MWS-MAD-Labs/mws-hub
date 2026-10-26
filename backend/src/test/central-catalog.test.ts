@@ -109,6 +109,29 @@ describe("applications published in Central", () => {
     expect(cards[0].name).toBe("Hub's own name");
   });
 
+  it("takes the sign-in address from Central, not from the row, and keeps the row's looks", async () => {
+    own = [
+      entry("learnspace", {
+        name: "Learnspace (Hub)",
+        centralEntitlementAppId: "learnspace",
+        sso: { appId: "learnspace", entryUrl: "http://localhost:3001/api/auth/sso", logoutUrl: "http://localhost:3001/api/auth/logout-silent" },
+      }),
+      entry("other", { sso: { appId: "other", entryUrl: "http://localhost:4000/auth/sso" } }),
+    ];
+    spyOn(centralClient, "listPublishedApplications").mockResolvedValue([
+      published("learnspace", { launch_url: "http://localhost:3002/api/v1/auth/sso", logout_url: "http://localhost:3002/api/v1/auth/logout", launch_mode: "sso" }),
+    ] as never);
+    spyOn(centralClient, "lookupApplicationEntitlement").mockResolvedValue({ is_active: true } as never);
+
+    const card = await AppsService.findByLaunchId("learnspace");
+    expect(card?.name).toBe("Learnspace (Hub)");
+    const catalog = await AppsService.findByLaunchId("learnspace");
+    expect(catalog?.sso?.entryUrl).toBe("http://localhost:3002/api/v1/auth/sso");
+    expect(catalog?.sso?.logoutUrl).toBe("http://localhost:3002/api/v1/auth/logout");
+    // A row Central does not publish keeps its own address.
+    expect((await AppsService.findByLaunchId("other"))?.sso?.entryUrl).toBe("http://localhost:4000/auth/sso");
+  });
+
   it("falls back to a category Hub knows", async () => {
     spyOn(centralClient, "listPublishedApplications").mockResolvedValue([
       published("a", { category: "Finance" }),
