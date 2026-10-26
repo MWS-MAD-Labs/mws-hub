@@ -74,6 +74,14 @@ describe("the sign-in address of an application Central publishes", () => {
     expect(await failure(ApplicationService.update("learnspace", input({ name: "Learnspace Hub" })))).toBeNull();
   });
 
+  it("does not ask Central when the address is left as it is", async () => {
+    stored = { ...row, sso_central_entitlement_app_id: "learnspace" };
+    clearCentralCatalogCacheForTest();
+    const published = spyOn(centralClient, "listPublishedApplications");
+    expect(await failure(ApplicationService.update("learnspace", input({ name: "Learnspace Hub" })))).toBeNull();
+    expect(published).not.toHaveBeenCalled();
+  });
+
   it("cannot be set when a row is added for it", async () => {
     centralPublishes();
     expect((await failure(ApplicationService.create(input({ id: "learnspace", ssoEntryUrl: "http://localhost:3009/auth/sso" }))))?.status).toBe(400);
