@@ -135,7 +135,7 @@ Routes:
   store (recommended in production). `memory` remains the default for local
   development and tests.
 
-The applications come from Central: name, icon, address, category, scope, who may open them, and how the card looks (status and keywords) are all changed there (Application Access). The Hub has no catalog editor. Older rows in `applications` that Central does not cover keep being served, and the dashboard lists them as "Older entries" so each can be added in Central as a link application and then removed with `bun run prune:catalog`.
+The applications come from Central: name, icon, address, category, scope, who may open them, and how the card looks (status and keywords) are all changed there (Application Access). The Hub has no catalog and no catalog editor: a card exists only while Central publishes the application, and an address can only come from Central.
 
 The admin area is three pages. **Dashboard** (`GET /admin/api/overview`) shows the health of the Hub (Central answers, the Hub secret and sign-in key are there, every published application answers), launch activity from the audit trail (per application, with refused launches and why) and open reports. **Broken Tools** is the queue of problems people reported from a card. **Audit Logs** can be filtered by action, date and any word (an application id or a person's email).
 

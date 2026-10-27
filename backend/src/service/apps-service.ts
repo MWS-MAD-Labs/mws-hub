@@ -1,9 +1,8 @@
 import { applyStatusOverrides } from "../lib/status-overrides";
 import { normalizeAccessToken, userMatchesAccessRule } from "../lib/access-rules";
 import { centralAccessForApp } from "../lib/hub-access-gate";
-import { ApplicationService } from "./application-service";
 import { deriveAppSecret } from "../lib/hub-app-secret";
-import { centralCatalogState, centralEntryFor, isWithdrawn } from "./central-catalog-service";
+import { centralCatalogState } from "./central-catalog-service";
 import type { CentralClaim, HubUser } from "../type/central-type";
 import type { HubAccessSource, HubAppResponse, HubCatalogEntry } from "../type/catalog-type";
 import { appEndpoints } from "../lib/app-endpoints";
@@ -165,8 +164,7 @@ function toResponse(
   user: HubUser,
   approvedApplicationIds: Set<string>,
 ): HubAppResponse {
-  const { allowedSources, sso, source, hubSecret, sessionMode, explicitCentralLink, ...rest } = entry;
-  void explicitCentralLink;
+  const { allowedSources, sso, source, hubSecret, sessionMode, ...rest } = entry;
   void allowedSources;
   void source;
   void hubSecret;
@@ -187,34 +185,16 @@ function toResponse(
 // HUB_APP_STATUS_OVERRIDES still applies on top as an emergency lever that
 // works without touching the database.
 //
-// Applications published in Central join the list without a row in Hub. A row in Hub with the
-// same id wins, so Hub can still restyle one or set maintenance on it.
+// The catalog is what Central publishes, nothing else. Cards are added, changed and hidden in Central.
+let catalogForTest: HubCatalogEntry[] | null = null;
+
+// Lets a test serve a fixed list of cards without Central.
+export function setCatalogForTest(entries: HubCatalogEntry[] | null) {
+  catalogForTest = entries;
+}
+
 async function effectiveCatalog(): Promise<HubCatalogEntry[]> {
-  const [rows, state] = await Promise.all([ApplicationService.listActive(), centralCatalogState()]);
-  // A row for an application Central hid, retired or removed does not keep its card alive.
-  const centralFacts = new Map(state.entries.map((entry) => [entry.id, { hubSecret: entry.hubSecret, sessionMode: entry.sessionMode }]));
-  // A row that stands for an application Central knows uses the secret and the sign-in way Central set for it.
-  const own = rows
-    .filter((entry) => !isWithdrawn(entry, state))
-    .map((entry) => {
-      const key = [entry.explicitCentralLink, entry.sso?.appId, entry.centralEntitlementAppId, entry.id].find(
-        (candidate) => candidate && centralFacts.get(candidate),
-      );
-      const facts = key ? centralFacts.get(key) : undefined;
-      if (!facts) return entry;
-      // The address belongs to Central: a row cannot keep its own, whatever it was seeded with.
-      const central = centralEntryFor(entry, state);
-      const fromCentral = entry.sso && central?.sso ? { entryUrl: central.sso.entryUrl, ...(central.sso.logoutUrl ? { logoutUrl: central.sso.logoutUrl } : {}) } : null;
-      return {
-        ...entry,
-        ...(fromCentral && entry.sso ? { sso: { ...entry.sso, ...fromCentral } } : {}),
-        ...(entry.hubSecret || !facts.hubSecret ? {} : { hubSecret: facts.hubSecret }),
-        ...(entry.sessionMode || !facts.sessionMode ? {} : { sessionMode: facts.sessionMode }),
-      };
-    });
-  const taken = new Set(rows.flatMap((entry) => [entry.id, entry.sso?.appId, entry.centralEntitlementAppId]));
-  const added = state.entries.filter((entry) => !taken.has(entry.id));
-  return applyStatusOverrides([...own, ...added]);
+  return applyStatusOverrides(catalogForTest ?? (await centralCatalogState()).entries);
 }
 
 export class AppsService {

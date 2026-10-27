@@ -235,15 +235,6 @@ export async function lookupApplicationEntitlement(
     : parseApplicationEntitlement(data, personId, applicationId);
 }
 
-// Ids of the applications set up in Central's Application Access.
-export async function listCentralApplicationIds(): Promise<string[]> {
-  const data = await lookup<unknown>("/application-entitlements/applications", {});
-  if (!Array.isArray(data) || !data.every((id) => typeof id === "string")) {
-    throw new Error("Central application list response data is invalid");
-  }
-  return data;
-}
-
 // An application Central published for the Hub.
 export type CentralPublishedApplication = {
   id: string;

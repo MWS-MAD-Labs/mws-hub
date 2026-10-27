@@ -9,16 +9,6 @@
 * 🟢 You can import this file directly.
 */
 
-export const ApplicationStatus = {
-  ACTIVE: 'ACTIVE',
-  MAINTENANCE: 'MAINTENANCE',
-  COMING_SOON: 'COMING_SOON',
-  NEW: 'NEW'
-} as const
-
-export type ApplicationStatus = (typeof ApplicationStatus)[keyof typeof ApplicationStatus]
-
-
 export const ReportStatus = {
   OPEN: 'OPEN',
   IN_PROGRESS: 'IN_PROGRESS',

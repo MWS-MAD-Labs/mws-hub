@@ -8,7 +8,6 @@
  *
  * 🟢 You can import this file directly.
  */
-export type * from './models/Application.ts'
 export type * from './models/SsoCode.ts'
 export type * from './models/AppReport.ts'
 export type * from './models/AccessRequest.ts'

@@ -13,12 +13,6 @@ function deps(over: Partial<OverviewDeps> = {}): OverviewDeps {
       { id: "exima", name: "Exima", launch_url: "https://exima.test/auth/sso" },
       { id: "quiet", name: "Quiet", launch_url: "https://quiet.test" },
     ],
-    hubRows: async () => [
-      { id: "exima", name: "Exima", explicitCentralLink: "exima" },
-      { id: "woko", name: "Woko" },
-      { id: "old-hidden", name: "Old Hidden" },
-    ],
-    knownIds: async () => new Set(["daily-checkin", "exima", "quiet", "old-hidden"]),
     launchCounts: async () => [
       { application_id: "daily-checkin", outcome: "redirected", count: 40, recent: 12, last_at: hoursAgo(1) },
       { application_id: "daily-checkin", outcome: "entitlement_denied", count: 3, recent: 1, last_at: hoursAgo(30) },
@@ -44,12 +38,10 @@ describe("hub overview", () => {
     expect(overview.activity.never_opened).toEqual([{ id: "quiet", name: "Quiet" }]);
   });
 
-  it("warns about applications that do not answer and entries Central does not cover", async () => {
+  it("warns about applications that do not answer", async () => {
     const overview = await buildOverview(deps());
     expect(overview.health.apps.find((app) => app.id === "exima")?.status).toBe("down");
     expect(overview.health.checks.find((check) => check.id === "apps")).toMatchObject({ status: "warning" });
-    // Woko is unknown to Central. The hidden one is known, so it is not an older entry.
-    expect(overview.health.not_in_central).toEqual([{ id: "woko", name: "Woko" }]);
     expect(overview.health.status).toBe("warning");
   });
 

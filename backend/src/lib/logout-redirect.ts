@@ -1,4 +1,4 @@
-import { ApplicationService } from "../service/application-service";
+import { centralCatalogEntries } from "../service/central-catalog-service";
 import { frontendOrigin } from "./frontend-origin";
 
 // Where a satellite is allowed to send the browser after Hub has cleared its
@@ -7,9 +7,8 @@ import { frontendOrigin } from "./frontend-origin";
 // Hub's domain to make the hop look legitimate.
 //
 // The allowlist is derived from the catalog rather than configured
-// separately, so registering an app - now only ever done through the admin
-// screen, see ApplicationService - is the only thing needed to let it round
-// trip. One list, no second place to keep in sync.
+// separately, so publishing an app in Central is the only thing needed to let
+// it round trip. One list, no second place to keep in sync.
 
 function originOf(url: string | null | undefined): string | null {
   if (!url) return null;
@@ -26,7 +25,7 @@ async function allowedOrigins(): Promise<Set<string>> {
   const own = originOf(frontendOrigin());
   if (own) origins.add(own);
 
-  const catalog = await ApplicationService.listActive();
+  const catalog = await centralCatalogEntries();
   for (const entry of catalog) {
     const href = originOf(entry.href);
     if (href) origins.add(href);

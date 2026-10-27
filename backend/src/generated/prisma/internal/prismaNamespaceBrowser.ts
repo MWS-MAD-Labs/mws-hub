@@ -51,7 +51,6 @@ export const AnyNull = runtime.AnyNull
 
 
 export const ModelName = {
-  Application: 'Application',
   SsoCode: 'SsoCode',
   AppReport: 'AppReport',
   AccessRequest: 'AccessRequest',
@@ -75,32 +74,6 @@ export const TransactionIsolationLevel = runtime.makeStrictEnum({
 } as const)
 
 export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof typeof TransactionIsolationLevel]
-
-
-export const ApplicationScalarFieldEnum = {
-  id: 'id',
-  name: 'name',
-  icon: 'icon',
-  description: 'description',
-  audience: 'audience',
-  category: 'category',
-  keywords: 'keywords',
-  href: 'href',
-  external: 'external',
-  status: 'status',
-  discoverable: 'discoverable',
-  allowed_sources: 'allowed_sources',
-  sso_app_id: 'sso_app_id',
-  sso_entry_url: 'sso_entry_url',
-  sso_logout_url: 'sso_logout_url',
-  sso_central_entitlement_app_id: 'sso_central_entitlement_app_id',
-  sort_order: 'sort_order',
-  created_at: 'created_at',
-  updated_at: 'updated_at',
-  deleted_at: 'deleted_at'
-} as const
-
-export type ApplicationScalarFieldEnum = (typeof ApplicationScalarFieldEnum)[keyof typeof ApplicationScalarFieldEnum]
 
 
 export const SsoCodeScalarFieldEnum = {
