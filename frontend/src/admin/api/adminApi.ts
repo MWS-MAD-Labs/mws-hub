@@ -50,7 +50,6 @@ export type AdminOverview = {
     status: "ok" | "warning" | "problem";
     checks: { id: string; label: string; status: "ok" | "warning" | "problem"; detail: string }[];
     apps: { id: string; name: string; address: string | null; status: "up" | "down" | "no_address"; detail: string }[];
-    not_in_central: { id: string; name: string }[];
   };
   activity: {
     launches7: number;
@@ -83,12 +82,6 @@ export const adminApi = {
       "/admin/dashboard-data",
     );
     return response!.data;
-  },
-
-  async deleteApplication(id: string): Promise<void> {
-    await apiRequest(`/admin/api/catalog/${encodeURIComponent(id)}`, {
-      method: "DELETE",
-    });
   },
 
   async overview(): Promise<AdminOverview> {

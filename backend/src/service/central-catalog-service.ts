@@ -1,6 +1,5 @@
 import {
   getCentralTaxonomy,
-  listCentralApplicationIds,
   listPublishedApplications,
   type CentralPublishedApplication,
   type CentralTaxonomy,
@@ -43,7 +42,7 @@ export async function centralTaxonomy(): Promise<CentralTaxonomy> {
   }
 }
 
-let cache: { at: number; entries: HubCatalogEntry[]; known: Set<string> | null } | null = null;
+let cache: { at: number; entries: HubCatalogEntry[] } | null = null;
 
 export function clearCentralCatalogCacheForTest() {
   cache = null;
@@ -89,52 +88,25 @@ export function toCentralEntry(
   };
 }
 
-// What the Hub last learned from Central: the cards it publishes, and every application id it knows, published or not.
-// `known` is null when the second list could not be read. With no answer yet, `read` is false.
-export type CentralCatalogState = { read: boolean; entries: HubCatalogEntry[]; known: Set<string> | null };
+// What the Hub last learned from Central: the cards it publishes. With no answer yet, `read` is false.
+export type CentralCatalogState = { read: boolean; entries: HubCatalogEntry[] };
 
 // Cached for a minute. When Central cannot be reached the last answer is kept, and with none yet
 // the list is empty, so Hub itself never stops working because of it.
 export async function centralCatalogState(): Promise<CentralCatalogState> {
-  if (cache && Date.now() - cache.at < CACHE_MS) return { read: true, entries: cache.entries, known: cache.known };
+  if (cache && Date.now() - cache.at < CACHE_MS) return { read: true, entries: cache.entries };
   try {
-    const [published, taxonomy, ids] = await Promise.all([
-      listPublishedApplications(),
-      centralTaxonomy(),
-      listCentralApplicationIds().catch(() => null),
-    ]);
+    const [published, taxonomy] = await Promise.all([listPublishedApplications(), centralTaxonomy()]);
     const entries = published.map((app) => toCentralEntry(app, taxonomy));
-    const known = ids ? new Set([...ids, ...published.map((app) => app.id)]) : null;
-    cache = { at: Date.now(), entries, known };
-    return { read: true, entries, known };
+    cache = { at: Date.now(), entries };
+    return { read: true, entries };
   } catch (error) {
     logger.error("Could not read the published applications from Central:", error);
     // Try again on the next request, but keep serving what was known.
-    return cache ? { read: true, entries: cache.entries, known: cache.known } : { read: false, entries: [], known: null };
+    return cache ? { read: true, entries: cache.entries } : { read: false, entries: [] };
   }
 }
 
 export async function centralCatalogEntries(): Promise<HubCatalogEntry[]> {
   return (await centralCatalogState()).entries;
-}
-
-// The application Central publishes that a Hub row stands for, by the same keys everywhere: the link set on purpose,
-// the sign-in app id, the access id, then the row id. Undefined when Central does not publish it, or has not answered.
-export function centralEntryFor(
-  row: Pick<HubCatalogEntry, "id" | "explicitCentralLink" | "centralEntitlementAppId"> & { sso?: { appId: string } },
-  state: CentralCatalogState,
-): HubCatalogEntry | undefined {
-  const byId = new Map(state.entries.map((entry) => [entry.id, entry]));
-  const key = [row.explicitCentralLink, row.sso?.appId, row.centralEntitlementAppId, row.id].find((candidate) => candidate && byId.has(candidate));
-  return key ? byId.get(key) : undefined;
-}
-
-// Whether a Hub row points at an application Central no longer shows: hidden, retired or removed. A row linked on
-// purpose is withdrawn as soon as Central does not publish it. A row only matched by its id is withdrawn when Central
-// knows that id and does not publish it, so an application that Central never heard of is left alone.
-export function isWithdrawn(row: Pick<HubCatalogEntry, "id" | "explicitCentralLink">, state: CentralCatalogState): boolean {
-  if (!state.read) return false;
-  const published = new Set(state.entries.map((entry) => entry.id));
-  if (row.explicitCentralLink) return !published.has(row.explicitCentralLink);
-  return Boolean(state.known?.has(row.id)) && !published.has(row.id);
 }

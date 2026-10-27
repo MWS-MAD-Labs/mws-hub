@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, mock, spyOn } from "bun:test";
 import * as centralClient from "../lib/central-client";
-import { ApplicationService } from "../service/application-service";
 import { deriveAppSecret } from "../lib/hub-app-secret";
 import type { HubCatalogEntry } from "../type/catalog-type";
 import type { HubUser } from "../type/central-type";
@@ -21,8 +20,6 @@ const entry = (id: string, extra: Partial<HubCatalogEntry> = {}): HubCatalogEntr
     allowedSources: ["public"],
     ...extra,
   }) as HubCatalogEntry;
-
-let own: HubCatalogEntry[] = [];
 
 const { AppsService, setApprovedAccessLookupForTest } = await import("../service/apps-service");
 const { centralTaxonomy, clearCentralCatalogCacheForTest } = await import("../service/central-catalog-service");
@@ -59,10 +56,8 @@ const published = (id: string, extra: Record<string, unknown> = {}) => ({
 
 // A spy, not a module mock: a module mock would stay for the test files after this one.
 beforeEach(() => {
-  spyOn(ApplicationService, "listActive").mockImplementation(async () => own);
   gate.clearAppAccessCacheForTest();
   clearCentralCatalogCacheForTest();
-  own = [];
 });
 
 afterEach(() => {
@@ -99,37 +94,17 @@ describe("applications published in Central", () => {
     expect((await AppsService.listFor(user)).some((app) => app.id === "demo")).toBe(false);
   });
 
-  it("lets a row in Hub with the same id win", async () => {
-    own = [entry("demo", { name: "Hub's own name", centralEntitlementAppId: "demo" })];
-    spyOn(centralClient, "listPublishedApplications").mockResolvedValue([published("demo")] as never);
-    spyOn(centralClient, "lookupApplicationEntitlement").mockResolvedValue({ is_active: true } as never);
-
-    const cards = (await AppsService.listFor(user)).filter((app) => app.id === "demo");
-    expect(cards).toHaveLength(1);
-    expect(cards[0].name).toBe("Hub's own name");
-  });
-
-  it("takes the sign-in address from Central, not from the row, and keeps the row's looks", async () => {
-    own = [
-      entry("learnspace", {
-        name: "Learnspace (Hub)",
-        centralEntitlementAppId: "learnspace",
-        sso: { appId: "learnspace", entryUrl: "http://localhost:3001/api/auth/sso", logoutUrl: "http://localhost:3001/api/auth/logout-silent" },
-      }),
-      entry("other", { sso: { appId: "other", entryUrl: "http://localhost:4000/auth/sso" } }),
-    ];
+  it("takes the sign-in address from Central", async () => {
     spyOn(centralClient, "listPublishedApplications").mockResolvedValue([
       published("learnspace", { launch_url: "http://localhost:3002/api/v1/auth/sso", logout_url: "http://localhost:3002/api/v1/auth/logout", launch_mode: "sso" }),
     ] as never);
     spyOn(centralClient, "lookupApplicationEntitlement").mockResolvedValue({ is_active: true } as never);
 
-    const card = await AppsService.findByLaunchId("learnspace");
-    expect(card?.name).toBe("Learnspace (Hub)");
-    const catalog = await AppsService.findByLaunchId("learnspace");
-    expect(catalog?.sso?.entryUrl).toBe("http://localhost:3002/api/v1/auth/sso");
-    expect(catalog?.sso?.logoutUrl).toBe("http://localhost:3002/api/v1/auth/logout");
-    // A row Central does not publish keeps its own address.
-    expect((await AppsService.findByLaunchId("other"))?.sso?.entryUrl).toBe("http://localhost:4000/auth/sso");
+    const found = await AppsService.findByLaunchId("learnspace");
+    expect(found?.sso?.entryUrl).toBe("http://localhost:3002/api/v1/auth/sso");
+    expect(found?.sso?.logoutUrl).toBe("http://localhost:3002/api/v1/auth/logout");
+    // Nothing else can add a card or an address: an id Central does not publish is unknown.
+    expect(await AppsService.findByLaunchId("other")).toBeNull();
   });
 
   it("falls back to a category Hub knows", async () => {
@@ -187,57 +162,32 @@ describe("applications published in Central", () => {
     expect(JSON.stringify(cards)).not.toContain("hubSecret");
   });
 
-  it("sends a Hub row for an application Central knows the secret Central set for it", async () => {
+  it("tells an application's backend the secret Central set for it", async () => {
     spyOn(centralClient, "listPublishedApplications").mockResolvedValue([
       published("daily-checkin", { hub_secret: { mode: "own", version: 1 } }),
     ] as never);
     spyOn(centralClient, "lookupApplicationEntitlement").mockResolvedValue({ is_active: true } as never);
-    own = [
-      entry("emotional-checkin", {
-        sso: {
-          appId: "daily-checkin",
-          entryUrl: "https://daily-checkin.example.com/auth/sso",
-          logoutUrl: "https://daily-checkin.example.com/auth/logout-silent",
-          centralEntitlementAppId: "daily-checkin",
-        },
-        centralEntitlementAppId: "daily-checkin",
-      }),
-    ];
-    try {
-      const targets = await AppsService.revokeSessionTargets("master-secret-0123456789abcdef");
-      expect(targets).toEqual([
-        {
-          url: "https://daily-checkin.example.com/auth/revoke-session",
-          secret: deriveAppSecret("master-secret-0123456789abcdef", "daily-checkin", 1),
-        },
-      ]);
-    } finally {
-      own = [];
-    }
+    const targets = await AppsService.revokeSessionTargets("master-secret-0123456789abcdef");
+    expect(targets).toEqual([
+      {
+        url: "https://daily-checkin.example.com/auth/revoke-session",
+        secret: deriveAppSecret("master-secret-0123456789abcdef", "daily-checkin", 1),
+      },
+    ]);
   });
 
-  it("keeps applications that read the Hub session out of the logout and revoke lists, and a Hub row inherits the way", async () => {
+  it("keeps applications that read the Hub session out of the logout and revoke lists", async () => {
     spyOn(centralClient, "listPublishedApplications").mockResolvedValue([
       published("shared-app", { session_mode: "shared", logout_url: "https://shared.example.com/auth/logout", hub_secret: { mode: "own", version: 1 } }),
       published("relay-app", { session_mode: "relay", logout_url: "https://relay.example.com/auth/logout", hub_secret: { mode: "own", version: 1 } }),
     ] as never);
     spyOn(centralClient, "lookupApplicationEntitlement").mockResolvedValue({ is_active: true } as never);
-    own = [
-      entry("hub-row-for-shared", {
-        centralEntitlementAppId: "shared-app",
-        sso: { appId: "shared-app", entryUrl: "https://shared.example.com/auth/sso", logoutUrl: "https://shared.example.com/auth/logout" },
-      }),
-    ];
-    try {
-      const targets = await AppsService.revokeSessionTargets("master-secret-0123456789abcdef");
-      expect(targets.map((target) => target.url)).toEqual(["https://relay.example.com/auth/revoke-session"]);
-      expect(await AppsService.logoutTargets()).toEqual(["https://relay.example.com/auth/logout-silent"]);
-      const found = await AppsService.findByLaunchId("shared-app");
-      expect(found?.sessionMode).toBe("shared");
-      expect(JSON.stringify(await AppsService.listFor(user))).not.toContain("sessionMode");
-    } finally {
-      own = [];
-    }
+    const targets = await AppsService.revokeSessionTargets("master-secret-0123456789abcdef");
+    expect(targets.map((target) => target.url)).toEqual(["https://relay.example.com/auth/revoke-session"]);
+    expect(await AppsService.logoutTargets()).toEqual(["https://relay.example.com/auth/logout-silent"]);
+    const found = await AppsService.findByLaunchId("shared-app");
+    expect(found?.sessionMode).toBe("shared");
+    expect(JSON.stringify(await AppsService.listFor(user))).not.toContain("sessionMode");
   });
 
   it("reads Central once a minute and keeps the last answer when Central is down", async () => {
@@ -258,10 +208,9 @@ describe("applications published in Central", () => {
     }
   });
 
-  it("shows nothing from Central when it has never answered, and Hub's own apps still work", async () => {
-    own = [entry("plain")];
+  it("shows nothing when Central has never answered", async () => {
     spyOn(centralClient, "listPublishedApplications").mockRejectedValue(new Error("down"));
-    expect((await AppsService.listFor(user)).map((app) => app.id)).toEqual(["plain"]);
+    expect(await AppsService.listFor(user)).toEqual([]);
   });
 
   it("shows a plain link as a link, without a sign-in handoff, and still by access in Central", async () => {

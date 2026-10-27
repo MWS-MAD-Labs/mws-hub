@@ -10,7 +10,7 @@ export type AppHealth = { id: string; name: string; address: string | null; stat
 export type AppActivity = { id: string; name: string; launches7: number; launches30: number; failures30: number; last_launch_at: string | null };
 export type Overview = {
   generated_at: string;
-  health: { status: "ok" | "warning" | "problem"; checks: Check[]; apps: AppHealth[]; not_in_central: { id: string; name: string }[] };
+  health: { status: "ok" | "warning" | "problem"; checks: Check[]; apps: AppHealth[] };
   activity: { launches7: number; launches30: number; failures30: Record<string, number>; apps: AppActivity[]; never_opened: { id: string; name: string }[] };
   reports: { open: number; by_app: { application_id: string; name: string; open: number }[] };
 };
@@ -18,11 +18,8 @@ export type Overview = {
 export type OverviewDeps = {
   now?: () => Date;
   publishedApplications: () => Promise<{ id: string; name: string; launch_url: string }[]>;
-  hubRows: () => Promise<{ id: string; name: string; explicitCentralLink?: string }[]>;
   // Per application and outcome since the first date, with how many of them are since the second.
   launchCounts: (since: Date, recent: Date) => Promise<{ application_id: string; outcome: string; count: number; recent: number; last_at: Date }[]>;
-  // Every application id Central knows, published or not. Null when it could not be read.
-  knownIds: () => Promise<Set<string> | null>;
   openReports: () => Promise<{ application_id: string; name: string; open: number }[]>;
   reach: (address: string) => Promise<"up" | "down">;
   // How many sign-in keys the Hub publishes.
@@ -93,22 +90,6 @@ export async function buildOverview(deps: OverviewDeps): Promise<Overview> {
   }
   checks.push({ id: "keys", label: "Sign-in keys", status: keys > 0 ? "ok" : "problem", detail: keys > 0 ? "The Hub publishes its sign-in key." : "No sign-in key. Applications cannot verify who signs in." });
 
-  const rows = await deps.hubRows();
-  const known = await deps.knownIds();
-  // An older Hub row that Central does not publish and does not know either: nothing links it to Central.
-  const published_ids = new Set(published.map((app) => app.id));
-  const notInCentral = rows
-    .filter((row) => !row.explicitCentralLink && !published_ids.has(row.id) && !known?.has(row.id))
-    .map((row) => ({ id: row.id, name: row.name }));
-  if (notInCentral.length > 0) {
-    checks.push({
-      id: "legacy",
-      label: "Older entries",
-      status: "warning",
-      detail: `${notInCentral.length} entr${notInCentral.length === 1 ? "y is" : "ies are"} not in Central. Add each as a link application in Central, then run prune:catalog.`,
-    });
-  }
-
   const apps = await inBatches(published, 6, async (app): Promise<AppHealth> => {
     if (!app.launch_url) return { id: app.id, name: app.name, address: null, status: "no_address", detail: "No address." };
     const result = await deps.reach(app.launch_url);
@@ -126,7 +107,6 @@ export async function buildOverview(deps: OverviewDeps): Promise<Overview> {
   const since7 = new Date(now.getTime() - 7 * DAY);
   const counts = await deps.launchCounts(since30, since7);
   const names = new Map(published.map((app) => [app.id, app.name]));
-  for (const row of rows) if (!names.has(row.id)) names.set(row.id, row.name);
   const per = new Map<string, AppActivity>();
   const failures30: Record<string, number> = {};
   let launches7 = 0;
@@ -152,7 +132,7 @@ export async function buildOverview(deps: OverviewDeps): Promise<Overview> {
   const status = checks.reduce<"ok" | "warning" | "problem">((worst, check) => (rank[check.status] > rank[worst] ? check.status : worst), "ok");
   return {
     generated_at: now.toISOString(),
-    health: { status, checks, apps, not_in_central: notInCentral },
+    health: { status, checks, apps },
     activity: { launches7, launches30, failures30, apps: activityApps, never_opened: neverOpened },
     reports: { open: reports.reduce((sum, row) => sum + row.open, 0), by_app: reports.sort((left, right) => right.open - left.open) },
   };
@@ -168,12 +148,9 @@ export async function hubOverview(): Promise<Overview> {
   if (cache && Date.now() - cache.at < 30_000) return cache.value;
   // Loaded here so reading the checks does not need the database client until it has to.
   const { prisma } = await import("../lib/prisma");
-  const { ApplicationService } = await import("./application-service");
   const value = await buildOverview({
     env: process.env,
     publishedApplications: async () => (await listPublishedApplications()).map((app) => ({ id: app.id, name: app.name, launch_url: app.launch_url })),
-    hubRows: async () => (await ApplicationService.listForAdmin()).map((row) => ({ id: row.id, name: row.name, explicitCentralLink: row.sso_central_entitlement_app_id ?? undefined })),
-    knownIds: async () => (await centralCatalogState()).known,
     launchCounts: async (since, recent) => {
       const rows = await prisma.$queryRaw<{ application_id: string; outcome: string; count: bigint; recent: bigint; last_at: Date }[]>`
         SELECT entity_id AS application_id, COALESCE(metadata->>'outcome', 'unknown') AS outcome, COUNT(*) AS count,
@@ -185,8 +162,7 @@ export async function hubOverview(): Promise<Overview> {
     },
     openReports: async () => {
       const rows = await prisma.appReport.groupBy({ by: ["application_id"], where: { status: { not: "RESOLVED" } }, _count: { _all: true } });
-      const apps = await prisma.application.findMany({ where: { id: { in: rows.map((row) => row.application_id) } }, select: { id: true, name: true } });
-      const names = new Map(apps.map((app) => [app.id, app.name]));
+      const names = new Map((await centralCatalogState()).entries.map((entry) => [entry.id, entry.name]));
       return rows.map((row) => ({ application_id: row.application_id, name: names.get(row.application_id) ?? row.application_id, open: row._count._all }));
     },
     reach: reachAddress,
