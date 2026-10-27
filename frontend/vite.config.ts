@@ -5,6 +5,9 @@ import react from "@vitejs/plugin-react";
 import path from "path";
 import { NAVIGATION_DENYLIST, NETWORK_ONLY_PREFIXES } from "./pwa-routes";
 
+// The Hub backend. One place, so the proxy cannot point at another app.
+const API_TARGET = process.env.VITE_API_PROXY_TARGET || "http://localhost:4001";
+
 export default defineConfig({
   plugins: [
     react(),
@@ -95,17 +98,19 @@ export default defineConfig({
   },
   server: {
     port: 5175,
+    // A taken port stops the start. Moving to another port would put the Hub where another app is expected.
+    strictPort: true,
     // Dev proxies the same prefixes nginx proxies in production, so both
     // run on one origin. Without this the session cookie (SameSite=Strict)
     // would behave differently here than in production - exactly the class
     // of bug that only shows up after deploy.
     proxy: {
-      "/auth": { target: "http://localhost:4001", changeOrigin: true },
-      "/apps": { target: "http://localhost:4001", changeOrigin: true },
-      "/sso": { target: "http://localhost:4001", changeOrigin: true },
-      "/admin/dashboard-data": { target: "http://localhost:4001", changeOrigin: true },
-      "/admin/api": { target: "http://localhost:4001", changeOrigin: true },
-      "/.well-known": { target: "http://localhost:4001", changeOrigin: true },
+      "/auth": { target: API_TARGET, changeOrigin: true },
+      "/apps": { target: API_TARGET, changeOrigin: true },
+      "/sso": { target: API_TARGET, changeOrigin: true },
+      "/admin/dashboard-data": { target: API_TARGET, changeOrigin: true },
+      "/admin/api": { target: API_TARGET, changeOrigin: true },
+      "/.well-known": { target: API_TARGET, changeOrigin: true },
     },
   },
 });
