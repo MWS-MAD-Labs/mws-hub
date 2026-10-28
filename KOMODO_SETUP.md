@@ -78,7 +78,7 @@ Compose variables below), plus every backend/frontend variable further down.
 | `GATEWAY_ALIAS` | `mws-hub-fe` (default, can be left unset) | `hub-fe-prod` |
 | Gateway target | `127.0.0.1:8083` or `mws-hub-fe:80` on `mws-unified` | `hub-fe-prod:80` on `mws-unified-prod` |
 
-For staging, route `app.mws.web.id` to frontend only. If the Komodo gateway is
+For staging, route `app-stg.mws.web.id` to frontend only. If the Komodo gateway is
 configured as a host-level reverse proxy, use `127.0.0.1:8083`. If it is
 attached to Docker's `mws-unified` network, use `mws-hub-fe:80`. Do not route
 the gateway to `backend:4001`; the backend intentionally stays off the gateway
@@ -120,18 +120,20 @@ GATEWAY_ALIAS=hub-fe-prod
 
 ### Backend variables
 
+Use the URL set for the stack. Staging and production must not share their Hub or Central addresses.
+
 ```
 NODE_ENV=production
 PORT=4001
 
-FRONTEND_ORIGIN=https://app.mws.web.id
+FRONTEND_ORIGIN=https://app-stg.mws.web.id
 
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 GOOGLE_REDIRECT_URI=postmessage
 ALLOWED_DOMAIN=millennia21.id
 
-CENTRAL_API_BASE_URL=https://db.mws.web.id/api/internal
+CENTRAL_API_BASE_URL=https://db-stg.mws.web.id/api/internal
 CENTRAL_API_TOKEN=
 
 JWT_SECRET=
@@ -152,11 +154,19 @@ MTSS_API_URL=https://app.millenniaws.sch.id/mtss
 HUB_API_BASE_URL=          # empty: same origin
 GOOGLE_CLIENT_ID=          # same client as the backend
 SUPPORT_EMAIL=admin@millennia21.id
-HUB_PUBLIC_URL=https://app.mws.web.id
+HUB_PUBLIC_URL=https://app-stg.mws.web.id
 ```
 
 `HUB_PUBLIC_URL` sets nginx's `server_name`. For staging, keep it aligned with
 the gateway host so Nginx accepts requests forwarded by Komodo.
+
+Production uses the same variable names with production URLs:
+
+```env
+FRONTEND_ORIGIN=https://app.mws.web.id
+CENTRAL_API_BASE_URL=https://db.mws.web.id/api/internal
+HUB_PUBLIC_URL=https://app.mws.web.id
+```
 
 ## Before the first deploy
 
