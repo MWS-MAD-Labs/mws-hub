@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -197,16 +197,23 @@ const SupportHubPage = memo(() => {
 
   // A refused launch lands back here with ?error=<code>. Surface it once,
   // then strip the param so a refresh doesn't replay the same toast.
+  // StrictMode runs this twice before the param is gone, so remember the code that was already shown.
+  const shownCode = useRef<string | null>(null);
   useEffect(() => {
     const code = searchParams.get("error");
-    if (!code) return;
+    if (!code) {
+      shownCode.current = null;
+      return;
+    }
+    if (shownCode.current === code) return;
+    shownCode.current = code;
 
     const build = LAUNCH_ERRORS[code];
     if (build) {
       // "That app" reads better than an empty gap when the name is missing,
       // which happens for failures that are not about a specific app.
       const failure = build(searchParams.get("app") || "That app");
-      toast.error(failure.title, { description: failure.description });
+      toast.error(failure.title, { id: `launch-${code}`, description: failure.description });
 
       if (window.parent !== window) {
         window.parent.postMessage(

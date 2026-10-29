@@ -145,6 +145,7 @@ const AppCard = memo(
           target.location.href = launchHref;
         });
       toast.info(`${app.name} sudah terbuka di tab lain`, {
+        id: `open-${app.id}`,
         description: "Beralih ke tab tersebut untuk melanjutkan.",
       });
     };
