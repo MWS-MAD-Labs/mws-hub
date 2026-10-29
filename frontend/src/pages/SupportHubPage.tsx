@@ -47,6 +47,11 @@ const LAUNCH_ERRORS: Record<
     description:
       "It's temporarily switched off while MAD Labs works on it. Try again later.",
   }),
+  app_unreachable: (app) => ({
+    title: `${app} can't be opened right now`,
+    description:
+      "It isn't answering at the moment. Try again in a few minutes. If it keeps happening, report it below.",
+  }),
   app_coming_soon: (app) => ({
     title: `${app} isn't released yet`,
     description:

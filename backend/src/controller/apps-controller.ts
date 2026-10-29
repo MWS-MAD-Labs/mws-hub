@@ -17,6 +17,7 @@ import type { RelayEntitlement } from "../type/central-type";
 import type { SessionVariables } from "../type/hono-context";
 import { optionalSsoState } from "../lib/sso-state";
 import { entryUsesSharedSession } from "../lib/shared-session";
+import { isAppReachable } from "../lib/app-reachability";
 
 // Launch is a browser navigation, not an XHR, so a failure here has to land
 // somewhere a person can read. Same shape the satellite apps already use for
@@ -224,6 +225,20 @@ export class AppsController {
         target: "hub",
       });
       return launchFailure(c, "app_coming_soon", entry.name);
+    }
+
+    // An application that does not answer would end on a browser error page, so say it here instead.
+    const target = entry.sso?.entryUrl ?? entry.href;
+    if (target && !(await isAppReachable(target))) {
+      logger.info(`Launch refused, app not answering: ${entry.id}`, user.email);
+      await recordLaunchAudit({
+        actor: user,
+        appId: entry.id,
+        appName: entry.name,
+        outcome: "app_unreachable",
+        target: "hub",
+      });
+      return launchFailure(c, "app_unreachable", entry.name);
     }
 
     if (entry.sso && entryUsesSharedSession(entry)) {
