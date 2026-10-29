@@ -1,6 +1,7 @@
 import {
   ClipboardList,
   Home,
+  KeyRound,
   Wrench,
   X,
 } from "lucide-react";
@@ -20,6 +21,12 @@ const menuItems = [
     label: "Broken Tools",
     href: "/admin/broken-tools",
     icon: Wrench,
+    enabled: true,
+  },
+  {
+    label: "GPT Code",
+    href: "/admin/gpt-code",
+    icon: KeyRound,
     enabled: true,
   },
   {

@@ -246,3 +246,22 @@ model SsoExchangeSeen {
 
   @@map("sso_exchange_seen")
 }
+
+// Hub-owned authorization for the GPT Code feature. Central remains the
+// source of truth for a person's unit; this table only says which fixed
+// Apps Script card (A1-A5) that unit may use. Neither the browser nor the
+// Apps Script decides this mapping.
+model GptCodeUnitMapping {
+  id String @id @default(cuid())
+
+  unit_id   String @unique
+  unit_name String
+  card_id   String @unique
+  is_active Boolean @default(true)
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@index([is_active])
+  @@map("gpt_code_unit_mappings")
+}

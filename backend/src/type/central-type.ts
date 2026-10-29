@@ -99,10 +99,37 @@ export type InternLookupResponse = {
   status: string;
 } & CentralAccessClaims;
 
+export type AdminLookupResponse = {
+  id: string;
+  admin_no: string;
+  email: string;
+  full_name: string;
+  role: string;
+  avatar_url: string | null;
+  unit_id: string | null;
+  job_position: string | null;
+  job_position_id: string | null;
+  job_level?: string | CentralNamedRef | null;
+  job_level_id: string | null;
+  building?: string | CentralNamedRef | null;
+  building_id: string | null;
+  education_level: string | null;
+  is_active: boolean;
+  last_login: string | null;
+  created_at: string;
+  type: "admin";
+  is_protected: boolean;
+  is_identifier_change_approver: boolean;
+  is_employee_identifier_change_approver: boolean;
+  is_head_of_care: boolean;
+  person_id: string;
+} & CentralAccessClaims;
+
 export type HubUser =
   | ({ source: "employee" } & EmployeeLookupResponse)
   | ({ source: "intern" } & InternLookupResponse)
-  | ({ source: "student" } & StudentLookupResponse);
+  | ({ source: "student" } & StudentLookupResponse)
+  | ({ source: "admin" } & AdminLookupResponse);
 
 export type HubSource = HubUser["source"];
 

@@ -17,7 +17,7 @@ export type AuditLogInput = {
 };
 
 export function actorDisplayName(actor: HubUser): string | null {
-  return actor.full_name || actor.nick_name || null;
+  return actor.full_name || ("nick_name" in actor ? actor.nick_name : null) || null;
 }
 
 export async function recordAuditLog(input: AuditLogInput) {

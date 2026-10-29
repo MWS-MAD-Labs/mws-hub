@@ -81,3 +81,8 @@ export type RefreshToken = Prisma.RefreshTokenModel
  * 
  */
 export type SsoExchangeSeen = Prisma.SsoExchangeSeenModel
+/**
+ * Model GptCodeUnitMapping
+ *
+ */
+export type GptCodeUnitMapping = Prisma.GptCodeUnitMappingModel

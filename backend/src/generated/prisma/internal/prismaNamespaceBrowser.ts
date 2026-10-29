@@ -58,7 +58,8 @@ export const ModelName = {
   AuditLog: 'AuditLog',
   UserSession: 'UserSession',
   RefreshToken: 'RefreshToken',
-  SsoExchangeSeen: 'SsoExchangeSeen'
+  SsoExchangeSeen: 'SsoExchangeSeen',
+  GptCodeUnitMapping: 'GptCodeUnitMapping'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -193,6 +194,19 @@ export const SsoExchangeSeenScalarFieldEnum = {
 } as const
 
 export type SsoExchangeSeenScalarFieldEnum = (typeof SsoExchangeSeenScalarFieldEnum)[keyof typeof SsoExchangeSeenScalarFieldEnum]
+
+
+export const GptCodeUnitMappingScalarFieldEnum = {
+  id: 'id',
+  unit_id: 'unit_id',
+  unit_name: 'unit_name',
+  card_id: 'card_id',
+  is_active: 'is_active',
+  created_at: 'created_at',
+  updated_at: 'updated_at'
+} as const
+
+export type GptCodeUnitMappingScalarFieldEnum = (typeof GptCodeUnitMappingScalarFieldEnum)[keyof typeof GptCodeUnitMappingScalarFieldEnum]
 
 
 export const SortOrder = {

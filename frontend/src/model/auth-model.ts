@@ -55,19 +55,50 @@ export type InternIdentity = {
   isAdmin?: boolean;
 };
 
+export type AdminIdentity = {
+  source?: "admin";
+  id: string;
+  admin_no: string;
+  email: string;
+  full_name: string;
+  role: string;
+  avatar_url: string | null;
+  unit_id: string | null;
+  unitId?: string | null;
+  job_position: string | null;
+  job_position_id: string | null;
+  job_level: string | { id?: string | null; name?: string | null } | null;
+  job_level_id: string | null;
+  building: string | { id?: string | null; name?: string | null } | null;
+  building_id: string | null;
+  education_level: string | null;
+  is_active: boolean;
+  last_login: string | null;
+  created_at: string;
+  type: "admin";
+  is_protected: boolean;
+  is_identifier_change_approver: boolean;
+  is_employee_identifier_change_approver: boolean;
+  is_head_of_care: boolean;
+  person_id: string;
+  isAdmin?: boolean;
+};
+
 // What the backend's /auth/google and /auth/me hand back - a Central DB
 // employee, intern or student record, whichever resolveCentralIdentity() matched.
-export type AuthUser = EmployeeIdentity | InternIdentity | StudentIdentity;
+export type AuthUser = EmployeeIdentity | InternIdentity | StudentIdentity | AdminIdentity;
 
 export function toHubUser(user: AuthUser): HubUser {
   return {
-    name: user.nick_name || user.full_name,
+    name: ("nick_name" in user ? user.nick_name : null) || user.full_name,
     email: user.email,
     role:
-      user.source === "employee"
-        ? user.job_position || "Staff"
-        : user.source === "intern"
-          ? user.job_position || "Intern"
-          : "Student",
+      "type" in user
+        ? user.role
+        : user.source === "employee"
+          ? user.job_position || "Staff"
+          : user.source === "intern"
+            ? user.job_position || "Intern"
+            : "Student",
   };
 }

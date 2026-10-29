@@ -247,7 +247,7 @@ export class AppsController {
         {
           source: user.source,
           tags: AppsService.accessTagsFor(user),
-          unitId: user.unitId || user.unit_id || null,
+          unitId: user.unit_id || (user.source === "employee" ? user.unitId : null) || null,
         },
         relayEntitlement,
       );
@@ -270,6 +270,21 @@ export class AppsController {
       target.searchParams.set("code", code);
       if (state) target.searchParams.set("state", state);
       return c.redirect(target.toString(), 302);
+    }
+
+    // GPT Code is now a native Hub feature. Keep the catalog entry and the
+    // normal launch authorization/audit path, but land on Hub's own page
+    // instead of the retired Apps Script UI URL stored in older catalogs.
+    if (entry.id === "gpt-code") {
+      logger.info("Launch redirected to native GPT Code feature", user.email);
+      await recordLaunchAudit({
+        actor: user,
+        appId: entry.id,
+        appName: entry.name,
+        outcome: "redirected",
+        target: "hub",
+      });
+      return c.redirect(`${frontendOrigin()}/gpt-code`, 302);
     }
 
     if (!entry.href) {

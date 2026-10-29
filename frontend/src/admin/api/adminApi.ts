@@ -68,6 +68,28 @@ export type AdminDashboardData = {
   unitId: string | null;
 };
 
+export type AdminGptCodeAccount = {
+  cardId: string;
+  email: string;
+};
+
+export type AdminGptCodeMapping = {
+  id: string;
+  unitId: string;
+  unitName: string;
+  cardId: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AdminGptCodeConfiguration = {
+  accounts: AdminGptCodeAccount[];
+  mappings: AdminGptCodeMapping[];
+  units: { unitId: string; label: string; hint: string }[];
+  centralAvailable: boolean;
+};
+
 export type AdminPaginationMeta = {
   page: number;
   pageSize: number;
@@ -140,6 +162,31 @@ export const adminApi = {
       method: "PATCH",
       body: { status },
     });
+  },
+
+  async gptCodeConfiguration(): Promise<AdminGptCodeConfiguration> {
+    const response = await apiRequest<{ data: AdminGptCodeConfiguration }>(
+      "/admin/api/gpt-code/configuration",
+    );
+    return response!.data;
+  },
+
+  async saveGptCodeMapping(cardId: string, unitId: string, isActive: boolean) {
+    const response = await apiRequest<{ data: AdminGptCodeMapping }>(
+      `/admin/api/gpt-code/mappings/${encodeURIComponent(cardId)}`,
+      {
+        method: "PUT",
+        body: { unitId, isActive },
+      },
+    );
+    return response!.data;
+  },
+
+  async deleteGptCodeMapping(cardId: string): Promise<void> {
+    await apiRequest(
+      `/admin/api/gpt-code/mappings/${encodeURIComponent(cardId)}`,
+      { method: "DELETE" },
+    );
   },
 
 };

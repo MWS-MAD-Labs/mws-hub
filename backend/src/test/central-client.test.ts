@@ -25,6 +25,15 @@ function jsonResponse(status: number, body: unknown): Response {
   });
 }
 
+function mockAdminNotFoundThen(personResponse: Response) {
+  global.fetch = (async (input: string | URL | Request) => {
+    if (String(input).includes("/admins/lookup")) {
+      return jsonResponse(404, { errors: "Not found" });
+    }
+    return personResponse;
+  }) as unknown as typeof fetch;
+}
+
 describe("centralAuthHeaders", () => {
   it("sends the token, and the Organization ID the Hub was set up with when there is one", () => {
     const previous = process.env.CENTRAL_ORGANIZATION_ID;
@@ -156,17 +165,18 @@ describe("central-client request timeouts", () => {
 
 describe("resolveCentralIdentity", () => {
   it("returns an employee identity when Central's combined lookup says source: employee", async () => {
-    global.fetch = (async () =>
+    mockAdminNotFoundThen(
       jsonResponse(200, {
         data: { source: "employee", id: "emp-1", email: "a@millennia21.id" },
-      })) as unknown as typeof fetch;
+      }),
+    );
 
     const user = await resolveCentralIdentity("a@millennia21.id");
     expect(user?.source).toBe("employee");
   });
 
   it("normalizes Central's unit_id and nested unit object into unitId plus unit name", async () => {
-    global.fetch = (async () =>
+    mockAdminNotFoundThen(
       jsonResponse(200, {
         data: {
           source: "employee",
@@ -174,7 +184,8 @@ describe("resolveCentralIdentity", () => {
           email: "a@millennia21.id",
           unit: { id: "unit-1", name: "MAD Lab" },
         },
-      })) as unknown as typeof fetch;
+      }),
+    );
 
     const user = await resolveCentralIdentity("a@millennia21.id");
     expect(user?.source).toBe("employee");
@@ -185,7 +196,7 @@ describe("resolveCentralIdentity", () => {
   });
 
   it("does not invent a unitId from the Central unit display name", async () => {
-    global.fetch = (async () =>
+    mockAdminNotFoundThen(
       jsonResponse(200, {
         data: {
           source: "employee",
@@ -194,7 +205,8 @@ describe("resolveCentralIdentity", () => {
           unit: "MAD Lab",
           unit_id: null,
         },
-      })) as unknown as typeof fetch;
+      }),
+    );
 
     const user = await resolveCentralIdentity("a@millennia21.id");
     expect(user?.source).toBe("employee");
@@ -208,6 +220,9 @@ describe("resolveCentralIdentity", () => {
     const calls: string[] = [];
     global.fetch = (async (input: string | URL | Request) => {
       calls.push(String(input));
+      if (String(input).includes("/admins/lookup")) {
+        return jsonResponse(404, { errors: "Not found" });
+      }
       return jsonResponse(200, {
         data: { source: "student", id: "stu-1", email: "b@millennia21.id" },
       });
@@ -215,25 +230,66 @@ describe("resolveCentralIdentity", () => {
 
     const user = await resolveCentralIdentity("b@millennia21.id");
     expect(user?.source).toBe("student");
-    expect(calls).toEqual([expect.stringContaining("/persons/lookup")]);
+    expect(calls).toEqual([
+      expect.stringContaining("/admins/lookup?email=b%40millennia21.id"),
+      expect.stringContaining("/persons/lookup?email=b%40millennia21.id"),
+    ]);
   });
 
   it("returns an intern identity when Central's combined lookup says source: intern", async () => {
-    global.fetch = (async () =>
+    mockAdminNotFoundThen(
       jsonResponse(200, {
         data: { source: "intern", id: "int-1", person_id: "per-1", email: "c@millennia21.id", unit: { id: "u-1", name: "Elementary" } },
-      })) as unknown as typeof fetch;
+      }),
+    );
 
     const user = await resolveCentralIdentity("c@millennia21.id");
     expect(user?.source).toBe("intern");
     expect(user).toMatchObject({ unit: "Elementary", unitId: "u-1" });
   });
 
+  it("returns an admin identity using Central's admin auth response shape", async () => {
+    const admin = {
+      id: "admin-1",
+      admin_no: "ADM-00001",
+      email: "admin@millennia21.id",
+      full_name: "Test Admin",
+      role: "SUPER_ADMIN",
+      avatar_url: "https://central.test/avatar.avif",
+      unit_id: "unit-1",
+      job_position: "Junior Full Stack Web Developer",
+      job_position_id: "position-1",
+      job_level_id: "level-1",
+      building_id: "building-1",
+      education_level: null,
+      is_active: true,
+      last_login: "2026-10-28T03:19:13.025Z",
+      created_at: "2026-10-09T01:10:16.951Z",
+      type: "admin" as const,
+      is_protected: true,
+      is_identifier_change_approver: false,
+      is_employee_identifier_change_approver: false,
+      is_head_of_care: false,
+      person_id: "person-1",
+    };
+    const calls: string[] = [];
+    global.fetch = (async (input: string | URL | Request) => {
+      calls.push(String(input));
+      expect(String(input)).toContain("/admins/lookup?email=admin%40millennia21.id");
+      return jsonResponse(200, { data: admin });
+    }) as unknown as typeof fetch;
+
+    const user = await resolveCentralIdentity("admin@millennia21.id");
+    expect(user).toEqual({ ...admin, source: "admin" });
+    expect(calls).toHaveLength(1);
+  });
+
   it("returns null for a source it does not know instead of calling it a student", async () => {
-    global.fetch = (async () =>
+    mockAdminNotFoundThen(
       jsonResponse(200, {
         data: { source: "alumni", id: "x-1", email: "d@millennia21.id" },
-      })) as unknown as typeof fetch;
+      }),
+    );
 
     expect(await resolveCentralIdentity("d@millennia21.id")).toBeNull();
   });
@@ -250,29 +306,66 @@ describe("resolveCentralIdentity", () => {
     expect(calls).toEqual([expect.stringContaining("/interns/lookup?id=int-1")]);
   });
 
-  // The whole point of the combined endpoint: a student sign-in used to cost
-  // an employee-lookup 404 before falling through - this is now always
-  // exactly one HTTP round-trip to Central, employee or student alike.
-  it("resolves in a single Central call, never falling back to /employees or /students/lookup", async () => {
-    let callCount = 0;
+  it("resolves an admin by id, hitting only the admins endpoint", async () => {
+    const calls: string[] = [];
     global.fetch = (async (input: string | URL | Request) => {
-      callCount += 1;
+      calls.push(String(input));
+      return jsonResponse(200, {
+        data: {
+          id: "admin-1",
+          admin_no: "ADM-00001",
+          email: "admin@millennia21.id",
+          full_name: "Test Admin",
+          role: "SUPER_ADMIN",
+          avatar_url: null,
+          unit_id: null,
+          job_position: null,
+          job_position_id: null,
+          job_level_id: null,
+          building_id: null,
+          education_level: null,
+          is_active: true,
+          last_login: null,
+          created_at: "2026-10-09T01:10:16.951Z",
+          type: "admin",
+          is_protected: false,
+          is_identifier_change_approver: false,
+          is_employee_identifier_change_approver: false,
+          is_head_of_care: false,
+          person_id: "person-1",
+        },
+      });
+    }) as unknown as typeof fetch;
+
+    const user = await resolveCentralIdentityById("admin-1", "admin");
+    expect(user?.source).toBe("admin");
+    expect(calls).toEqual([expect.stringContaining("/admins/lookup?id=admin-1")]);
+  });
+
+  // The combined endpoint avoids an employee-then-student fallback. Admin
+  // accounts need one extra lookup so admins win when both records exist.
+  it("checks admin first, then uses the combined lookup without employee/student fallbacks", async () => {
+    const calls: string[] = [];
+    global.fetch = (async (input: string | URL | Request) => {
       const url = String(input);
-      expect(url).toContain("/persons/lookup");
+      calls.push(url);
+      if (url.includes("/admins/lookup")) {
+        expect(url).toContain("/admins/lookup?email=b%40millennia21.id");
+        return jsonResponse(404, { errors: "Not found" });
+      }
+      expect(url).toContain("/persons/lookup?email=b%40millennia21.id");
       expect(url).not.toContain("/employees/lookup");
       expect(url).not.toContain("/students/lookup");
       return jsonResponse(200, {
         data: { source: "student", id: "stu-1", email: "b@millennia21.id" },
       });
     }) as unknown as typeof fetch;
-
     await resolveCentralIdentity("b@millennia21.id");
-    expect(callCount).toBe(1);
+    expect(calls).toHaveLength(2);
   });
 
   it("returns null when Central's combined lookup has no match", async () => {
-    global.fetch = (async () =>
-      jsonResponse(404, { errors: "Not found" })) as unknown as typeof fetch;
+    mockAdminNotFoundThen(jsonResponse(404, { errors: "Not found" }));
 
     const user = await resolveCentralIdentity("nobody@millennia21.id");
     expect(user).toBeNull();

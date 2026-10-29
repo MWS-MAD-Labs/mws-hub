@@ -15,6 +15,8 @@ const LogoutRelayPage = lazy(() => import("@/pages/LogoutRelayPage"));
 const Dashboard = lazy(() => import("@/admin/pages/Dashboard"));
 const BrokenTools = lazy(() => import("@/admin/pages/BrokenTools"));
 const AuditLogsPage = lazy(() => import("@/admin/pages/AuditLogsPage"));
+const GptCodePage = lazy(() => import("@/pages/GptCodePage"));
+const GptCodeAdminPage = lazy(() => import("@/admin/pages/GptCodeAdminPage"));
 
 function PageLoader({ children }: { children: ReactNode }) {
   return (
@@ -81,6 +83,16 @@ export default function App() {
             }
           />
           <Route
+            path="/gpt-code"
+            element={
+              <PageLoader>
+                <RequireAuth>
+                  <GptCodePage />
+                </RequireAuth>
+              </PageLoader>
+            }
+          />
+          <Route
             path="/admin"
             element={
               <PageLoader>
@@ -130,6 +142,16 @@ export default function App() {
               <PageLoader>
                 <RequireAdmin>
                   <AuditLogsPage />
+                </RequireAdmin>
+              </PageLoader>
+            }
+          />
+          <Route
+            path="/admin/gpt-code"
+            element={
+              <PageLoader>
+                <RequireAdmin>
+                  <GptCodeAdminPage />
                 </RequireAdmin>
               </PageLoader>
             }

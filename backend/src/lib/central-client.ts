@@ -1,5 +1,6 @@
 import { failureForNetwork, failureForResponse } from "./central-failure";
 import type {
+  AdminLookupResponse,
   CentralApplicationEntitlement,
   EmployeeLookupResponse,
   HubSource,
@@ -19,6 +20,14 @@ export function centralAuthHeaders(): Record<string, string> {
   return {
     Authorization: `Bearer ${apiToken()}`,
     ...(organization ? { "X-Central-Organization-Id": organization } : {}),
+  };
+}
+
+function normalizeAdmin(admin: AdminLookupResponse): Extract<HubUser, { source: "admin" }> {
+  return {
+    source: "admin",
+    ...admin,
+    type: "admin",
   };
 }
 
@@ -368,7 +377,8 @@ async function listPage<T>(path: string): Promise<CentralPage<T>> {
 type PersonLookupResponse =
   | ({ source: "employee" } & EmployeeLookupResponse)
   | ({ source: "intern" } & InternLookupResponse)
-  | ({ source: "student" } & StudentLookupResponse);
+  | ({ source: "student" } & StudentLookupResponse)
+  | ({ type: "admin"; source?: "admin" } & AdminLookupResponse);
 
 function normalizeIntern(intern: InternLookupResponse): Extract<HubUser, { source: "intern" }> {
   const unitId = unitIdOf(intern);
@@ -430,8 +440,10 @@ function normalizeEmployee(
   };
 }
 
-// Resolves who just signed in with Google against Central's employee/student
-// records, in one call to /persons/lookup instead of the old
+// Resolves who just signed in with Google against Central's admin, employee,
+// intern, or student records. Admins are looked up first because a person can
+// also have an employee record and /persons/lookup prefers that record.
+// Non-admin identities then use /persons/lookup instead of the old
 // employee-then-student fallback (which cost every student sign-in a wasted
 // 404 round-trip to /employees/lookup first). Central itself decides which
 // side wins if a Person somehow has both an Employee and a Student record
@@ -449,10 +461,17 @@ function normalizeEmployee(
 export async function resolveCentralIdentity(
   email: string,
 ): Promise<HubUser | null> {
+  const admin = await lookup<AdminLookupResponse>("/admins/lookup", { email });
+  if (admin) return normalizeAdmin(admin);
+
   const person = await lookup<PersonLookupResponse>("/persons/lookup", {
     email,
   });
   if (!person) return null;
+
+  if ("type" in person && person.type === "admin") {
+    return normalizeAdmin(person);
+  }
 
   // An answer from a source this Hub does not know is refused, never read as a student.
   switch (person.source) {
@@ -491,6 +510,11 @@ export async function resolveCentralIdentityById(
   if (source === "intern") {
     const intern = await lookup<InternLookupResponse>("/interns/lookup", { id });
     return intern ? normalizeIntern(intern) : null;
+  }
+
+  if (source === "admin") {
+    const admin = await lookup<AdminLookupResponse>("/admins/lookup", { id });
+    return admin ? normalizeAdmin(admin) : null;
   }
 
   const student = await lookup<StudentLookupResponse>("/students/lookup", {

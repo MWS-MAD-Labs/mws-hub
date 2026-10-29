@@ -3,6 +3,7 @@ import { AdminController } from "../controller/admin-controller";
 import { AuditLogController } from "../controller/audit-log-controller";
 import { FeedbackController } from "../controller/feedback-controller";
 import { ApplicationController } from "../controller/application-controller";
+import { GptCodeController } from "../controller/gpt-code-controller";
 import { adminAuthMiddleware } from "../middleware/admin-auth-middleware";
 import { sessionAuthMiddleware } from "../middleware/session-auth-middleware";
 import type { SessionVariables } from "../type/hono-context";
@@ -26,3 +27,14 @@ adminRoute.get("/api/reports", FeedbackController.reports);
 adminRoute.patch("/api/reports/:id", FeedbackController.updateReport);
 adminRoute.get("/reports", FeedbackController.reports);
 adminRoute.patch("/reports/:id", FeedbackController.updateReport);
+
+// GPT Code remains an Apps Script Gmail adapter. These admin-only routes let
+// Hub inspect and test that adapter without exposing its URL or shared secret
+// to the browser. The ordinary user route comes after unit-to-card mapping is
+// stored in Hub, so a user can never choose another unit's card id themselves.
+adminRoute.get("/api/gpt-code/accounts", GptCodeController.accounts);
+adminRoute.get("/api/gpt-code/accounts/:cardId", GptCodeController.account);
+adminRoute.post("/api/gpt-code/accounts/:cardId/code", GptCodeController.code);
+adminRoute.get("/api/gpt-code/configuration", GptCodeController.configuration);
+adminRoute.put("/api/gpt-code/mappings/:cardId", GptCodeController.setMapping);
+adminRoute.delete("/api/gpt-code/mappings/:cardId", GptCodeController.deleteMapping);

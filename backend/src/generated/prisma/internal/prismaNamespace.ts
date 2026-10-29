@@ -404,7 +404,8 @@ export const ModelName = {
   AuditLog: 'AuditLog',
   UserSession: 'UserSession',
   RefreshToken: 'RefreshToken',
-  SsoExchangeSeen: 'SsoExchangeSeen'
+  SsoExchangeSeen: 'SsoExchangeSeen',
+  GptCodeUnitMapping: 'GptCodeUnitMapping'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -420,7 +421,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "application" | "ssoCode" | "appReport" | "accessRequest" | "auditLog" | "userSession" | "refreshToken" | "ssoExchangeSeen"
+    modelProps: "application" | "ssoCode" | "appReport" | "accessRequest" | "auditLog" | "userSession" | "refreshToken" | "ssoExchangeSeen" | "gptCodeUnitMapping"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1016,6 +1017,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    GptCodeUnitMapping: {
+      payload: Prisma.$GptCodeUnitMappingPayload<ExtArgs>
+      fields: Prisma.GptCodeUnitMappingFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.GptCodeUnitMappingFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GptCodeUnitMappingPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.GptCodeUnitMappingFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GptCodeUnitMappingPayload>
+        }
+        findFirst: {
+          args: Prisma.GptCodeUnitMappingFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GptCodeUnitMappingPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.GptCodeUnitMappingFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GptCodeUnitMappingPayload>
+        }
+        findMany: {
+          args: Prisma.GptCodeUnitMappingFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GptCodeUnitMappingPayload>[]
+        }
+        create: {
+          args: Prisma.GptCodeUnitMappingCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GptCodeUnitMappingPayload>
+        }
+        createMany: {
+          args: Prisma.GptCodeUnitMappingCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.GptCodeUnitMappingCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GptCodeUnitMappingPayload>[]
+        }
+        delete: {
+          args: Prisma.GptCodeUnitMappingDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GptCodeUnitMappingPayload>
+        }
+        update: {
+          args: Prisma.GptCodeUnitMappingUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GptCodeUnitMappingPayload>
+        }
+        deleteMany: {
+          args: Prisma.GptCodeUnitMappingDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.GptCodeUnitMappingUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.GptCodeUnitMappingUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GptCodeUnitMappingPayload>[]
+        }
+        upsert: {
+          args: Prisma.GptCodeUnitMappingUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GptCodeUnitMappingPayload>
+        }
+        aggregate: {
+          args: Prisma.GptCodeUnitMappingAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateGptCodeUnitMapping>
+        }
+        groupBy: {
+          args: Prisma.GptCodeUnitMappingGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.GptCodeUnitMappingGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.GptCodeUnitMappingCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.GptCodeUnitMappingCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -1171,6 +1246,19 @@ export const SsoExchangeSeenScalarFieldEnum = {
 } as const
 
 export type SsoExchangeSeenScalarFieldEnum = (typeof SsoExchangeSeenScalarFieldEnum)[keyof typeof SsoExchangeSeenScalarFieldEnum]
+
+
+export const GptCodeUnitMappingScalarFieldEnum = {
+  id: 'id',
+  unit_id: 'unit_id',
+  unit_name: 'unit_name',
+  card_id: 'card_id',
+  is_active: 'is_active',
+  created_at: 'created_at',
+  updated_at: 'updated_at'
+} as const
+
+export type GptCodeUnitMappingScalarFieldEnum = (typeof GptCodeUnitMappingScalarFieldEnum)[keyof typeof GptCodeUnitMappingScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -1497,6 +1585,7 @@ export type GlobalOmitConfig = {
   userSession?: Prisma.UserSessionOmit
   refreshToken?: Prisma.RefreshTokenOmit
   ssoExchangeSeen?: Prisma.SsoExchangeSeenOmit
+  gptCodeUnitMapping?: Prisma.GptCodeUnitMappingOmit
 }
 
 /* Types for Logging */

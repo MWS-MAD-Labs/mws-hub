@@ -152,8 +152,7 @@ function normalizedClaims(
 }
 
 function unitIdOf(user: HubUser): string | null {
-  if (user.source !== "employee") return user.unitId || user.unit_id || null;
-  return user.unitId || user.unit_id || null;
+  return user.unit_id || (user.source === "employee" ? user.unitId : null) || null;
 }
 
 // Employees have a job position and a job level, interns a job position only.
@@ -162,7 +161,10 @@ function employeeFieldId(
   snakeKey: "job_position_id" | "job_level_id",
   camelKey: "jobPositionId" | "jobLevelId",
 ): string | null {
-  if (user.source === "employee") return user[camelKey] || user[snakeKey] || null;
+  if (user.source === "employee") {
+    return user[camelKey] || user[snakeKey] || null;
+  }
+  if (user.source === "admin") return user[snakeKey] || null;
   if (user.source === "intern" && snakeKey === "job_position_id") return user.jobPositionId || user.job_position_id || null;
   return null;
 }
@@ -239,7 +241,7 @@ export function userMatchesAccessRule(rule: string, user: HubUser): boolean {
   ]);
 
   [
-    namedValue(user.unit),
+    namedValue(user.source === "admin" ? user.unit_id : user.unit),
     namedValue(user.job_position),
     user.source === "employee" ? namedValue(user.job_level) : null,
     user.source === "employee" ? user.employment_type : null,

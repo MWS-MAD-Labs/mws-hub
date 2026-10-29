@@ -5,6 +5,7 @@ import { authRoute } from "./route/auth-route";
 import { appsRoute } from "./route/apps-route";
 import { adminRoute } from "./route/admin-route";
 import { ssoRoute } from "./route/sso-route";
+import { gptCodeRoute } from "./route/gpt-code-route";
 import { ResponseError } from "./error/response-error";
 import { logger } from "./lib/logger";
 import { frontendOrigin } from "./lib/frontend-origin";
@@ -85,6 +86,7 @@ app.route("/auth", authRoute);
 app.route("/apps", appsRoute);
 app.route("/admin", adminRoute);
 app.route("/sso", ssoRoute);
+app.route("/api/gpt-code", gptCodeRoute);
 
 app.onError((err, c) => {
   if (err instanceof ResponseError) {
