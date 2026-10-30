@@ -8,6 +8,7 @@ const envNames = [
   "GPT_CODE_APPS_SCRIPT_SECRET",
   "GPT_CODE_APPS_SCRIPT_TIMEOUT_MS",
   "URL_DEPLOYMENT",
+  "HUB_HMAC_SECRET",
   "HUB_API_SECRET",
 ] as const;
 
@@ -62,6 +63,7 @@ beforeEach(() => {
   process.env.GPT_CODE_APPS_SCRIPT_URL = "https://script.google.com/macros/s/test/exec";
   process.env.GPT_CODE_APPS_SCRIPT_SECRET = "test-gpt-code-secret";
   delete process.env.URL_DEPLOYMENT;
+  delete process.env.HUB_HMAC_SECRET;
   delete process.env.HUB_API_SECRET;
 });
 
@@ -155,6 +157,7 @@ describe("GptCodeService", () => {
     delete process.env.GPT_CODE_APPS_SCRIPT_URL;
     delete process.env.GPT_CODE_APPS_SCRIPT_SECRET;
     delete process.env.URL_DEPLOYMENT;
+    delete process.env.HUB_HMAC_SECRET;
     delete process.env.HUB_API_SECRET;
 
     await expect(GptCodeService.listAccounts()).rejects.toMatchObject({
@@ -168,6 +171,18 @@ describe("GptCodeService", () => {
     delete process.env.GPT_CODE_APPS_SCRIPT_SECRET;
     process.env.URL_DEPLOYMENT = "https://script.google.com/macros/s/test/exec";
     process.env.HUB_API_SECRET = "test-gpt-code-secret";
+
+    spyOn(globalThis, "fetch").mockImplementation((async (input, init) => {
+      assertSignedRequest(input, init, "getAccounts", "");
+      return jsonResponse({ ok: true, data: [] });
+    }) as typeof fetch);
+
+    await expect(GptCodeService.listAccounts()).resolves.toEqual([]);
+  });
+
+  it("supports HUB_HMAC_SECRET, the name the Apps Script property uses", async () => {
+    delete process.env.GPT_CODE_APPS_SCRIPT_SECRET;
+    process.env.HUB_HMAC_SECRET = "test-gpt-code-secret";
 
     spyOn(globalThis, "fetch").mockImplementation((async (input, init) => {
       assertSignedRequest(input, init, "getAccounts", "");

@@ -4,6 +4,8 @@ import { resolveCentralIdentityById } from "../lib/central-client";
 import { logger } from "../lib/logger";
 import { recordAuditLog } from "../service/audit-log-service";
 import { GptCodeAccessService } from "../service/gpt-code-access-service";
+import { GptCodeGmailAccessService } from "../service/gpt-code-gmail-access-service";
+import { gptCodeProvider } from "../service/gpt-code-gmail-service";
 import type { SessionVariables } from "../type/hono-context";
 
 const requestInFlight = new Set<string>();
@@ -33,7 +35,10 @@ export class GptCodeUserController {
   static async account(c: Context<{ Variables: SessionVariables }>) {
     noStore(c);
     const user = await freshUser(c);
-    return c.json({ data: await GptCodeAccessService.assignmentFor(user) });
+    const assignment = gptCodeProvider() === "gmail"
+      ? GptCodeGmailAccessService.assignmentFor(user)
+      : await GptCodeAccessService.assignmentFor(user);
+    return c.json({ data: assignment });
   }
 
   static async code(c: Context<{ Variables: SessionVariables }>) {
@@ -52,7 +57,10 @@ export class GptCodeUserController {
     lastRequestAt.set(limiterKey, now);
 
     try {
-      const { assignment, result } = await GptCodeAccessService.codeFor(user);
+      const provider = gptCodeProvider();
+      const { assignment, result } = provider === "gmail"
+        ? await GptCodeGmailAccessService.codeFor(user)
+        : await GptCodeAccessService.codeFor(user);
       await recordAuditLog({
         actor: user,
         action: "gpt_code.fetch",
@@ -64,6 +72,7 @@ export class GptCodeUserController {
           unit_id: assignment.unitId,
           unit_name: assignment.unitName,
           message_timestamp: result.timestamp,
+          provider,
         },
       });
 

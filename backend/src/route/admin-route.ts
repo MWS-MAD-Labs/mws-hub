@@ -28,7 +28,7 @@ adminRoute.patch("/api/reports/:id", FeedbackController.updateReport);
 adminRoute.get("/reports", FeedbackController.reports);
 adminRoute.patch("/reports/:id", FeedbackController.updateReport);
 
-// GPT Code remains an Apps Script Gmail adapter. These admin-only routes let
+// The A1-A5 GPT Code flow remains an Apps Script Gmail adapter. These admin-only routes let
 // Hub inspect and test that adapter without exposing its URL or shared secret
 // to the browser. The ordinary user route comes after unit-to-card mapping is
 // stored in Hub, so a user can never choose another unit's card id themselves.

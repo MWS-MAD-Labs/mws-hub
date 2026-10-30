@@ -72,6 +72,7 @@ function integrationUrl(): string {
 function integrationSecret(): string {
   const secret = (
     process.env.GPT_CODE_APPS_SCRIPT_SECRET ||
+    process.env.HUB_HMAC_SECRET ||
     process.env.HUB_API_SECRET ||
     ""
   ).trim();
