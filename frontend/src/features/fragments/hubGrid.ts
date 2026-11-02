@@ -5,4 +5,4 @@ export const MOBILE_LAUNCHER_PAGE_CLASS =
   "grid w-full grid-cols-3 justify-items-start gap-x-2 gap-y-5 px-1 pb-4 pt-3";
 
 export const HUB_GRID_CLASS =
-  "hidden sm:grid sm:grid-cols-2 sm:gap-3 xl:grid-cols-3 2xl:grid-cols-4";
+  "hidden sm:grid sm:grid-cols-[repeat(auto-fill,minmax(280px,1fr))] sm:gap-3";
