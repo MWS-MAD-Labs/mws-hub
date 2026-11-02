@@ -72,20 +72,25 @@ export type AdminGptCodeAccount = {
   email: string;
 };
 
+export type AdminGptCodeTargetKind = "unit" | "job_level" | "job_position" | "building";
+
+export type AdminGptCodeTarget = { type: AdminGptCodeTargetKind; id: string; name: string };
+
+// One card's rules: every unit, job level, job position and building it is
+// offered to, and one active switch for the card.
 export type AdminGptCodeMapping = {
-  id: string;
-  unitId: string;
-  unitName: string;
   cardId: string;
   isActive: boolean;
-  createdAt: string;
+  targets: AdminGptCodeTarget[];
   updatedAt: string;
 };
+
+export type AdminGptCodeTargetOption = { id: string; label: string };
 
 export type AdminGptCodeConfiguration = {
   accounts: AdminGptCodeAccount[];
   mappings: AdminGptCodeMapping[];
-  units: { unitId: string; label: string; hint: string }[];
+  targets: Record<AdminGptCodeTargetKind, AdminGptCodeTargetOption[]>;
   centralAvailable: boolean;
 };
 
@@ -164,12 +169,17 @@ export const adminApi = {
     return response!.data;
   },
 
-  async saveGptCodeMapping(cardId: string, unitId: string, isActive: boolean) {
+  // Replaces the card's whole rule set.
+  async saveGptCodeMapping(
+    cardId: string,
+    targets: { type: AdminGptCodeTargetKind; id: string }[],
+    isActive: boolean,
+  ) {
     const response = await apiRequest<{ data: AdminGptCodeMapping }>(
       `/admin/api/gpt-code/mappings/${encodeURIComponent(cardId)}`,
       {
         method: "PUT",
-        body: { unitId, isActive },
+        body: { targets, isActive },
       },
     );
     return response!.data;

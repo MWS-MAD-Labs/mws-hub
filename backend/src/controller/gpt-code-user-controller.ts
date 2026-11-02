@@ -68,17 +68,18 @@ export class GptCodeUserController {
     try {
       const provider = gptCodeProvider();
       const accountEmail = await requestedAccountEmail(c);
-      const { assignment, result } = provider === "gmail"
+      const fetched = provider === "gmail"
         ? await GptCodeGmailAccessService.codeFor(user)
         : await GptCodeAccessService.codeFor(user, accountEmail);
-      const viaAdmin = "accounts" in assignment && Boolean(assignment.accounts);
+      const { assignment, result } = fetched;
+      const viaAdmin = "viaAdmin" in fetched && fetched.viaAdmin === true;
       await recordAuditLog({
         actor: user,
         action: "gpt_code.fetch",
         entity: { type: "gpt_code_card", id: result.cardId },
         summary: viaAdmin
           ? `${user.email} fetched the GPT login code for ${result.cardId} as a Hub admin`
-          : `${user.email} fetched their unit's GPT login code`,
+          : `${user.email} fetched the GPT login code for ${result.cardId}`,
         // OTP, subject and account email are intentionally never persisted.
         metadata: {
           card_id: result.cardId,

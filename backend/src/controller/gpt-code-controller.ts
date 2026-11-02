@@ -53,22 +53,28 @@ export class GptCodeController {
 
   static async setMapping(c: Context<{ Variables: SessionVariables }>) {
     noStore(c);
-    const body = await c.req.json<{ unitId?: unknown; isActive?: unknown }>();
+    const body: unknown = await c.req.json().catch(() => null);
+    const raw = body && typeof body === "object" ? (body as { targets?: unknown; isActive?: unknown }) : {};
     const mapping = await GptCodeAccessService.setMapping({
       cardId: cardId(c),
-      unitId: typeof body.unitId === "string" ? body.unitId : "",
-      isActive: body.isActive !== false,
+      targets: Array.isArray(raw.targets)
+        ? raw.targets.map((target) =>
+            target && typeof target === "object"
+              ? { type: (target as { type?: unknown }).type, id: (target as { id?: unknown }).id }
+              : { type: undefined, id: undefined },
+          )
+        : [],
+      isActive: raw.isActive !== false,
     });
 
     await recordAuditLog({
       actor: c.var.user,
       action: "gpt_code.mapping_update",
       entity: { type: "gpt_code_card", id: mapping.cardId },
-      summary: `Assigned ${mapping.cardId} to ${mapping.unitName}`,
+      summary: `Assigned ${mapping.cardId} to ${mapping.targets.map((target) => target.name).join(", ")}`,
       metadata: {
         card_id: mapping.cardId,
-        unit_id: mapping.unitId,
-        unit_name: mapping.unitName,
+        targets: mapping.targets,
         is_active: mapping.isActive,
       },
     });
@@ -84,11 +90,10 @@ export class GptCodeController {
       actor: c.var.user,
       action: "gpt_code.mapping_delete",
       entity: { type: "gpt_code_card", id: mapping.cardId },
-      summary: `Removed ${mapping.cardId} from ${mapping.unitName}`,
+      summary: `Removed every target from ${mapping.cardId}`,
       metadata: {
         card_id: mapping.cardId,
-        unit_id: mapping.unitId,
-        unit_name: mapping.unitName,
+        targets: mapping.targets,
       },
     });
 

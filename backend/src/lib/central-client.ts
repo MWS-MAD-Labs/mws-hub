@@ -374,6 +374,7 @@ type PersonLookupResponse =
 function normalizeIntern(intern: InternLookupResponse): Extract<HubUser, { source: "intern" }> {
   const unitId = unitIdOf(intern);
   const jobPositionId = namedRefIdOf(intern, "job_position_id", "jobPositionId", "job_position");
+  const buildingId = namedRefIdOf(intern, "building_id", "buildingId", "building");
   return {
     source: "intern",
     ...intern,
@@ -383,6 +384,8 @@ function normalizeIntern(intern: InternLookupResponse): Extract<HubUser, { sourc
     job_position: namedRefNameOf(intern.job_position),
     job_position_id: jobPositionId,
     jobPositionId: jobPositionId,
+    building_id: buildingId,
+    buildingId: buildingId,
   };
 }
 
@@ -415,6 +418,12 @@ function normalizeEmployee(
     "jobLevelId",
     "job_level",
   );
+  const buildingId = namedRefIdOf(
+    employee,
+    "building_id",
+    "buildingId",
+    "building",
+  );
 
   return {
     source: "employee",
@@ -428,6 +437,9 @@ function normalizeEmployee(
     job_level: namedRefNameOf(employee.job_level),
     job_level_id: jobLevelId,
     jobLevelId: jobLevelId,
+    building: namedRefNameOf(employee.building ?? null),
+    building_id: buildingId,
+    buildingId: buildingId,
   };
 }
 

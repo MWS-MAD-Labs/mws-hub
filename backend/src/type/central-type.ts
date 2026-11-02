@@ -46,6 +46,9 @@ export type EmployeeLookupResponse = {
   job_level: string | CentralNamedRef | null;
   job_level_id?: string | null;
   jobLevelId?: string | null;
+  building?: string | CentralNamedRef | null;
+  building_id?: string | null;
+  buildingId?: string | null;
   // Central's own job_level.is_teaching_role flag - the same signal
   // mws-mtss-system/mws-daily-checkin gate teacher-vs-staff on (see their
   // jobLevelRoleMapping.js). Gating MTSS access on this instead of a
@@ -94,6 +97,8 @@ export type InternLookupResponse = {
   job_position_id?: string | null;
   jobPositionId?: string | null;
   building?: string | null;
+  building_id?: string | null;
+  buildingId?: string | null;
   join_date?: string | null;
   end_date?: string | null;
   status: string;

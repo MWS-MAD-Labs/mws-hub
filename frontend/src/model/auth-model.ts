@@ -17,6 +17,9 @@ export type EmployeeIdentity = {
   job_level: string | null;
   job_level_id?: string | null;
   jobLevelId?: string | null;
+  building?: string | null;
+  building_id?: string | null;
+  buildingId?: string | null;
   status: string;
   employment_type: string | null;
   isAdmin?: boolean;
@@ -51,6 +54,9 @@ export type InternIdentity = {
   job_position: string | null;
   job_position_id?: string | null;
   jobPositionId?: string | null;
+  building?: string | null;
+  building_id?: string | null;
+  buildingId?: string | null;
   status: string;
   isAdmin?: boolean;
 };

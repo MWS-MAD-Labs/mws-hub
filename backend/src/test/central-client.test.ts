@@ -216,6 +216,45 @@ describe("resolveCentralIdentity", () => {
     expect(user.unitId).toBeNull();
   });
 
+  it("reads an employee's job level, job position and building ids like the unit id", async () => {
+    mockAdminNotFoundThen(
+      jsonResponse(200, {
+        data: {
+          source: "employee",
+          id: "emp-1",
+          email: "a@millennia21.id",
+          unit_id: "unit-1",
+          job_position: "Developer",
+          job_position_id: "pos-1",
+          job_level: "Staff",
+          job_level_id: "lvl-1",
+          building: "Main Building",
+          building_id: "bld-1",
+        },
+      }),
+    );
+
+    const user = await resolveCentralIdentity("a@millennia21.id");
+    expect(user).toMatchObject({
+      job_position_id: "pos-1",
+      job_level_id: "lvl-1",
+      building: "Main Building",
+      building_id: "bld-1",
+      buildingId: "bld-1",
+    });
+  });
+
+  it("reads an intern's building id, also from a nested building object", async () => {
+    mockAdminNotFoundThen(
+      jsonResponse(200, {
+        data: { source: "intern", id: "int-1", person_id: "per-1", email: "c@millennia21.id", building: { id: "bld-2", name: "North" } },
+      }),
+    );
+
+    const user = await resolveCentralIdentity("c@millennia21.id");
+    expect(user).toMatchObject({ building_id: "bld-2", buildingId: "bld-2" });
+  });
+
   it("returns a student identity when Central's combined lookup says source: student", async () => {
     const calls: string[] = [];
     global.fetch = (async (input: string | URL | Request) => {
