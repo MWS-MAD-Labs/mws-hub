@@ -1,5 +1,16 @@
 import { afterEach, describe, expect, it, mock } from "bun:test";
 import type { HubUser } from "../type/central-type";
+import { HUB_CATALOG } from "./fixtures/hub-catalog";
+
+const gptCodeFixture = HUB_CATALOG.find((entry) => entry.id === "gpt-code");
+if (!gptCodeFixture) throw new Error("GPT Code fixture is missing");
+
+const centralGptCodeEntry = {
+  ...gptCodeFixture,
+  allowedSources: [],
+  centralEntitlementAppId: gptCodeFixture.id,
+  source: "central" as const,
+};
 
 mock.module("../lib/prisma", () => ({
   prisma: {
@@ -7,17 +18,15 @@ mock.module("../lib/prisma", () => ({
   },
 }));
 
-mock.module("../service/application-service", () => ({
-  ApplicationService: { listActive: async () => [] },
-}));
-
 mock.module("../service/central-catalog-service", () => ({
-  centralCatalogState: async () => ({ read: false, entries: [], known: null }),
-  isWithdrawn: () => false,
+  centralCatalogState: async () => ({
+    read: true,
+    entries: [centralGptCodeEntry],
+  }),
 }));
 
 mock.module("../lib/hub-access-gate", () => ({
-  centralAccessForApp: async () => "unknown",
+  centralAccessForApp: async () => "granted",
 }));
 
 const { AppsService } = await import("../service/apps-service");
@@ -44,13 +53,11 @@ function employee(): HubUser {
 
 afterEach(() => mock.restore());
 
-describe("native GPT Code catalog card", () => {
-  it("stays visible and openable for staff when Central publishes no catalog", async () => {
+describe("Central GPT Code catalog card", () => {
+  it("is visible and openable when Central publishes it and grants access", async () => {
     const catalog = await AppsService.listFor(employee());
     expect(catalog).toContainEqual(expect.objectContaining({
       id: "gpt-code",
-      name: "GPT Code",
-      href: "/gpt-code",
       access: "granted",
       discoverable: true,
     }));
@@ -59,7 +66,7 @@ describe("native GPT Code catalog card", () => {
   it("can be resolved by the normal Hub launch route", async () => {
     await expect(AppsService.findByLaunchId("gpt-code")).resolves.toMatchObject({
       id: "gpt-code",
-      source: "hub",
+      source: "central",
     });
   });
 });

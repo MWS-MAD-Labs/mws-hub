@@ -18,11 +18,6 @@ export { Prisma }
 export * as $Enums from './enums.ts'
 export * from './enums.ts';
 /**
- * Model Application
- * 
- */
-export type Application = Prisma.ApplicationModel
-/**
  * Model SsoCode
  * 
  */
@@ -59,6 +54,6 @@ export type RefreshToken = Prisma.RefreshTokenModel
 export type SsoExchangeSeen = Prisma.SsoExchangeSeenModel
 /**
  * Model GptCodeUnitMapping
- *
+ * 
  */
 export type GptCodeUnitMapping = Prisma.GptCodeUnitMappingModel

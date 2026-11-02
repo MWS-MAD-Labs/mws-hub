@@ -222,7 +222,6 @@ export type AccessRequestWhereInput = {
   decision_note?: Prisma.StringNullableFilter<"AccessRequest"> | string | null
   created_at?: Prisma.DateTimeFilter<"AccessRequest"> | Date | string
   updated_at?: Prisma.DateTimeFilter<"AccessRequest"> | Date | string
-  application?: Prisma.XOR<Prisma.ApplicationScalarRelationFilter, Prisma.ApplicationWhereInput>
 }
 
 export type AccessRequestOrderByWithRelationInput = {
@@ -236,7 +235,6 @@ export type AccessRequestOrderByWithRelationInput = {
   decision_note?: Prisma.SortOrderInput | Prisma.SortOrder
   created_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
-  application?: Prisma.ApplicationOrderByWithRelationInput
 }
 
 export type AccessRequestWhereUniqueInput = Prisma.AtLeast<{
@@ -254,7 +252,6 @@ export type AccessRequestWhereUniqueInput = Prisma.AtLeast<{
   decision_note?: Prisma.StringNullableFilter<"AccessRequest"> | string | null
   created_at?: Prisma.DateTimeFilter<"AccessRequest"> | Date | string
   updated_at?: Prisma.DateTimeFilter<"AccessRequest"> | Date | string
-  application?: Prisma.XOR<Prisma.ApplicationScalarRelationFilter, Prisma.ApplicationWhereInput>
 }, "id" | "application_id_requester_email_status">
 
 export type AccessRequestOrderByWithAggregationInput = {
@@ -291,6 +288,7 @@ export type AccessRequestScalarWhereWithAggregatesInput = {
 
 export type AccessRequestCreateInput = {
   id?: string
+  application_id: string
   requester_email: string
   reason?: string | null
   status?: $Enums.AccessRequestStatus
@@ -299,7 +297,6 @@ export type AccessRequestCreateInput = {
   decision_note?: string | null
   created_at?: Date | string
   updated_at?: Date | string
-  application: Prisma.ApplicationCreateNestedOneWithoutAccess_requestsInput
 }
 
 export type AccessRequestUncheckedCreateInput = {
@@ -317,6 +314,7 @@ export type AccessRequestUncheckedCreateInput = {
 
 export type AccessRequestUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  application_id?: Prisma.StringFieldUpdateOperationsInput | string
   requester_email?: Prisma.StringFieldUpdateOperationsInput | string
   reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAccessRequestStatusFieldUpdateOperationsInput | $Enums.AccessRequestStatus
@@ -325,7 +323,6 @@ export type AccessRequestUpdateInput = {
   decision_note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  application?: Prisma.ApplicationUpdateOneRequiredWithoutAccess_requestsNestedInput
 }
 
 export type AccessRequestUncheckedUpdateInput = {
@@ -356,6 +353,7 @@ export type AccessRequestCreateManyInput = {
 
 export type AccessRequestUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  application_id?: Prisma.StringFieldUpdateOperationsInput | string
   requester_email?: Prisma.StringFieldUpdateOperationsInput | string
   reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumAccessRequestStatusFieldUpdateOperationsInput | $Enums.AccessRequestStatus
@@ -377,16 +375,6 @@ export type AccessRequestUncheckedUpdateManyInput = {
   decision_note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-}
-
-export type AccessRequestListRelationFilter = {
-  every?: Prisma.AccessRequestWhereInput
-  some?: Prisma.AccessRequestWhereInput
-  none?: Prisma.AccessRequestWhereInput
-}
-
-export type AccessRequestOrderByRelationAggregateInput = {
-  _count?: Prisma.SortOrder
 }
 
 export type AccessRequestApplication_idRequester_emailStatusCompoundUniqueInput = {
@@ -434,164 +422,8 @@ export type AccessRequestMinOrderByAggregateInput = {
   updated_at?: Prisma.SortOrder
 }
 
-export type AccessRequestCreateNestedManyWithoutApplicationInput = {
-  create?: Prisma.XOR<Prisma.AccessRequestCreateWithoutApplicationInput, Prisma.AccessRequestUncheckedCreateWithoutApplicationInput> | Prisma.AccessRequestCreateWithoutApplicationInput[] | Prisma.AccessRequestUncheckedCreateWithoutApplicationInput[]
-  connectOrCreate?: Prisma.AccessRequestCreateOrConnectWithoutApplicationInput | Prisma.AccessRequestCreateOrConnectWithoutApplicationInput[]
-  createMany?: Prisma.AccessRequestCreateManyApplicationInputEnvelope
-  connect?: Prisma.AccessRequestWhereUniqueInput | Prisma.AccessRequestWhereUniqueInput[]
-}
-
-export type AccessRequestUncheckedCreateNestedManyWithoutApplicationInput = {
-  create?: Prisma.XOR<Prisma.AccessRequestCreateWithoutApplicationInput, Prisma.AccessRequestUncheckedCreateWithoutApplicationInput> | Prisma.AccessRequestCreateWithoutApplicationInput[] | Prisma.AccessRequestUncheckedCreateWithoutApplicationInput[]
-  connectOrCreate?: Prisma.AccessRequestCreateOrConnectWithoutApplicationInput | Prisma.AccessRequestCreateOrConnectWithoutApplicationInput[]
-  createMany?: Prisma.AccessRequestCreateManyApplicationInputEnvelope
-  connect?: Prisma.AccessRequestWhereUniqueInput | Prisma.AccessRequestWhereUniqueInput[]
-}
-
-export type AccessRequestUpdateManyWithoutApplicationNestedInput = {
-  create?: Prisma.XOR<Prisma.AccessRequestCreateWithoutApplicationInput, Prisma.AccessRequestUncheckedCreateWithoutApplicationInput> | Prisma.AccessRequestCreateWithoutApplicationInput[] | Prisma.AccessRequestUncheckedCreateWithoutApplicationInput[]
-  connectOrCreate?: Prisma.AccessRequestCreateOrConnectWithoutApplicationInput | Prisma.AccessRequestCreateOrConnectWithoutApplicationInput[]
-  upsert?: Prisma.AccessRequestUpsertWithWhereUniqueWithoutApplicationInput | Prisma.AccessRequestUpsertWithWhereUniqueWithoutApplicationInput[]
-  createMany?: Prisma.AccessRequestCreateManyApplicationInputEnvelope
-  set?: Prisma.AccessRequestWhereUniqueInput | Prisma.AccessRequestWhereUniqueInput[]
-  disconnect?: Prisma.AccessRequestWhereUniqueInput | Prisma.AccessRequestWhereUniqueInput[]
-  delete?: Prisma.AccessRequestWhereUniqueInput | Prisma.AccessRequestWhereUniqueInput[]
-  connect?: Prisma.AccessRequestWhereUniqueInput | Prisma.AccessRequestWhereUniqueInput[]
-  update?: Prisma.AccessRequestUpdateWithWhereUniqueWithoutApplicationInput | Prisma.AccessRequestUpdateWithWhereUniqueWithoutApplicationInput[]
-  updateMany?: Prisma.AccessRequestUpdateManyWithWhereWithoutApplicationInput | Prisma.AccessRequestUpdateManyWithWhereWithoutApplicationInput[]
-  deleteMany?: Prisma.AccessRequestScalarWhereInput | Prisma.AccessRequestScalarWhereInput[]
-}
-
-export type AccessRequestUncheckedUpdateManyWithoutApplicationNestedInput = {
-  create?: Prisma.XOR<Prisma.AccessRequestCreateWithoutApplicationInput, Prisma.AccessRequestUncheckedCreateWithoutApplicationInput> | Prisma.AccessRequestCreateWithoutApplicationInput[] | Prisma.AccessRequestUncheckedCreateWithoutApplicationInput[]
-  connectOrCreate?: Prisma.AccessRequestCreateOrConnectWithoutApplicationInput | Prisma.AccessRequestCreateOrConnectWithoutApplicationInput[]
-  upsert?: Prisma.AccessRequestUpsertWithWhereUniqueWithoutApplicationInput | Prisma.AccessRequestUpsertWithWhereUniqueWithoutApplicationInput[]
-  createMany?: Prisma.AccessRequestCreateManyApplicationInputEnvelope
-  set?: Prisma.AccessRequestWhereUniqueInput | Prisma.AccessRequestWhereUniqueInput[]
-  disconnect?: Prisma.AccessRequestWhereUniqueInput | Prisma.AccessRequestWhereUniqueInput[]
-  delete?: Prisma.AccessRequestWhereUniqueInput | Prisma.AccessRequestWhereUniqueInput[]
-  connect?: Prisma.AccessRequestWhereUniqueInput | Prisma.AccessRequestWhereUniqueInput[]
-  update?: Prisma.AccessRequestUpdateWithWhereUniqueWithoutApplicationInput | Prisma.AccessRequestUpdateWithWhereUniqueWithoutApplicationInput[]
-  updateMany?: Prisma.AccessRequestUpdateManyWithWhereWithoutApplicationInput | Prisma.AccessRequestUpdateManyWithWhereWithoutApplicationInput[]
-  deleteMany?: Prisma.AccessRequestScalarWhereInput | Prisma.AccessRequestScalarWhereInput[]
-}
-
 export type EnumAccessRequestStatusFieldUpdateOperationsInput = {
   set?: $Enums.AccessRequestStatus
-}
-
-export type AccessRequestCreateWithoutApplicationInput = {
-  id?: string
-  requester_email: string
-  reason?: string | null
-  status?: $Enums.AccessRequestStatus
-  decided_at?: Date | string | null
-  decided_by?: string | null
-  decision_note?: string | null
-  created_at?: Date | string
-  updated_at?: Date | string
-}
-
-export type AccessRequestUncheckedCreateWithoutApplicationInput = {
-  id?: string
-  requester_email: string
-  reason?: string | null
-  status?: $Enums.AccessRequestStatus
-  decided_at?: Date | string | null
-  decided_by?: string | null
-  decision_note?: string | null
-  created_at?: Date | string
-  updated_at?: Date | string
-}
-
-export type AccessRequestCreateOrConnectWithoutApplicationInput = {
-  where: Prisma.AccessRequestWhereUniqueInput
-  create: Prisma.XOR<Prisma.AccessRequestCreateWithoutApplicationInput, Prisma.AccessRequestUncheckedCreateWithoutApplicationInput>
-}
-
-export type AccessRequestCreateManyApplicationInputEnvelope = {
-  data: Prisma.AccessRequestCreateManyApplicationInput | Prisma.AccessRequestCreateManyApplicationInput[]
-  skipDuplicates?: boolean
-}
-
-export type AccessRequestUpsertWithWhereUniqueWithoutApplicationInput = {
-  where: Prisma.AccessRequestWhereUniqueInput
-  update: Prisma.XOR<Prisma.AccessRequestUpdateWithoutApplicationInput, Prisma.AccessRequestUncheckedUpdateWithoutApplicationInput>
-  create: Prisma.XOR<Prisma.AccessRequestCreateWithoutApplicationInput, Prisma.AccessRequestUncheckedCreateWithoutApplicationInput>
-}
-
-export type AccessRequestUpdateWithWhereUniqueWithoutApplicationInput = {
-  where: Prisma.AccessRequestWhereUniqueInput
-  data: Prisma.XOR<Prisma.AccessRequestUpdateWithoutApplicationInput, Prisma.AccessRequestUncheckedUpdateWithoutApplicationInput>
-}
-
-export type AccessRequestUpdateManyWithWhereWithoutApplicationInput = {
-  where: Prisma.AccessRequestScalarWhereInput
-  data: Prisma.XOR<Prisma.AccessRequestUpdateManyMutationInput, Prisma.AccessRequestUncheckedUpdateManyWithoutApplicationInput>
-}
-
-export type AccessRequestScalarWhereInput = {
-  AND?: Prisma.AccessRequestScalarWhereInput | Prisma.AccessRequestScalarWhereInput[]
-  OR?: Prisma.AccessRequestScalarWhereInput[]
-  NOT?: Prisma.AccessRequestScalarWhereInput | Prisma.AccessRequestScalarWhereInput[]
-  id?: Prisma.StringFilter<"AccessRequest"> | string
-  application_id?: Prisma.StringFilter<"AccessRequest"> | string
-  requester_email?: Prisma.StringFilter<"AccessRequest"> | string
-  reason?: Prisma.StringNullableFilter<"AccessRequest"> | string | null
-  status?: Prisma.EnumAccessRequestStatusFilter<"AccessRequest"> | $Enums.AccessRequestStatus
-  decided_at?: Prisma.DateTimeNullableFilter<"AccessRequest"> | Date | string | null
-  decided_by?: Prisma.StringNullableFilter<"AccessRequest"> | string | null
-  decision_note?: Prisma.StringNullableFilter<"AccessRequest"> | string | null
-  created_at?: Prisma.DateTimeFilter<"AccessRequest"> | Date | string
-  updated_at?: Prisma.DateTimeFilter<"AccessRequest"> | Date | string
-}
-
-export type AccessRequestCreateManyApplicationInput = {
-  id?: string
-  requester_email: string
-  reason?: string | null
-  status?: $Enums.AccessRequestStatus
-  decided_at?: Date | string | null
-  decided_by?: string | null
-  decision_note?: string | null
-  created_at?: Date | string
-  updated_at?: Date | string
-}
-
-export type AccessRequestUpdateWithoutApplicationInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  requester_email?: Prisma.StringFieldUpdateOperationsInput | string
-  reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  status?: Prisma.EnumAccessRequestStatusFieldUpdateOperationsInput | $Enums.AccessRequestStatus
-  decided_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  decided_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  decision_note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-}
-
-export type AccessRequestUncheckedUpdateWithoutApplicationInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  requester_email?: Prisma.StringFieldUpdateOperationsInput | string
-  reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  status?: Prisma.EnumAccessRequestStatusFieldUpdateOperationsInput | $Enums.AccessRequestStatus
-  decided_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  decided_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  decision_note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-}
-
-export type AccessRequestUncheckedUpdateManyWithoutApplicationInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  requester_email?: Prisma.StringFieldUpdateOperationsInput | string
-  reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  status?: Prisma.EnumAccessRequestStatusFieldUpdateOperationsInput | $Enums.AccessRequestStatus
-  decided_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  decided_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  decision_note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 
@@ -607,7 +439,6 @@ export type AccessRequestSelect<ExtArgs extends runtime.Types.Extensions.Interna
   decision_note?: boolean
   created_at?: boolean
   updated_at?: boolean
-  application?: boolean | Prisma.ApplicationDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["accessRequest"]>
 
 export type AccessRequestSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -621,7 +452,6 @@ export type AccessRequestSelectCreateManyAndReturn<ExtArgs extends runtime.Types
   decision_note?: boolean
   created_at?: boolean
   updated_at?: boolean
-  application?: boolean | Prisma.ApplicationDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["accessRequest"]>
 
 export type AccessRequestSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -635,7 +465,6 @@ export type AccessRequestSelectUpdateManyAndReturn<ExtArgs extends runtime.Types
   decision_note?: boolean
   created_at?: boolean
   updated_at?: boolean
-  application?: boolean | Prisma.ApplicationDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["accessRequest"]>
 
 export type AccessRequestSelectScalar = {
@@ -652,21 +481,10 @@ export type AccessRequestSelectScalar = {
 }
 
 export type AccessRequestOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "application_id" | "requester_email" | "reason" | "status" | "decided_at" | "decided_by" | "decision_note" | "created_at" | "updated_at", ExtArgs["result"]["accessRequest"]>
-export type AccessRequestInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  application?: boolean | Prisma.ApplicationDefaultArgs<ExtArgs>
-}
-export type AccessRequestIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  application?: boolean | Prisma.ApplicationDefaultArgs<ExtArgs>
-}
-export type AccessRequestIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  application?: boolean | Prisma.ApplicationDefaultArgs<ExtArgs>
-}
 
 export type $AccessRequestPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "AccessRequest"
-  objects: {
-    application: Prisma.$ApplicationPayload<ExtArgs>
-  }
+  objects: {}
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     application_id: string
@@ -1072,7 +890,6 @@ readonly fields: AccessRequestFieldRefs;
  */
 export interface Prisma__AccessRequestClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
-  application<T extends Prisma.ApplicationDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ApplicationDefaultArgs<ExtArgs>>): Prisma.Prisma__ApplicationClient<runtime.Types.Result.GetResult<Prisma.$ApplicationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1129,10 +946,6 @@ export type AccessRequestFindUniqueArgs<ExtArgs extends runtime.Types.Extensions
    */
   omit?: Prisma.AccessRequestOmit<ExtArgs> | null
   /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.AccessRequestInclude<ExtArgs> | null
-  /**
    * Filter, which AccessRequest to fetch.
    */
   where: Prisma.AccessRequestWhereUniqueInput
@@ -1151,10 +964,6 @@ export type AccessRequestFindUniqueOrThrowArgs<ExtArgs extends runtime.Types.Ext
    */
   omit?: Prisma.AccessRequestOmit<ExtArgs> | null
   /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.AccessRequestInclude<ExtArgs> | null
-  /**
    * Filter, which AccessRequest to fetch.
    */
   where: Prisma.AccessRequestWhereUniqueInput
@@ -1172,10 +981,6 @@ export type AccessRequestFindFirstArgs<ExtArgs extends runtime.Types.Extensions.
    * Omit specific fields from the AccessRequest
    */
   omit?: Prisma.AccessRequestOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.AccessRequestInclude<ExtArgs> | null
   /**
    * Filter, which AccessRequest to fetch.
    */
@@ -1225,10 +1030,6 @@ export type AccessRequestFindFirstOrThrowArgs<ExtArgs extends runtime.Types.Exte
    */
   omit?: Prisma.AccessRequestOmit<ExtArgs> | null
   /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.AccessRequestInclude<ExtArgs> | null
-  /**
    * Filter, which AccessRequest to fetch.
    */
   where?: Prisma.AccessRequestWhereInput
@@ -1276,10 +1077,6 @@ export type AccessRequestFindManyArgs<ExtArgs extends runtime.Types.Extensions.I
    * Omit specific fields from the AccessRequest
    */
   omit?: Prisma.AccessRequestOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.AccessRequestInclude<ExtArgs> | null
   /**
    * Filter, which AccessRequests to fetch.
    */
@@ -1329,10 +1126,6 @@ export type AccessRequestCreateArgs<ExtArgs extends runtime.Types.Extensions.Int
    */
   omit?: Prisma.AccessRequestOmit<ExtArgs> | null
   /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.AccessRequestInclude<ExtArgs> | null
-  /**
    * The data needed to create a AccessRequest.
    */
   data: Prisma.XOR<Prisma.AccessRequestCreateInput, Prisma.AccessRequestUncheckedCreateInput>
@@ -1366,10 +1159,6 @@ export type AccessRequestCreateManyAndReturnArgs<ExtArgs extends runtime.Types.E
    */
   data: Prisma.AccessRequestCreateManyInput | Prisma.AccessRequestCreateManyInput[]
   skipDuplicates?: boolean
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.AccessRequestIncludeCreateManyAndReturn<ExtArgs> | null
 }
 
 /**
@@ -1384,10 +1173,6 @@ export type AccessRequestUpdateArgs<ExtArgs extends runtime.Types.Extensions.Int
    * Omit specific fields from the AccessRequest
    */
   omit?: Prisma.AccessRequestOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.AccessRequestInclude<ExtArgs> | null
   /**
    * The data needed to update a AccessRequest.
    */
@@ -1440,10 +1225,6 @@ export type AccessRequestUpdateManyAndReturnArgs<ExtArgs extends runtime.Types.E
    * Limit how many AccessRequests to update.
    */
   limit?: number
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.AccessRequestIncludeUpdateManyAndReturn<ExtArgs> | null
 }
 
 /**
@@ -1458,10 +1239,6 @@ export type AccessRequestUpsertArgs<ExtArgs extends runtime.Types.Extensions.Int
    * Omit specific fields from the AccessRequest
    */
   omit?: Prisma.AccessRequestOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.AccessRequestInclude<ExtArgs> | null
   /**
    * The filter to search for the AccessRequest to update in case it exists.
    */
@@ -1488,10 +1265,6 @@ export type AccessRequestDeleteArgs<ExtArgs extends runtime.Types.Extensions.Int
    * Omit specific fields from the AccessRequest
    */
   omit?: Prisma.AccessRequestOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.AccessRequestInclude<ExtArgs> | null
   /**
    * Filter which AccessRequest to delete.
    */
@@ -1524,8 +1297,4 @@ export type AccessRequestDefaultArgs<ExtArgs extends runtime.Types.Extensions.In
    * Omit specific fields from the AccessRequest
    */
   omit?: Prisma.AccessRequestOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.AccessRequestInclude<ExtArgs> | null
 }

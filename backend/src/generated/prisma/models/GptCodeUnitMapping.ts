@@ -349,6 +349,10 @@ export type GptCodeUnitMappingMinOrderByAggregateInput = {
   updated_at?: Prisma.SortOrder
 }
 
+export type BoolFieldUpdateOperationsInput = {
+  set?: boolean
+}
+
 
 
 export type GptCodeUnitMappingSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{

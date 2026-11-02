@@ -21,15 +21,6 @@ datasource db {
   provider = "postgresql"
 }
 
-// Mirrors the union in src/type/catalog-type.ts. Kept as a database enum so
-// an invalid status cannot be written by an admin screen or a bad migration.
-enum ApplicationStatus {
-  ACTIVE
-  MAINTENANCE
-  COMING_SOON
-  NEW
-}
-
 enum ReportStatus {
   OPEN
   IN_PROGRESS
@@ -40,68 +31,6 @@ enum AccessRequestStatus {
   PENDING
   APPROVED
   REJECTED
-}
-
-model Application {
-  // The catalog id, written by hand rather than generated: it appears in
-  // launch URLs (/apps/:id/launch) and in status overrides, so it has to
-  // stay stable and readable.
-  id String @id
-
-  name        String
-  icon        String  @default("AppWindow")
-  description String
-  // Display copy only - who the app is for, in the school's own words.
-  // allowed_sources below is what actually decides access.
-  audience    String
-  category    String
-
-  // Invisible search fodder, so one app is findable from several angles
-  // without belonging to two categories.
-  keywords String[] @default([])
-
-  // Null means the app is registered but has no URL yet. The card shows
-  // "no link registered" instead of pretending it can be opened.
-  href     String?
-  external Boolean @default(true)
-
-  status       ApplicationStatus @default(ACTIVE)
-  // Display lever: false drops the app from the grid for everyone. Distinct
-  // from allowed_sources, which is the access lever.
-  discoverable Boolean           @default(true)
-
-  // Deny by default. An empty list admits nobody, which is how an app with
-  // no workable policy yet stays out of everyone's way. Values are
-  // Central-backed access keys: identity source, role keys, or "public".
-  allowed_sources String[] @default([])
-
-  // Set only for apps with their own /auth/sso exchange endpoint. Moving
-  // the entry URL here is what removes the per-app <APP>_API_URL env var
-  // that previously had to be deployed alongside a catalog edit.
-  sso_app_id     String? @unique
-  sso_entry_url  String?
-  // Optional: an app without a local session to clear just doesn't get
-  // included in Hub's logout fan-out (loaded in a hidden iframe on sign-out).
-  sso_logout_url String?
-  // When set, launch also requires a current active entitlement from Central.
-  sso_central_entitlement_app_id String?
-
-  sort_order Int @default(0)
-
-  created_at DateTime  @default(now())
-  updated_at DateTime  @updatedAt
-  // Soft delete, same convention as Central: an app removed from the
-  // catalog keeps its reports and requests readable.
-  deleted_at DateTime?
-
-  reports         AppReport[]
-  access_requests AccessRequest[]
-
-  @@index([category])
-  @@index([status])
-  @@index([discoverable])
-  @@index([sort_order])
-  @@map("applications")
 }
 
 // Short-lived, single-use SSO handoffs. Deployments may keep using the
@@ -125,7 +54,6 @@ model AppReport {
   id String @id @default(cuid())
 
   application_id String
-  application    Application @relation(fields: [application_id], references: [id])
 
   // Email only, never a user id: Hub does not own user records, so there is
   // nothing here to join against. Central resolves the person when needed.
@@ -151,7 +79,6 @@ model AccessRequest {
   id String @id @default(cuid())
 
   application_id String
-  application    Application @relation(fields: [application_id], references: [id])
 
   requester_email String
   reason          String?

@@ -135,12 +135,6 @@ function Health({ overview }: { overview: AdminOverview }) {
           </ul>
         </div>
       ) : null}
-      {health.not_in_central.length > 0 ? (
-        <div className="mt-4 rounded-2xl border border-[var(--admin-border)] p-4">
-          <p className="admin-heading text-xs font-bold text-[var(--admin-text-tertiary)]">Older entries, not in Central</p>
-          <p className="mt-2 text-sm text-[var(--admin-text-secondary)]">{health.not_in_central.map((app) => app.name).join(", ")}</p>
-        </div>
-      ) : null}
     </Card>
   );
 }

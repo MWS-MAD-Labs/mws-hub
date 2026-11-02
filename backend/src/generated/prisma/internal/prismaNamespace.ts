@@ -397,7 +397,6 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 
 
 export const ModelName = {
-  Application: 'Application',
   SsoCode: 'SsoCode',
   AppReport: 'AppReport',
   AccessRequest: 'AccessRequest',
@@ -421,84 +420,10 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "application" | "ssoCode" | "appReport" | "accessRequest" | "auditLog" | "userSession" | "refreshToken" | "ssoExchangeSeen" | "gptCodeUnitMapping"
+    modelProps: "ssoCode" | "appReport" | "accessRequest" | "auditLog" | "userSession" | "refreshToken" | "ssoExchangeSeen" | "gptCodeUnitMapping"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
-    Application: {
-      payload: Prisma.$ApplicationPayload<ExtArgs>
-      fields: Prisma.ApplicationFieldRefs
-      operations: {
-        findUnique: {
-          args: Prisma.ApplicationFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApplicationPayload> | null
-        }
-        findUniqueOrThrow: {
-          args: Prisma.ApplicationFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApplicationPayload>
-        }
-        findFirst: {
-          args: Prisma.ApplicationFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApplicationPayload> | null
-        }
-        findFirstOrThrow: {
-          args: Prisma.ApplicationFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApplicationPayload>
-        }
-        findMany: {
-          args: Prisma.ApplicationFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApplicationPayload>[]
-        }
-        create: {
-          args: Prisma.ApplicationCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApplicationPayload>
-        }
-        createMany: {
-          args: Prisma.ApplicationCreateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        createManyAndReturn: {
-          args: Prisma.ApplicationCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApplicationPayload>[]
-        }
-        delete: {
-          args: Prisma.ApplicationDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApplicationPayload>
-        }
-        update: {
-          args: Prisma.ApplicationUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApplicationPayload>
-        }
-        deleteMany: {
-          args: Prisma.ApplicationDeleteManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateMany: {
-          args: Prisma.ApplicationUpdateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateManyAndReturn: {
-          args: Prisma.ApplicationUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApplicationPayload>[]
-        }
-        upsert: {
-          args: Prisma.ApplicationUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApplicationPayload>
-        }
-        aggregate: {
-          args: Prisma.ApplicationAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateApplication>
-        }
-        groupBy: {
-          args: Prisma.ApplicationGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.ApplicationGroupByOutputType>[]
-        }
-        count: {
-          args: Prisma.ApplicationCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.ApplicationCountAggregateOutputType> | number
-        }
-      }
-    }
     SsoCode: {
       payload: Prisma.$SsoCodePayload<ExtArgs>
       fields: Prisma.SsoCodeFieldRefs
@@ -1130,32 +1055,6 @@ export const TransactionIsolationLevel = runtime.makeStrictEnum({
 export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof typeof TransactionIsolationLevel]
 
 
-export const ApplicationScalarFieldEnum = {
-  id: 'id',
-  name: 'name',
-  icon: 'icon',
-  description: 'description',
-  audience: 'audience',
-  category: 'category',
-  keywords: 'keywords',
-  href: 'href',
-  external: 'external',
-  status: 'status',
-  discoverable: 'discoverable',
-  allowed_sources: 'allowed_sources',
-  sso_app_id: 'sso_app_id',
-  sso_entry_url: 'sso_entry_url',
-  sso_logout_url: 'sso_logout_url',
-  sso_central_entitlement_app_id: 'sso_central_entitlement_app_id',
-  sort_order: 'sort_order',
-  created_at: 'created_at',
-  updated_at: 'updated_at',
-  deleted_at: 'deleted_at'
-} as const
-
-export type ApplicationScalarFieldEnum = (typeof ApplicationScalarFieldEnum)[keyof typeof ApplicationScalarFieldEnum]
-
-
 export const SsoCodeScalarFieldEnum = {
   code: 'code',
   token: 'token',
@@ -1323,41 +1222,6 @@ export type ListStringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaMod
 
 
 /**
- * Reference to a field of type 'Boolean'
- */
-export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
-    
-
-
-/**
- * Reference to a field of type 'ApplicationStatus'
- */
-export type EnumApplicationStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ApplicationStatus'>
-    
-
-
-/**
- * Reference to a field of type 'ApplicationStatus[]'
- */
-export type ListEnumApplicationStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ApplicationStatus[]'>
-    
-
-
-/**
- * Reference to a field of type 'Int'
- */
-export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
-    
-
-
-/**
- * Reference to a field of type 'Int[]'
- */
-export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
-    
-
-
-/**
  * Reference to a field of type 'DateTime'
  */
 export type DateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime'>
@@ -1410,6 +1274,27 @@ export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'J
  * Reference to a field of type 'QueryMode'
  */
 export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
+    
+
+
+/**
+ * Reference to a field of type 'Int'
+ */
+export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
+    
+
+
+/**
+ * Reference to a field of type 'Int[]'
+ */
+export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
+    
+
+
+/**
+ * Reference to a field of type 'Boolean'
+ */
+export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
     
 
 
@@ -1577,7 +1462,6 @@ export interface PrismaClientOptionsWithAdapter extends PrismaClientBaseOptions 
  */
 export type PrismaClientOptions = PrismaClientOptionsWithAccelerateUrl | PrismaClientOptionsWithAdapter
 export type GlobalOmitConfig = {
-  application?: Prisma.ApplicationOmit
   ssoCode?: Prisma.SsoCodeOmit
   appReport?: Prisma.AppReportOmit
   accessRequest?: Prisma.AccessRequestOmit

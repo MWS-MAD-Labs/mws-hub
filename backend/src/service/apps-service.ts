@@ -4,9 +4,8 @@ import {
   userMatchesAccessRule,
 } from "../lib/access-rules";
 import { centralAccessForApp } from "../lib/hub-access-gate";
-import { ApplicationService } from "./application-service";
 import { deriveAppSecret } from "../lib/hub-app-secret";
-import { centralCatalogState, isWithdrawn } from "./central-catalog-service";
+import { centralCatalogState } from "./central-catalog-service";
 import type { CentralClaim, HubUser } from "../type/central-type";
 import type {
   HubAccessSource,
@@ -17,31 +16,6 @@ import { appEndpoints } from "../lib/app-endpoints";
 import { entryUsesSharedSession } from "../lib/shared-session";
 
 type ApprovedAccessLookup = (user: HubUser) => Promise<Set<string>>;
-
-// GPT Code runs inside Hub, so its launcher card must not disappear when
-// Central's external application catalog is unavailable or has not published
-// a legacy Apps Script entry. Central still owns each person's identity and
-// current unit; GptCodeAccessService enforces the unit-to-card mapping again
-// when this native feature is opened and whenever a code is requested.
-const NATIVE_HUB_APPS: HubCatalogEntry[] = [
-  {
-    id: "gpt-code",
-    name: "GPT Code",
-    icon: "KeyRound",
-    description: "Retrieve the latest ChatGPT verification code assigned to your unit.",
-    category: "utilities",
-    audience: "Staff with an assigned GPT account",
-    keywords: ["chatgpt", "openai", "otp", "verification", "login code"],
-    // AppCard requires a link to mark a card openable, but every launch still
-    // goes through /apps/gpt-code/launch and is redirected by AppsController.
-    href: "/gpt-code",
-    external: false,
-    status: "active",
-    discoverable: true,
-    allowedSources: ["employee", "intern", "admin"],
-    source: "hub",
-  },
-];
 
 let approvedAccessLookupForTest: ApprovedAccessLookup | null = null;
 
@@ -220,16 +194,7 @@ function toResponse(
   user: HubUser,
   approvedApplicationIds: Set<string>,
 ): HubAppResponse {
-  const {
-    allowedSources,
-    sso,
-    source,
-    hubSecret,
-    sessionMode,
-    explicitCentralLink,
-    ...rest
-  } = entry;
-  void explicitCentralLink;
+  const { allowedSources, sso, source, hubSecret, sessionMode, ...rest } = entry;
   void allowedSources;
   void source;
   void hubSecret;
@@ -245,51 +210,19 @@ function toResponse(
   };
 }
 
+// Central is the only catalog source. The test seam avoids network access
+// without introducing a second production catalog.
+let catalogForTest: HubCatalogEntry[] | null = null;
+
+// Lets a test serve a fixed list of cards without Central.
+export function setCatalogForTest(entries: HubCatalogEntry[] | null) {
+  catalogForTest = entries;
+}
+
 async function effectiveCatalog(): Promise<HubCatalogEntry[]> {
-  const [rows, state] = await Promise.all([
-    ApplicationService.listActive(),
-    centralCatalogState(),
-  ]);
-  const centralFacts = new Map(
-    state.entries.map((entry) => [
-      entry.id,
-      { hubSecret: entry.hubSecret, sessionMode: entry.sessionMode },
-    ]),
+  return applyStatusOverrides(
+    catalogForTest ?? (await centralCatalogState()).entries,
   );
-  const own = rows
-    .filter((entry) => !isWithdrawn(entry, state))
-    .map((entry) => {
-      const key = [
-        entry.explicitCentralLink,
-        entry.sso?.appId,
-        entry.centralEntitlementAppId,
-        entry.id,
-      ].find((candidate) => candidate && centralFacts.get(candidate));
-      const facts = key ? centralFacts.get(key) : undefined;
-      if (!facts) return entry;
-      return {
-        ...entry,
-        ...(entry.hubSecret || !facts.hubSecret
-          ? {}
-          : { hubSecret: facts.hubSecret }),
-        ...(entry.sessionMode || !facts.sessionMode
-          ? {}
-          : { sessionMode: facts.sessionMode }),
-      };
-    });
-  const taken = new Set(
-    rows.flatMap((entry) => [
-      entry.id,
-      entry.sso?.appId,
-      entry.centralEntitlementAppId,
-    ]),
-  );
-  const added = state.entries.filter((entry) => !taken.has(entry.id));
-  const nativeIds = new Set(NATIVE_HUB_APPS.map((entry) => entry.id));
-  const externalCatalog = [...own, ...added].filter(
-    (entry) => !nativeIds.has(entry.id),
-  );
-  return applyStatusOverrides([...externalCatalog, ...NATIVE_HUB_APPS]);
 }
 
 export class AppsService {

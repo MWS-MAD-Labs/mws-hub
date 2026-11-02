@@ -4,6 +4,10 @@ import { AuthController } from "../controller/auth-controller";
 import type { HubUser } from "../type/central-type";
 import type { SessionVariables } from "../type/hono-context";
 
+type MeResponse = {
+  data: Record<string, unknown>;
+};
+
 const admin: HubUser = {
   source: "admin",
   id: "cmv09qj5j0000r17blfdr8xfq",
@@ -42,7 +46,7 @@ describe("AuthController.me", () => {
 
     const response = await app.request("/auth/me");
     expect(response.status).toBe(200);
-    return response.json();
+    return response.json() as Promise<MeResponse>;
   }
 
   it("returns Central admin fields without Hub-only identity properties", async () => {

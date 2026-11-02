@@ -1,6 +1,6 @@
 import { describe, it, expect } from "bun:test";
 import { parseStatusOverrides, applyStatusOverrides } from "../lib/status-overrides";
-import { HUB_CATALOG } from "../../seed/default-catalog";
+import { HUB_CATALOG } from "./fixtures/hub-catalog";
 import type { HubCatalogEntry } from "../type/catalog-type";
 
 const knownAppId = HUB_CATALOG[0]!.id;

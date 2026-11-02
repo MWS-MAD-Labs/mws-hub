@@ -214,7 +214,6 @@ export type AppReportWhereInput = {
   resolved_by?: Prisma.StringNullableFilter<"AppReport"> | string | null
   created_at?: Prisma.DateTimeFilter<"AppReport"> | Date | string
   updated_at?: Prisma.DateTimeFilter<"AppReport"> | Date | string
-  application?: Prisma.XOR<Prisma.ApplicationScalarRelationFilter, Prisma.ApplicationWhereInput>
 }
 
 export type AppReportOrderByWithRelationInput = {
@@ -227,7 +226,6 @@ export type AppReportOrderByWithRelationInput = {
   resolved_by?: Prisma.SortOrderInput | Prisma.SortOrder
   created_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
-  application?: Prisma.ApplicationOrderByWithRelationInput
 }
 
 export type AppReportWhereUniqueInput = Prisma.AtLeast<{
@@ -243,7 +241,6 @@ export type AppReportWhereUniqueInput = Prisma.AtLeast<{
   resolved_by?: Prisma.StringNullableFilter<"AppReport"> | string | null
   created_at?: Prisma.DateTimeFilter<"AppReport"> | Date | string
   updated_at?: Prisma.DateTimeFilter<"AppReport"> | Date | string
-  application?: Prisma.XOR<Prisma.ApplicationScalarRelationFilter, Prisma.ApplicationWhereInput>
 }, "id">
 
 export type AppReportOrderByWithAggregationInput = {
@@ -278,6 +275,7 @@ export type AppReportScalarWhereWithAggregatesInput = {
 
 export type AppReportCreateInput = {
   id?: string
+  application_id: string
   reporter_email: string
   message: string
   status?: $Enums.ReportStatus
@@ -285,7 +283,6 @@ export type AppReportCreateInput = {
   resolved_by?: string | null
   created_at?: Date | string
   updated_at?: Date | string
-  application: Prisma.ApplicationCreateNestedOneWithoutReportsInput
 }
 
 export type AppReportUncheckedCreateInput = {
@@ -302,6 +299,7 @@ export type AppReportUncheckedCreateInput = {
 
 export type AppReportUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  application_id?: Prisma.StringFieldUpdateOperationsInput | string
   reporter_email?: Prisma.StringFieldUpdateOperationsInput | string
   message?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumReportStatusFieldUpdateOperationsInput | $Enums.ReportStatus
@@ -309,7 +307,6 @@ export type AppReportUpdateInput = {
   resolved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  application?: Prisma.ApplicationUpdateOneRequiredWithoutReportsNestedInput
 }
 
 export type AppReportUncheckedUpdateInput = {
@@ -338,6 +335,7 @@ export type AppReportCreateManyInput = {
 
 export type AppReportUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  application_id?: Prisma.StringFieldUpdateOperationsInput | string
   reporter_email?: Prisma.StringFieldUpdateOperationsInput | string
   message?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumReportStatusFieldUpdateOperationsInput | $Enums.ReportStatus
@@ -357,16 +355,6 @@ export type AppReportUncheckedUpdateManyInput = {
   resolved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-}
-
-export type AppReportListRelationFilter = {
-  every?: Prisma.AppReportWhereInput
-  some?: Prisma.AppReportWhereInput
-  none?: Prisma.AppReportWhereInput
-}
-
-export type AppReportOrderByRelationAggregateInput = {
-  _count?: Prisma.SortOrder
 }
 
 export type AppReportCountOrderByAggregateInput = {
@@ -405,157 +393,12 @@ export type AppReportMinOrderByAggregateInput = {
   updated_at?: Prisma.SortOrder
 }
 
-export type AppReportCreateNestedManyWithoutApplicationInput = {
-  create?: Prisma.XOR<Prisma.AppReportCreateWithoutApplicationInput, Prisma.AppReportUncheckedCreateWithoutApplicationInput> | Prisma.AppReportCreateWithoutApplicationInput[] | Prisma.AppReportUncheckedCreateWithoutApplicationInput[]
-  connectOrCreate?: Prisma.AppReportCreateOrConnectWithoutApplicationInput | Prisma.AppReportCreateOrConnectWithoutApplicationInput[]
-  createMany?: Prisma.AppReportCreateManyApplicationInputEnvelope
-  connect?: Prisma.AppReportWhereUniqueInput | Prisma.AppReportWhereUniqueInput[]
-}
-
-export type AppReportUncheckedCreateNestedManyWithoutApplicationInput = {
-  create?: Prisma.XOR<Prisma.AppReportCreateWithoutApplicationInput, Prisma.AppReportUncheckedCreateWithoutApplicationInput> | Prisma.AppReportCreateWithoutApplicationInput[] | Prisma.AppReportUncheckedCreateWithoutApplicationInput[]
-  connectOrCreate?: Prisma.AppReportCreateOrConnectWithoutApplicationInput | Prisma.AppReportCreateOrConnectWithoutApplicationInput[]
-  createMany?: Prisma.AppReportCreateManyApplicationInputEnvelope
-  connect?: Prisma.AppReportWhereUniqueInput | Prisma.AppReportWhereUniqueInput[]
-}
-
-export type AppReportUpdateManyWithoutApplicationNestedInput = {
-  create?: Prisma.XOR<Prisma.AppReportCreateWithoutApplicationInput, Prisma.AppReportUncheckedCreateWithoutApplicationInput> | Prisma.AppReportCreateWithoutApplicationInput[] | Prisma.AppReportUncheckedCreateWithoutApplicationInput[]
-  connectOrCreate?: Prisma.AppReportCreateOrConnectWithoutApplicationInput | Prisma.AppReportCreateOrConnectWithoutApplicationInput[]
-  upsert?: Prisma.AppReportUpsertWithWhereUniqueWithoutApplicationInput | Prisma.AppReportUpsertWithWhereUniqueWithoutApplicationInput[]
-  createMany?: Prisma.AppReportCreateManyApplicationInputEnvelope
-  set?: Prisma.AppReportWhereUniqueInput | Prisma.AppReportWhereUniqueInput[]
-  disconnect?: Prisma.AppReportWhereUniqueInput | Prisma.AppReportWhereUniqueInput[]
-  delete?: Prisma.AppReportWhereUniqueInput | Prisma.AppReportWhereUniqueInput[]
-  connect?: Prisma.AppReportWhereUniqueInput | Prisma.AppReportWhereUniqueInput[]
-  update?: Prisma.AppReportUpdateWithWhereUniqueWithoutApplicationInput | Prisma.AppReportUpdateWithWhereUniqueWithoutApplicationInput[]
-  updateMany?: Prisma.AppReportUpdateManyWithWhereWithoutApplicationInput | Prisma.AppReportUpdateManyWithWhereWithoutApplicationInput[]
-  deleteMany?: Prisma.AppReportScalarWhereInput | Prisma.AppReportScalarWhereInput[]
-}
-
-export type AppReportUncheckedUpdateManyWithoutApplicationNestedInput = {
-  create?: Prisma.XOR<Prisma.AppReportCreateWithoutApplicationInput, Prisma.AppReportUncheckedCreateWithoutApplicationInput> | Prisma.AppReportCreateWithoutApplicationInput[] | Prisma.AppReportUncheckedCreateWithoutApplicationInput[]
-  connectOrCreate?: Prisma.AppReportCreateOrConnectWithoutApplicationInput | Prisma.AppReportCreateOrConnectWithoutApplicationInput[]
-  upsert?: Prisma.AppReportUpsertWithWhereUniqueWithoutApplicationInput | Prisma.AppReportUpsertWithWhereUniqueWithoutApplicationInput[]
-  createMany?: Prisma.AppReportCreateManyApplicationInputEnvelope
-  set?: Prisma.AppReportWhereUniqueInput | Prisma.AppReportWhereUniqueInput[]
-  disconnect?: Prisma.AppReportWhereUniqueInput | Prisma.AppReportWhereUniqueInput[]
-  delete?: Prisma.AppReportWhereUniqueInput | Prisma.AppReportWhereUniqueInput[]
-  connect?: Prisma.AppReportWhereUniqueInput | Prisma.AppReportWhereUniqueInput[]
-  update?: Prisma.AppReportUpdateWithWhereUniqueWithoutApplicationInput | Prisma.AppReportUpdateWithWhereUniqueWithoutApplicationInput[]
-  updateMany?: Prisma.AppReportUpdateManyWithWhereWithoutApplicationInput | Prisma.AppReportUpdateManyWithWhereWithoutApplicationInput[]
-  deleteMany?: Prisma.AppReportScalarWhereInput | Prisma.AppReportScalarWhereInput[]
-}
-
 export type EnumReportStatusFieldUpdateOperationsInput = {
   set?: $Enums.ReportStatus
 }
 
-export type AppReportCreateWithoutApplicationInput = {
-  id?: string
-  reporter_email: string
-  message: string
-  status?: $Enums.ReportStatus
-  resolved_at?: Date | string | null
-  resolved_by?: string | null
-  created_at?: Date | string
-  updated_at?: Date | string
-}
-
-export type AppReportUncheckedCreateWithoutApplicationInput = {
-  id?: string
-  reporter_email: string
-  message: string
-  status?: $Enums.ReportStatus
-  resolved_at?: Date | string | null
-  resolved_by?: string | null
-  created_at?: Date | string
-  updated_at?: Date | string
-}
-
-export type AppReportCreateOrConnectWithoutApplicationInput = {
-  where: Prisma.AppReportWhereUniqueInput
-  create: Prisma.XOR<Prisma.AppReportCreateWithoutApplicationInput, Prisma.AppReportUncheckedCreateWithoutApplicationInput>
-}
-
-export type AppReportCreateManyApplicationInputEnvelope = {
-  data: Prisma.AppReportCreateManyApplicationInput | Prisma.AppReportCreateManyApplicationInput[]
-  skipDuplicates?: boolean
-}
-
-export type AppReportUpsertWithWhereUniqueWithoutApplicationInput = {
-  where: Prisma.AppReportWhereUniqueInput
-  update: Prisma.XOR<Prisma.AppReportUpdateWithoutApplicationInput, Prisma.AppReportUncheckedUpdateWithoutApplicationInput>
-  create: Prisma.XOR<Prisma.AppReportCreateWithoutApplicationInput, Prisma.AppReportUncheckedCreateWithoutApplicationInput>
-}
-
-export type AppReportUpdateWithWhereUniqueWithoutApplicationInput = {
-  where: Prisma.AppReportWhereUniqueInput
-  data: Prisma.XOR<Prisma.AppReportUpdateWithoutApplicationInput, Prisma.AppReportUncheckedUpdateWithoutApplicationInput>
-}
-
-export type AppReportUpdateManyWithWhereWithoutApplicationInput = {
-  where: Prisma.AppReportScalarWhereInput
-  data: Prisma.XOR<Prisma.AppReportUpdateManyMutationInput, Prisma.AppReportUncheckedUpdateManyWithoutApplicationInput>
-}
-
-export type AppReportScalarWhereInput = {
-  AND?: Prisma.AppReportScalarWhereInput | Prisma.AppReportScalarWhereInput[]
-  OR?: Prisma.AppReportScalarWhereInput[]
-  NOT?: Prisma.AppReportScalarWhereInput | Prisma.AppReportScalarWhereInput[]
-  id?: Prisma.StringFilter<"AppReport"> | string
-  application_id?: Prisma.StringFilter<"AppReport"> | string
-  reporter_email?: Prisma.StringFilter<"AppReport"> | string
-  message?: Prisma.StringFilter<"AppReport"> | string
-  status?: Prisma.EnumReportStatusFilter<"AppReport"> | $Enums.ReportStatus
-  resolved_at?: Prisma.DateTimeNullableFilter<"AppReport"> | Date | string | null
-  resolved_by?: Prisma.StringNullableFilter<"AppReport"> | string | null
-  created_at?: Prisma.DateTimeFilter<"AppReport"> | Date | string
-  updated_at?: Prisma.DateTimeFilter<"AppReport"> | Date | string
-}
-
-export type AppReportCreateManyApplicationInput = {
-  id?: string
-  reporter_email: string
-  message: string
-  status?: $Enums.ReportStatus
-  resolved_at?: Date | string | null
-  resolved_by?: string | null
-  created_at?: Date | string
-  updated_at?: Date | string
-}
-
-export type AppReportUpdateWithoutApplicationInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  reporter_email?: Prisma.StringFieldUpdateOperationsInput | string
-  message?: Prisma.StringFieldUpdateOperationsInput | string
-  status?: Prisma.EnumReportStatusFieldUpdateOperationsInput | $Enums.ReportStatus
-  resolved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  resolved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-}
-
-export type AppReportUncheckedUpdateWithoutApplicationInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  reporter_email?: Prisma.StringFieldUpdateOperationsInput | string
-  message?: Prisma.StringFieldUpdateOperationsInput | string
-  status?: Prisma.EnumReportStatusFieldUpdateOperationsInput | $Enums.ReportStatus
-  resolved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  resolved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-}
-
-export type AppReportUncheckedUpdateManyWithoutApplicationInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  reporter_email?: Prisma.StringFieldUpdateOperationsInput | string
-  message?: Prisma.StringFieldUpdateOperationsInput | string
-  status?: Prisma.EnumReportStatusFieldUpdateOperationsInput | $Enums.ReportStatus
-  resolved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  resolved_by?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+export type NullableDateTimeFieldUpdateOperationsInput = {
+  set?: Date | string | null
 }
 
 
@@ -570,7 +413,6 @@ export type AppReportSelect<ExtArgs extends runtime.Types.Extensions.InternalArg
   resolved_by?: boolean
   created_at?: boolean
   updated_at?: boolean
-  application?: boolean | Prisma.ApplicationDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["appReport"]>
 
 export type AppReportSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -583,7 +425,6 @@ export type AppReportSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ext
   resolved_by?: boolean
   created_at?: boolean
   updated_at?: boolean
-  application?: boolean | Prisma.ApplicationDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["appReport"]>
 
 export type AppReportSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -596,7 +437,6 @@ export type AppReportSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ext
   resolved_by?: boolean
   created_at?: boolean
   updated_at?: boolean
-  application?: boolean | Prisma.ApplicationDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["appReport"]>
 
 export type AppReportSelectScalar = {
@@ -612,21 +452,10 @@ export type AppReportSelectScalar = {
 }
 
 export type AppReportOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "application_id" | "reporter_email" | "message" | "status" | "resolved_at" | "resolved_by" | "created_at" | "updated_at", ExtArgs["result"]["appReport"]>
-export type AppReportInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  application?: boolean | Prisma.ApplicationDefaultArgs<ExtArgs>
-}
-export type AppReportIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  application?: boolean | Prisma.ApplicationDefaultArgs<ExtArgs>
-}
-export type AppReportIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  application?: boolean | Prisma.ApplicationDefaultArgs<ExtArgs>
-}
 
 export type $AppReportPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "AppReport"
-  objects: {
-    application: Prisma.$ApplicationPayload<ExtArgs>
-  }
+  objects: {}
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     application_id: string
@@ -1031,7 +860,6 @@ readonly fields: AppReportFieldRefs;
  */
 export interface Prisma__AppReportClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
-  application<T extends Prisma.ApplicationDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ApplicationDefaultArgs<ExtArgs>>): Prisma.Prisma__ApplicationClient<runtime.Types.Result.GetResult<Prisma.$ApplicationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1087,10 +915,6 @@ export type AppReportFindUniqueArgs<ExtArgs extends runtime.Types.Extensions.Int
    */
   omit?: Prisma.AppReportOmit<ExtArgs> | null
   /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.AppReportInclude<ExtArgs> | null
-  /**
    * Filter, which AppReport to fetch.
    */
   where: Prisma.AppReportWhereUniqueInput
@@ -1109,10 +933,6 @@ export type AppReportFindUniqueOrThrowArgs<ExtArgs extends runtime.Types.Extensi
    */
   omit?: Prisma.AppReportOmit<ExtArgs> | null
   /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.AppReportInclude<ExtArgs> | null
-  /**
    * Filter, which AppReport to fetch.
    */
   where: Prisma.AppReportWhereUniqueInput
@@ -1130,10 +950,6 @@ export type AppReportFindFirstArgs<ExtArgs extends runtime.Types.Extensions.Inte
    * Omit specific fields from the AppReport
    */
   omit?: Prisma.AppReportOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.AppReportInclude<ExtArgs> | null
   /**
    * Filter, which AppReport to fetch.
    */
@@ -1183,10 +999,6 @@ export type AppReportFindFirstOrThrowArgs<ExtArgs extends runtime.Types.Extensio
    */
   omit?: Prisma.AppReportOmit<ExtArgs> | null
   /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.AppReportInclude<ExtArgs> | null
-  /**
    * Filter, which AppReport to fetch.
    */
   where?: Prisma.AppReportWhereInput
@@ -1234,10 +1046,6 @@ export type AppReportFindManyArgs<ExtArgs extends runtime.Types.Extensions.Inter
    * Omit specific fields from the AppReport
    */
   omit?: Prisma.AppReportOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.AppReportInclude<ExtArgs> | null
   /**
    * Filter, which AppReports to fetch.
    */
@@ -1287,10 +1095,6 @@ export type AppReportCreateArgs<ExtArgs extends runtime.Types.Extensions.Interna
    */
   omit?: Prisma.AppReportOmit<ExtArgs> | null
   /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.AppReportInclude<ExtArgs> | null
-  /**
    * The data needed to create a AppReport.
    */
   data: Prisma.XOR<Prisma.AppReportCreateInput, Prisma.AppReportUncheckedCreateInput>
@@ -1324,10 +1128,6 @@ export type AppReportCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Exten
    */
   data: Prisma.AppReportCreateManyInput | Prisma.AppReportCreateManyInput[]
   skipDuplicates?: boolean
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.AppReportIncludeCreateManyAndReturn<ExtArgs> | null
 }
 
 /**
@@ -1342,10 +1142,6 @@ export type AppReportUpdateArgs<ExtArgs extends runtime.Types.Extensions.Interna
    * Omit specific fields from the AppReport
    */
   omit?: Prisma.AppReportOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.AppReportInclude<ExtArgs> | null
   /**
    * The data needed to update a AppReport.
    */
@@ -1398,10 +1194,6 @@ export type AppReportUpdateManyAndReturnArgs<ExtArgs extends runtime.Types.Exten
    * Limit how many AppReports to update.
    */
   limit?: number
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.AppReportIncludeUpdateManyAndReturn<ExtArgs> | null
 }
 
 /**
@@ -1416,10 +1208,6 @@ export type AppReportUpsertArgs<ExtArgs extends runtime.Types.Extensions.Interna
    * Omit specific fields from the AppReport
    */
   omit?: Prisma.AppReportOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.AppReportInclude<ExtArgs> | null
   /**
    * The filter to search for the AppReport to update in case it exists.
    */
@@ -1446,10 +1234,6 @@ export type AppReportDeleteArgs<ExtArgs extends runtime.Types.Extensions.Interna
    * Omit specific fields from the AppReport
    */
   omit?: Prisma.AppReportOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.AppReportInclude<ExtArgs> | null
   /**
    * Filter which AppReport to delete.
    */
@@ -1482,8 +1266,4 @@ export type AppReportDefaultArgs<ExtArgs extends runtime.Types.Extensions.Intern
    * Omit specific fields from the AppReport
    */
   omit?: Prisma.AppReportOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.AppReportInclude<ExtArgs> | null
 }

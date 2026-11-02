@@ -1,27 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, mock, spyOn } from "bun:test";
 import * as centralClient from "../lib/central-client";
-import { ApplicationService } from "../service/application-service";
-import type { HubCatalogEntry } from "../type/catalog-type";
 import type { HubUser } from "../type/central-type";
-
-const entry = (id: string, extra: Partial<HubCatalogEntry> = {}): HubCatalogEntry =>
-  ({
-    id,
-    name: id,
-    icon: "app",
-    description: "",
-    category: "tools",
-    audience: "Employees",
-    keywords: [],
-    href: "https://example.test",
-    external: true,
-    status: "active",
-    discoverable: true,
-    allowedSources: ["public"],
-    ...extra,
-  }) as HubCatalogEntry;
-
-let catalog: HubCatalogEntry[] = [];
 
 const { AppsService, setApprovedAccessLookupForTest } = await import("../service/apps-service");
 const gate = await import("../lib/hub-access-gate");
@@ -45,70 +24,50 @@ const user = {
   employment_type: null,
 } as HubUser;
 
-const gated = (id: string, extra: Partial<HubCatalogEntry> = {}) =>
-  entry(id, { centralEntitlementAppId: id, sso: { appId: id, centralEntitlementAppId: id } as HubCatalogEntry["sso"], ...extra });
+const published = (id: string, extra: Record<string, unknown> = {}) => ({
+  id,
+  name: id,
+  description: "",
+  icon: null,
+  category: null,
+  launch_url: `https://${id}.example.com/auth/sso`,
+  logout_url: null,
+  ...extra,
+});
 
 // A spy, not a module mock: a module mock would stay for the test files after this one.
 beforeEach(() => {
-  spyOn(ApplicationService, "listActive").mockImplementation(async () => catalog);
   gate.clearAppAccessCacheForTest();
   clearCentralCatalogCacheForTest();
-  catalog = [gated("daily-checkin"), entry("plain")];
+  spyOn(centralClient, "listPublishedApplications").mockResolvedValue([published("daily-checkin")] as never);
 });
 
 afterEach(() => {
   mock.restore();
 });
 
-describe("cards for apps gated by Central", () => {
+describe("cards for apps published in Central", () => {
   it("leaves the card out when the person has no access in Central", async () => {
     spyOn(centralClient, "lookupApplicationEntitlement").mockResolvedValue(null);
-    const listing = await AppsService.listFor(user);
-    expect(listing.some((app) => app.id === "daily-checkin")).toBe(false);
-    expect(listing.find((app) => app.id === "plain")?.access).toBe("granted");
+    expect((await AppsService.listFor(user)).some((app) => app.id === "daily-checkin")).toBe(false);
   });
 
   it("leaves the card open when Central gives access", async () => {
-    spyOn(centralClient, "lookupApplicationEntitlement").mockResolvedValue({
-      is_active: true,
-    } as never);
-    const card = (await AppsService.listFor(user)).find((app) => app.id === "daily-checkin");
-    expect(card?.access).toBe("granted");
-  });
-
-  it("falls back to Hub rules when Central is down", async () => {
-    spyOn(centralClient, "lookupApplicationEntitlement").mockRejectedValue(new Error("down"));
+    spyOn(centralClient, "lookupApplicationEntitlement").mockResolvedValue({ is_active: true } as never);
     const card = (await AppsService.listFor(user)).find((app) => app.id === "daily-checkin");
     expect(card?.access).toBe("granted");
   });
 
   it("keeps the maintenance status on a card the person can open", async () => {
-    catalog = [gated("daily-checkin", { status: "maintenance" })];
-    spyOn(centralClient, "lookupApplicationEntitlement").mockResolvedValue({
-      is_active: true,
-    } as never);
+    spyOn(centralClient, "listPublishedApplications").mockResolvedValue([published("daily-checkin", { status: "maintenance" })] as never);
+    spyOn(centralClient, "lookupApplicationEntitlement").mockResolvedValue({ is_active: true } as never);
     const card = (await AppsService.listFor(user))[0];
     expect(card.status).toBe("maintenance");
     expect(card.access).toBe("granted");
   });
 
-  it("does not ask Central for apps that are not gated", async () => {
-    catalog = [entry("plain")];
-    const lookup = spyOn(centralClient, "lookupApplicationEntitlement");
-    await AppsService.listFor(user);
-    expect(lookup).not.toHaveBeenCalled();
-  });
-
-  it("leaves out apps not linked to Central in enforce, keeps them otherwise", async () => {
-    catalog = [gated("daily-checkin"), entry("plain")];
+  it("shows nothing but what Central publishes", async () => {
     spyOn(centralClient, "lookupApplicationEntitlement").mockResolvedValue({ is_active: true } as never);
-    process.env.HUB_CENTRAL_ACCESS_MODE = "enforce";
-    const enforced = (await AppsService.listFor(user)).map((app) => app.id);
-    expect(enforced).toEqual(["daily-checkin", "plain"]);
-    expect(await AppsService.canLaunch(entry("plain"), user)).toBe(true);
-    delete process.env.HUB_CENTRAL_ACCESS_MODE;
-    const open = (await AppsService.listFor(user)).map((app) => app.id);
-    expect(open).toEqual(["daily-checkin", "plain"]);
-    expect(await AppsService.canLaunch(entry("plain"), user)).toBe(true);
+    expect((await AppsService.listFor(user)).map((app) => app.id)).toEqual(["daily-checkin"]);
   });
 });

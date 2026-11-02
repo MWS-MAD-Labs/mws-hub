@@ -12,22 +12,23 @@
     "db:migrate:dev": "prisma migrate dev",
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
-    "seed:applications": "bun run seed/seed-applications.ts",
-    "export:catalog": "bun run scripts/export-catalog.ts",
-    "prune:catalog": "bun run scripts/prune-catalog.ts",
     "permissions:sync": "bun run scripts/sync-permissions.ts sync",
-    "permissions:check": "bun run scripts/sync-permissions.ts check"
+    "permissions:check": "bun run scripts/sync-permissions.ts check",
+    "access:doctor": "bun node_modules/mws-central-auth/dist/access/bin.js doctor"
   },
+  "trustedDependencies": ["mws-central-auth", "prisma", "@prisma/client", "@prisma/engines"],
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "dotenv": "^17.4.2",
     "google-auth-library": "^10.5.0",
-    "hono": "^4.12.27"
+    "hono": "^4.12.27",
+    "mws-central-auth": "github:MWS-MAD-Labs/mws-central-auth#v0.14.1"
   },
   "devDependencies": {
     "@types/bun": "^1.3.14",
     "prisma": "^7.8.0",
-    "typescript": "^5.6.3"
+    "tsup": "^8.3.0",
+    "typescript": "^6.0.3"
   }
 }
