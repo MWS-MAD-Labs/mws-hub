@@ -37,6 +37,34 @@ function relativeLabelOf(birthday: HubBirthday): string {
   return `${birthday.days_until} days`;
 }
 
+// Once the celebration is closed it stays closed for that day's birthdays.
+// Keyed by today's date and who is celebrating, so tomorrow's birthdays (or
+// the same person next year) still get their popup.
+const CELEBRATION_DISMISSED_KEY = "mws-hub.birthday-celebration.dismissed";
+
+function celebrationKeyOf(todayBirthdays: HubBirthday[]): string {
+  const now = new Date();
+  const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  const ids = todayBirthdays.map((birthday) => birthday.id).sort().join(",");
+  return `${date}|${ids}`;
+}
+
+function wasCelebrationDismissed(key: string): boolean {
+  try {
+    return localStorage.getItem(CELEBRATION_DISMISSED_KEY) === key;
+  } catch {
+    return false;
+  }
+}
+
+function rememberCelebrationDismissed(key: string) {
+  try {
+    localStorage.setItem(CELEBRATION_DISMISSED_KEY, key);
+  } catch {
+    // Storage blocked: the popup simply may show again next time.
+  }
+}
+
 type BirthdayListProps = {
   className?: string;
 };
@@ -61,8 +89,10 @@ const BirthdayList = memo(({ className }: BirthdayListProps) => {
 
         if (isCurrent) {
           setBirthdays(data);
+          const today = data.filter((birthday) => birthday.is_today);
           setIsBirthdayCelebrationOpen(
-            data.some((birthday) => birthday.is_today),
+            today.length > 0 &&
+              !wasCelebrationDismissed(celebrationKeyOf(today)),
           );
         }
       } catch {
@@ -190,7 +220,10 @@ const BirthdayList = memo(({ className }: BirthdayListProps) => {
       <BirthdayCelebrationModal
         open={isBirthdayCelebrationOpen}
         birthdays={todayBirthdays}
-        onOpenChange={setIsBirthdayCelebrationOpen}
+        onOpenChange={(open) => {
+          if (!open) rememberCelebrationDismissed(celebrationKeyOf(todayBirthdays));
+          setIsBirthdayCelebrationOpen(open);
+        }}
       />
     </>
   );
