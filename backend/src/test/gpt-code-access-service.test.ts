@@ -53,6 +53,7 @@ mock.module("../lib/prisma", () => ({
   },
 }));
 
+const adminAccess = await import("../lib/admin-access");
 const { CentralDirectoryService } = await import("../service/central-directory-service");
 const { GptCodeService } = await import("../service/gpt-code-service");
 const { GptCodeAccessService } = await import("../service/gpt-code-access-service");
@@ -107,8 +108,20 @@ function addMapping(overrides: Partial<MappingRow> = {}) {
   });
 }
 
+const ALL_ACCOUNTS = [
+  { cardId: "A3", email: "ai3@millennia21.id" },
+  { cardId: "A1", email: "ai1@millennia21.id" },
+  { cardId: "A5", email: "ai5@millennia21.id" },
+  { cardId: "A2", email: "ai2@millennia21.id" },
+  { cardId: "A4", email: "ai4@millennia21.id" },
+];
+
+let isAdmin: ReturnType<typeof spyOn>;
+
 beforeEach(() => {
   rows.length = 0;
+  // Unit rule by default; the admin tests flip this.
+  isAdmin = spyOn(adminAccess, "isHubAdmin").mockResolvedValue(false);
 });
 
 afterEach(() => {
@@ -209,5 +222,108 @@ describe("GptCodeAccessService", () => {
       unitId: "unit-directorate",
       isActive: true,
     })).rejects.toMatchObject({ status: 409 });
+  });
+
+  it("lets a non-admin name their own account, in any letter case", async () => {
+    addMapping();
+    spyOn(GptCodeService, "getAccount").mockResolvedValue({ cardId: "A5", email: "ai5@millennia21.id" });
+    const fetchCode = spyOn(GptCodeService, "getCode").mockResolvedValue({
+      cardId: "A5",
+      code: "123456",
+      timestamp: "29 Oct 2026, 10:00:00",
+      subject: "Your ChatGPT code",
+    });
+
+    await GptCodeAccessService.codeFor(employee(), "AI5@millennia21.id");
+    expect(fetchCode).toHaveBeenCalledWith("A5");
+  });
+
+  it("refuses a non-admin who names another unit's account, before reading any code", async () => {
+    addMapping();
+    spyOn(GptCodeService, "getAccount").mockResolvedValue({ cardId: "A5", email: "ai5@millennia21.id" });
+    const fetchCode = spyOn(GptCodeService, "getCode");
+
+    await expect(
+      GptCodeAccessService.codeFor(employee(), "ai2@millennia21.id"),
+    ).rejects.toMatchObject({ status: 403 });
+    expect(fetchCode).not.toHaveBeenCalled();
+  });
+});
+
+describe("GptCodeAccessService for Hub admins (MAD Labs)", () => {
+  it("offers every GPT account, ordered by card, without needing a unit mapping", async () => {
+    isAdmin.mockResolvedValue(true);
+    spyOn(GptCodeService, "listAccounts").mockResolvedValue([...ALL_ACCOUNTS]);
+    const mapped = spyOn(GptCodeService, "getAccount");
+
+    await expect(GptCodeAccessService.assignmentFor(employee("unit-mad-labs"))).resolves.toEqual({
+      cardId: "A1",
+      email: "ai1@millennia21.id",
+      unitId: "unit-mad-labs",
+      unitName: "Directorate",
+      accounts: [
+        "ai1@millennia21.id",
+        "ai2@millennia21.id",
+        "ai3@millennia21.id",
+        "ai4@millennia21.id",
+        "ai5@millennia21.id",
+      ],
+    });
+    expect(mapped).not.toHaveBeenCalled();
+  });
+
+  it("still offers every account when the admin's own unit has a mapping", async () => {
+    isAdmin.mockResolvedValue(true);
+    addMapping({ unit_id: "unit-mad-labs", card_id: "A2" });
+    spyOn(GptCodeService, "listAccounts").mockResolvedValue([...ALL_ACCOUNTS]);
+
+    const assignment = await GptCodeAccessService.assignmentFor(employee("unit-mad-labs"));
+    expect(assignment.accounts).toHaveLength(5);
+  });
+
+  it("reads the code of the account the admin picked", async () => {
+    isAdmin.mockResolvedValue(true);
+    spyOn(GptCodeService, "listAccounts").mockResolvedValue([...ALL_ACCOUNTS]);
+    const fetchCode = spyOn(GptCodeService, "getCode").mockResolvedValue({
+      cardId: "A3",
+      code: "654321",
+      timestamp: "29 Oct 2026, 10:05:00",
+      subject: "Your ChatGPT code",
+    });
+
+    const { assignment, result } = await GptCodeAccessService.codeFor(employee(), "ai3@millennia21.id");
+    expect(fetchCode).toHaveBeenCalledWith("A3");
+    expect(assignment).toMatchObject({ cardId: "A3", email: "ai3@millennia21.id" });
+    expect(result.code).toBe("654321");
+  });
+
+  it("uses the first account when the admin picks none", async () => {
+    isAdmin.mockResolvedValue(true);
+    spyOn(GptCodeService, "listAccounts").mockResolvedValue([...ALL_ACCOUNTS]);
+    const fetchCode = spyOn(GptCodeService, "getCode").mockResolvedValue({
+      cardId: "A1",
+      code: "111111",
+      timestamp: "29 Oct 2026, 10:05:00",
+      subject: "Your ChatGPT code",
+    });
+
+    await GptCodeAccessService.codeFor(employee());
+    expect(fetchCode).toHaveBeenCalledWith("A1");
+  });
+
+  it("refuses an account that is not in the list", async () => {
+    isAdmin.mockResolvedValue(true);
+    spyOn(GptCodeService, "listAccounts").mockResolvedValue([...ALL_ACCOUNTS]);
+    const fetchCode = spyOn(GptCodeService, "getCode");
+
+    await expect(
+      GptCodeAccessService.codeFor(employee(), "someone@millennia21.id"),
+    ).rejects.toMatchObject({ status: 403 });
+    expect(fetchCode).not.toHaveBeenCalled();
+  });
+
+  it("still refuses students, admin or not", async () => {
+    isAdmin.mockResolvedValue(true);
+    await expect(GptCodeAccessService.assignmentFor(student())).rejects.toMatchObject({ status: 403 });
   });
 });

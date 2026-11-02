@@ -1,4 +1,5 @@
-import { afterEach, describe, expect, it, mock } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock, spyOn } from "bun:test";
+import * as centralClient from "../lib/central-client";
 import type { HubUser } from "../type/central-type";
 import { HUB_CATALOG } from "./fixtures/hub-catalog";
 
@@ -12,24 +13,29 @@ const centralGptCodeEntry = {
   source: "central" as const,
 };
 
-mock.module("../lib/prisma", () => ({
-  prisma: {
-    accessRequest: { findMany: async () => [] },
-  },
-}));
+// Spies and the catalog test hook, not module mocks: a module mock would stay
+// for the test files after this one (mock.restore() does not undo it), and
+// hand them this file's GPT Code catalog.
+const { AppsService, setApprovedAccessLookupForTest, setCatalogForTest } = await import(
+  "../service/apps-service"
+);
+const gate = await import("../lib/hub-access-gate");
 
-mock.module("../service/central-catalog-service", () => ({
-  centralCatalogState: async () => ({
-    read: true,
-    entries: [centralGptCodeEntry],
-  }),
-}));
+beforeAll(() => {
+  setCatalogForTest([centralGptCodeEntry]);
+  setApprovedAccessLookupForTest(async () => new Set());
+});
 
-mock.module("../lib/hub-access-gate", () => ({
-  centralAccessForApp: async () => "granted",
-}));
+beforeEach(() => {
+  gate.clearAppAccessCacheForTest();
+  spyOn(centralClient, "lookupApplicationEntitlement").mockResolvedValue({ is_active: true } as never);
+});
 
-const { AppsService } = await import("../service/apps-service");
+// The approved-access stub stays: other files set the same one at load time
+// and never clear it, so clearing it here could hand them the database.
+afterAll(() => {
+  setCatalogForTest(null);
+});
 
 function employee(): HubUser {
   return {

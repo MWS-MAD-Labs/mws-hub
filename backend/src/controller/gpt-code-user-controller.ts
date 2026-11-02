@@ -31,6 +31,15 @@ async function freshUser(c: Context<{ Variables: SessionVariables }>) {
   }
 }
 
+// The account an admin picked on the page. A missing or malformed body just
+// means "no pick"; the service decides whether the pick is allowed.
+async function requestedAccountEmail(c: Context): Promise<string | undefined> {
+  const body: unknown = await c.req.json().catch(() => null);
+  if (!body || typeof body !== "object" || !("accountEmail" in body)) return undefined;
+  const value = (body as { accountEmail?: unknown }).accountEmail;
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
 export class GptCodeUserController {
   static async account(c: Context<{ Variables: SessionVariables }>) {
     noStore(c);
@@ -58,19 +67,24 @@ export class GptCodeUserController {
 
     try {
       const provider = gptCodeProvider();
+      const accountEmail = await requestedAccountEmail(c);
       const { assignment, result } = provider === "gmail"
         ? await GptCodeGmailAccessService.codeFor(user)
-        : await GptCodeAccessService.codeFor(user);
+        : await GptCodeAccessService.codeFor(user, accountEmail);
+      const viaAdmin = "accounts" in assignment && Boolean(assignment.accounts);
       await recordAuditLog({
         actor: user,
         action: "gpt_code.fetch",
         entity: { type: "gpt_code_card", id: result.cardId },
-        summary: `${user.email} fetched their unit's GPT login code`,
+        summary: viaAdmin
+          ? `${user.email} fetched the GPT login code for ${result.cardId} as a Hub admin`
+          : `${user.email} fetched their unit's GPT login code`,
         // OTP, subject and account email are intentionally never persisted.
         metadata: {
           card_id: result.cardId,
           unit_id: assignment.unitId,
           unit_name: assignment.unitName,
+          via_admin: viaAdmin,
           message_timestamp: result.timestamp,
           provider,
         },

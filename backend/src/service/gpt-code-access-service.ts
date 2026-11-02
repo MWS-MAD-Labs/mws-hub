@@ -1,4 +1,5 @@
 import { ResponseError } from "../error/response-error";
+import * as adminAccess from "../lib/admin-access";
 import { prisma } from "../lib/prisma";
 import type { HubUser } from "../type/central-type";
 import { CentralDirectoryService } from "./central-directory-service";
@@ -17,6 +18,16 @@ export type GptCodeMapping = {
 export type GptCodeAssignment = GptCodeAccount & {
   unitId: string;
   unitName: string;
+  // Hub admins (MAD Labs) only: every GPT account they may pick from. Other
+  // staff get exactly the account mapped to their unit and no list.
+  accounts?: string[];
+};
+
+// What a caller may use: the assignment shown to them, and for an admin every
+// account (with card ids, so a picked email can be resolved server side).
+type Resolved = {
+  assignment: GptCodeAssignment;
+  options: GptCodeAccount[] | null;
 };
 
 function toMapping(row: {
@@ -156,9 +167,31 @@ export class GptCodeAccessService {
     return toMapping(existing);
   }
 
-  static async assignmentFor(user: HubUser): Promise<GptCodeAssignment> {
+  // Admins (hub.admin in Central, i.e. MAD Labs) may use every GPT account.
+  // Everyone else gets only the account mapped to their own unit. When
+  // Central cannot answer, isHubAdmin says no, so this falls back to the unit
+  // rule rather than widening access.
+  private static async resolve(user: HubUser): Promise<Resolved> {
     if (user.source === "student") {
       throw new ResponseError(403, "GPT Code is available only to staff.");
+    }
+
+    if (await adminAccess.isHubAdmin(user)) {
+      const options = [...(await GptCodeService.listAccounts())].sort((a, b) =>
+        a.cardId.localeCompare(b.cardId),
+      );
+      if (options.length === 0) {
+        throw new ResponseError(503, "No GPT accounts are available right now.");
+      }
+      return {
+        assignment: {
+          ...options[0],
+          unitId: adminAccess.getUserUnitId(user) ?? "",
+          unitName: adminAccess.getUserUnitName(user) ?? "",
+          accounts: options.map((account) => account.email),
+        },
+        options,
+      };
     }
 
     const unitId = userUnitId(user);
@@ -178,18 +211,46 @@ export class GptCodeAccessService {
 
     const account = await GptCodeService.getAccount(mapping.card_id);
     return {
-      ...account,
-      unitId: mapping.unit_id,
-      unitName: mapping.unit_name,
+      assignment: {
+        ...account,
+        unitId: mapping.unit_id,
+        unitName: mapping.unit_name,
+      },
+      options: null,
     };
   }
 
-  static async codeFor(user: HubUser): Promise<{
+  static async assignmentFor(user: HubUser): Promise<GptCodeAssignment> {
+    return (await this.resolve(user)).assignment;
+  }
+
+  // accountEmail is the caller's pick. It is checked here, never trusted:
+  // an admin may name any listed account, anyone else only their unit's.
+  static async codeFor(
+    user: HubUser,
+    accountEmail?: string,
+  ): Promise<{
     assignment: GptCodeAssignment;
     result: GptCodeResult;
   }> {
-    const assignment = await this.assignmentFor(user);
-    const result = await GptCodeService.getCode(assignment.cardId);
-    return { assignment, result };
+    const { assignment, options } = await this.resolve(user);
+    const wanted = accountEmail?.trim().toLowerCase();
+
+    let chosen: GptCodeAssignment = assignment;
+    if (wanted && wanted !== assignment.email.toLowerCase()) {
+      const match = options?.find((account) => account.email.toLowerCase() === wanted);
+      if (!match) {
+        throw new ResponseError(
+          403,
+          options
+            ? "That GPT account is not available."
+            : "You can only use the GPT account assigned to your unit.",
+        );
+      }
+      chosen = { ...assignment, ...match };
+    }
+
+    const result = await GptCodeService.getCode(chosen.cardId);
+    return { assignment: chosen, result };
   }
 }
