@@ -5,6 +5,8 @@ import HubEmptyState from "./HubEmptyState";
 import HubIntro from "./HubIntro";
 import HubSearch from "./HubSearch";
 import MobileSpotlightSearch from "./MobileSpotlightSearch";
+import GptCodeCard from "./GptCodeCard";
+import useGptCodeAccess from "@/features/gpt-code/useGptCodeAccess";
 import {
   MOBILE_LAUNCHER_PAGE_CLASS,
   MOBILE_LAUNCHER_SCROLLER_CLASS,
@@ -49,6 +51,20 @@ const MobileAppLauncher = memo(
     onRequestAccess,
     onReportProblem,
   }: MobileAppLauncherProps) => {
+    // GPT Code is Hub's own feature, offered by Hub's answer, not Central's
+    // catalog. Its card shows only on the unfiltered view, or when the search
+    // names it, so it never sits in a result list it does not belong to.
+    const hasGptCode = useGptCodeAccess();
+    const normalizedQuery = query.trim().toLowerCase();
+    const showGptCodeCard =
+      hasGptCode &&
+      activeCategory === "all" &&
+      activeScope === "all" &&
+      (!normalizedQuery ||
+        ["gpt code", "chatgpt verification code"].some((label) =>
+          label.includes(normalizedQuery),
+        ));
+
     return (
       <section
         className="relative flex h-full min-h-0 flex-col overflow-hidden pb-[calc(env(safe-area-inset-bottom)+4.75rem)] pt-1 sm:grid sm:h-auto sm:min-h-[calc(100vh-4rem)] sm:grid-cols-1 sm:overflow-visible sm:pb-0 sm:pt-0 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-stretch"
@@ -110,10 +126,19 @@ const MobileAppLauncher = memo(
             </div>
           </div>
 
-          {apps.length > 0 ? (
+          {apps.length === 0 && showGptCodeCard && (
+            // The GPT Code card is tablet/desktop only; mobile still needs
+            // its empty state when no catalog app matches.
+            <div className="flex min-h-36 items-center justify-center rounded-lg border border-dashed border-border/60 bg-card/50 text-sm font-medium text-muted-foreground sm:hidden">
+              No apps found
+            </div>
+          )}
+
+          {apps.length > 0 || showGptCodeCard ? (
             <div
               className={`${MOBILE_LAUNCHER_PAGE_CLASS} sm:mt-4 sm:grid-cols-[repeat(auto-fill,minmax(280px,1fr))] sm:justify-items-stretch sm:gap-3 sm:px-0 sm:pb-0 sm:pt-0`}
             >
+              {showGptCodeCard && <GptCodeCard />}
               {apps.map((app) => (
                 <AppCard
                   key={app.id}
@@ -145,6 +170,7 @@ const MobileAppLauncher = memo(
           query={query}
           user={user}
           onQueryChange={onQueryChange}
+          showGptCode={hasGptCode}
         />
       </section>
     );
