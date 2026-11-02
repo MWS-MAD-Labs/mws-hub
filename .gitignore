@@ -14,3 +14,7 @@ Revisi2.md
 graphify-out/
 
 /Code.gs
+
+# Local-only files
+/AppScript/
+/GPT.md
