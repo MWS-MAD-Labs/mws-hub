@@ -5,6 +5,8 @@ export type HubApplication = {
   id: string;
   name: string;
   icon: string;
+  // A picture from Central. When there is one it is shown instead of the icon.
+  logo?: { version: number };
   description: string;
   category: string;
   scope?: string;

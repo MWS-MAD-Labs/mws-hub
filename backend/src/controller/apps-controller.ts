@@ -17,6 +17,7 @@ import type { RelayEntitlement } from "../type/central-type";
 import type { SessionVariables } from "../type/hono-context";
 import { optionalSsoState } from "../lib/sso-state";
 import { entryUsesSharedSession } from "../lib/shared-session";
+import { answerAppLogo } from "../lib/app-logo";
 import { isAppReachable } from "../lib/app-reachability";
 
 // Launch is a browser navigation, not an XHR, so a failure here has to land
@@ -81,6 +82,17 @@ export class AppsController {
   // hands out a credential.
   static async list(c: Context<{ Variables: SessionVariables }>) {
     return c.json({ data: await AppsService.listFor(c.var.user) });
+  }
+
+  // The picture of a card, from Central, served from the Hub's own address.
+  static async logo(c: Context<{ Variables: SessionVariables }>) {
+    const appId = c.req.param("appId");
+    const entry = appId ? await AppsService.findByLaunchId(appId) : null;
+    const answer = await answerAppLogo(entry, c.req.header("if-none-match"));
+    if (answer.status === 200 && answer.body) {
+      return new Response(new Uint8Array(answer.body), { status: 200, headers: answer.headers });
+    }
+    return new Response(null, { status: answer.status, headers: answer.headers });
   }
 
   static async taxonomy(c: Context<{ Variables: SessionVariables }>) {

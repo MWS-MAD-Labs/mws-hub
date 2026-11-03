@@ -219,6 +219,8 @@ const AppCard = memo(
               "shadow-[0_2px_8px_rgba(15,23,42,0.08)]",
 
               getCategoryTone(app.category),
+              // A logo has its own colors, so it sits on white instead of the category color.
+              app.logo && "bg-white",
 
               !isOpenable && "grayscale opacity-60",
 
@@ -229,13 +231,22 @@ const AppCard = memo(
               "sm:shadow-none",
             )}
           >
-            <Icon
-              className="
-                h-5 w-5
-                sm:h-5 sm:w-5
-              "
-              strokeWidth={1.8}
-            />
+            {app.logo ? (
+              <img
+                src={`${env.hubApiBaseUrl}/apps/${encodeURIComponent(app.id)}/logo?v=${app.logo.version}`}
+                alt=""
+                className="h-full w-full object-contain"
+                loading="lazy"
+              />
+            ) : (
+              <Icon
+                className="
+                  h-5 w-5
+                  sm:h-5 sm:w-5
+                "
+                strokeWidth={1.8}
+              />
+            )}
           </span>
         </span>
         <div
