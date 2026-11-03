@@ -31,6 +31,7 @@ async function launchSessionAuthMiddleware(
 
 appsRoute.get("/", sessionAuthMiddleware, AppsController.list);
 appsRoute.get("/taxonomy", sessionAuthMiddleware, AppsController.taxonomy);
+appsRoute.get("/:appId/logo", sessionAuthMiddleware, AppsController.logo);
 appsRoute.get("/birthdays", sessionAuthMiddleware, AppsController.birthdays);
 appsRoute.post(
   "/:appId/report",

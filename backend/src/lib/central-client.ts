@@ -250,6 +250,8 @@ export type CentralPublishedApplication = {
   // How the card looks. Older Central versions send neither.
   status?: "active" | "maintenance" | "coming_soon" | "new";
   keywords?: string[];
+  // The picture of the card, when Central has one for it. The version changes when the picture does.
+  logo?: { version: number } | null;
   // How this application proves itself to the Hub, and the version that counts now. Older Central versions send none.
   hub_secret?: { mode: "shared" | "own"; version: number };
   // shared: the application reads the Hub's session. relay: it gets a one-time code and a token. Older Central versions send none.
@@ -538,4 +540,23 @@ export async function listUpcomingEmployeeBirthdays(
     )
     .sort((a, b) => a.days_until - b.days_until || a.name.localeCompare(b.name))
     .slice(0, limit);
+}
+
+// The picture of a published application, as Central saved it (256 x 256, WebP). Null when it has none.
+export async function fetchApplicationLogo(
+  applicationId: string,
+): Promise<{ buffer: Buffer; contentType: string } | null> {
+  const res = await fetch(`${baseUrl()}/applications/${encodeURIComponent(applicationId)}/logo`, {
+    headers: centralAuthHeaders(),
+    signal: AbortSignal.timeout(CALL_TIMEOUT_MS),
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) {
+    logger.error("Central logo fetch failed:", res.status);
+    throw new Error(`Central logo fetch failed with status ${res.status}`);
+  }
+  return {
+    buffer: Buffer.from(await res.arrayBuffer()),
+    contentType: res.headers.get("content-type") ?? "image/webp",
+  };
 }

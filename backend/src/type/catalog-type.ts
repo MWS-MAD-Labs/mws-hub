@@ -36,6 +36,8 @@ export type HubCatalogEntry = {
   scope?: string;
   audience: string;
   keywords: string[];
+  // A picture from Central instead of the icon. The version is part of its address so a new picture shows at once.
+  logo?: { version: number };
   href: string | null;
   external: boolean;
   status: HubAppStatus;
