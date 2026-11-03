@@ -67,6 +67,33 @@ export type AdminDashboardData = {
   unitId: string | null;
 };
 
+export type AdminGptCodeAccount = {
+  cardId: string;
+  email: string;
+};
+
+export type AdminGptCodeTargetKind = "unit" | "job_level" | "job_position" | "building";
+
+export type AdminGptCodeTarget = { type: AdminGptCodeTargetKind; id: string; name: string };
+
+// One card's rules: every unit, job level, job position and building it is
+// offered to, and one active switch for the card.
+export type AdminGptCodeMapping = {
+  cardId: string;
+  isActive: boolean;
+  targets: AdminGptCodeTarget[];
+  updatedAt: string;
+};
+
+export type AdminGptCodeTargetOption = { id: string; label: string };
+
+export type AdminGptCodeConfiguration = {
+  accounts: AdminGptCodeAccount[];
+  mappings: AdminGptCodeMapping[];
+  targets: Record<AdminGptCodeTargetKind, AdminGptCodeTargetOption[]>;
+  centralAvailable: boolean;
+};
+
 export type AdminPaginationMeta = {
   page: number;
   pageSize: number;
@@ -133,6 +160,36 @@ export const adminApi = {
       method: "PATCH",
       body: { status },
     });
+  },
+
+  async gptCodeConfiguration(): Promise<AdminGptCodeConfiguration> {
+    const response = await apiRequest<{ data: AdminGptCodeConfiguration }>(
+      "/admin/api/gpt-code/configuration",
+    );
+    return response!.data;
+  },
+
+  // Replaces the card's whole rule set.
+  async saveGptCodeMapping(
+    cardId: string,
+    targets: { type: AdminGptCodeTargetKind; id: string }[],
+    isActive: boolean,
+  ) {
+    const response = await apiRequest<{ data: AdminGptCodeMapping }>(
+      `/admin/api/gpt-code/mappings/${encodeURIComponent(cardId)}`,
+      {
+        method: "PUT",
+        body: { targets, isActive },
+      },
+    );
+    return response!.data;
+  },
+
+  async deleteGptCodeMapping(cardId: string): Promise<void> {
+    await apiRequest(
+      `/admin/api/gpt-code/mappings/${encodeURIComponent(cardId)}`,
+      { method: "DELETE" },
+    );
   },
 
 };

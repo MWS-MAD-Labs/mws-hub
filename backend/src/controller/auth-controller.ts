@@ -86,6 +86,35 @@ async function hubAccessSummary(user: SessionVariables["user"]) {
 }
 
 async function authUserResponse(user: SessionVariables["user"]) {
+  if (user.source === "admin") {
+    return {
+      id: user.id,
+      admin_no: user.admin_no,
+      email: user.email,
+      full_name: user.full_name,
+      role: user.role,
+      avatar_url: user.avatar_url,
+      unit_id: user.unit_id,
+      job_position: user.job_position,
+      job_position_id: user.job_position_id,
+      job_level: user.job_level ?? null,
+      job_level_id: user.job_level_id,
+      building: user.building ?? null,
+      building_id: user.building_id,
+      education_level: user.education_level,
+      is_active: user.is_active,
+      last_login: user.last_login,
+      created_at: user.created_at,
+      type: "admin" as const,
+      is_protected: user.is_protected,
+      is_identifier_change_approver: user.is_identifier_change_approver,
+      is_employee_identifier_change_approver:
+        user.is_employee_identifier_change_approver,
+      is_head_of_care: user.is_head_of_care,
+      person_id: user.person_id,
+    };
+  }
+
   return {
     ...user,
     unitId: getUserUnitId(user),

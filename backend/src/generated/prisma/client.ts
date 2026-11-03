@@ -76,3 +76,8 @@ export type RefreshToken = Prisma.RefreshTokenModel
  * 
  */
 export type SsoExchangeSeen = Prisma.SsoExchangeSeenModel
+/**
+ * Model GptCodeAccessRule
+ * 
+ */
+export type GptCodeAccessRule = Prisma.GptCodeAccessRuleModel

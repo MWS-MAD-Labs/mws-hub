@@ -16,7 +16,7 @@ export const BASE_ACCESS_RULE_OPTIONS: AccessRuleOption[] = [
     // this out explicitly since "public" alone reads like the opposite in
     // most security contexts.
     label: "Semua anggota Central (tetap wajib login)",
-    hint: "Karyawan, intern dan siswa aktif yang berhasil login Google + ketemu di Central - bukan akses tanpa login/terbuka ke publik internet. Gabungan dari \"Semua karyawan\" + \"Semua intern\" + \"Semua siswa\".",
+    hint: 'Karyawan, intern dan siswa aktif yang berhasil login Google + ketemu di Central - bukan akses tanpa login/terbuka ke publik internet. Gabungan dari "Semua karyawan" + "Semua intern" + "Semua siswa".',
   },
   {
     value: "employee",
@@ -92,8 +92,10 @@ export function normalizeAccessToken(value: string): string {
 export function isValidAccessRule(rule: string): boolean {
   const trimmed = rule.trim();
   if (!trimmed) return false;
-  if (["public", "employee", "intern", "student"].includes(trimmed)) return true;
-  if (["source:employee", "source:intern", "source:student"].includes(trimmed)) return true;
+  if (["public", "employee", "intern", "student"].includes(trimmed))
+    return true;
+  if (["source:employee", "source:intern", "source:student"].includes(trimmed))
+    return true;
   if (/^[a-zA-Z0-9][a-zA-Z0-9-]*$/.test(trimmed)) return true;
 
   return VALID_PREFIXES.some(
@@ -152,8 +154,9 @@ function normalizedClaims(
 }
 
 function unitIdOf(user: HubUser): string | null {
-  if (user.source !== "employee") return user.unitId || user.unit_id || null;
-  return user.unitId || user.unit_id || null;
+  return (
+    user.unit_id || (user.source === "employee" ? user.unitId : null) || null
+  );
 }
 
 // Employees have a job position and a job level, interns a job position only.
@@ -162,8 +165,12 @@ function employeeFieldId(
   snakeKey: "job_position_id" | "job_level_id",
   camelKey: "jobPositionId" | "jobLevelId",
 ): string | null {
-  if (user.source === "employee") return user[camelKey] || user[snakeKey] || null;
-  if (user.source === "intern" && snakeKey === "job_position_id") return user.jobPositionId || user.job_position_id || null;
+  if (user.source === "employee") {
+    return user[camelKey] || user[snakeKey] || null;
+  }
+  if (user.source === "admin") return user[snakeKey] || null;
+  if (user.source === "intern" && snakeKey === "job_position_id")
+    return user.jobPositionId || user.job_position_id || null;
   return null;
 }
 
@@ -172,7 +179,10 @@ export function userMatchesAccessRule(rule: string, user: HubUser): boolean {
   if (!normalizedRule) return false;
 
   if (normalizedRule === "public") return true;
-  if (normalizedRule === user.source || normalizedRule === `source:${user.source}`) {
+  if (
+    normalizedRule === user.source ||
+    normalizedRule === `source:${user.source}`
+  ) {
     return true;
   }
 
@@ -197,8 +207,9 @@ export function userMatchesAccessRule(rule: string, user: HubUser): boolean {
 
   if (normalizedRule.startsWith("job-position-label:")) {
     return (
-      normalizeAccessToken(namedValue(user.source === "student" ? null : user.job_position) || "") ===
-      normalizeAccessToken(rule.slice("job-position-label:".length))
+      normalizeAccessToken(
+        namedValue(user.source === "student" ? null : user.job_position) || "",
+      ) === normalizeAccessToken(rule.slice("job-position-label:".length))
     );
   }
 
@@ -211,15 +222,13 @@ export function userMatchesAccessRule(rule: string, user: HubUser): boolean {
 
   if (normalizedRule.startsWith("job-level-label:")) {
     return (
-      normalizeAccessToken(namedValue(user.source === "employee" ? user.job_level : null) || "") ===
-      normalizeAccessToken(rule.slice("job-level-label:".length))
+      normalizeAccessToken(
+        namedValue(user.source === "employee" ? user.job_level : null) || "",
+      ) === normalizeAccessToken(rule.slice("job-level-label:".length))
     );
   }
 
-  const roles = normalizedClaims([
-    user.role,
-    ...(user.roles || []),
-  ]);
+  const roles = normalizedClaims([user.role, ...(user.roles || [])]);
   const permissions = normalizedClaims(user.permissions || []);
 
   if (normalizedRule.startsWith("role:")) {
@@ -227,7 +236,9 @@ export function userMatchesAccessRule(rule: string, user: HubUser): boolean {
   }
 
   if (normalizedRule.startsWith("permission:")) {
-    return permissions.has(normalizeAccessToken(rule.slice("permission:".length)));
+    return permissions.has(
+      normalizeAccessToken(rule.slice("permission:".length)),
+    );
   }
 
   if (user.source === "student") return false;
@@ -239,7 +250,7 @@ export function userMatchesAccessRule(rule: string, user: HubUser): boolean {
   ]);
 
   [
-    namedValue(user.unit),
+    namedValue(user.source === "admin" ? user.unit_id : user.unit),
     namedValue(user.job_position),
     user.source === "employee" ? namedValue(user.job_level) : null,
     user.source === "employee" ? user.employment_type : null,

@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "inter",
+        "createdAt": "2026-10-29T08:33:28.858Z",
+        "reason": "Existing Hub design system explicitly defines Inter as its global sans token and body font; GPT Code follows that incumbent typography."
+      }
+    ]
+  }
+}

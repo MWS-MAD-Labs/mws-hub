@@ -84,6 +84,19 @@ export default function ProfilePage() {
             </dl>
           )}
 
+          {"type" in user && (
+            <dl className="mt-6 space-y-2 text-sm">
+              <div className="flex justify-between">
+                <dt className="text-muted-foreground">Admin ID</dt>
+                <dd>{user.admin_no}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-muted-foreground">Unit</dt>
+                <dd>{user.unit_id || "-"}</dd>
+              </div>
+            </dl>
+          )}
+
           <button
             type="button"
             onClick={handleLogout}

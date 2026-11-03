@@ -25,3 +25,13 @@ export const AccessRequestStatus = {
 } as const
 
 export type AccessRequestStatus = (typeof AccessRequestStatus)[keyof typeof AccessRequestStatus]
+
+
+export const GptCodeTargetType = {
+  UNIT: 'UNIT',
+  JOB_LEVEL: 'JOB_LEVEL',
+  JOB_POSITION: 'JOB_POSITION',
+  BUILDING: 'BUILDING'
+} as const
+
+export type GptCodeTargetType = (typeof GptCodeTargetType)[keyof typeof GptCodeTargetType]

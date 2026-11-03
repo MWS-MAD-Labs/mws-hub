@@ -11,75 +11,25 @@ const MOBILE_SKELETON_COUNT = 15;
 // Geometry mirrors AppCard exactly, so nothing shifts when the real tiles
 // arrive.
 const AppCardSkeleton = memo(() => (
-  <div
-    className="
-      flex
-      w-full
-      min-w-0
-      flex-col
-      items-center
-      text-center
+  <>
+    <div className="flex w-full min-w-0 flex-col items-center text-center sm:hidden">
+      <Skeleton className="h-12 w-12 shrink-0 rounded-xl" />
 
-      sm:h-full
-      sm:min-h-[9.5rem]
-      sm:flex-col
-      sm:items-start
-      sm:justify-start
-      sm:gap-3
-      sm:overflow-visible
-      sm:rounded-xl
-      sm:border
-      sm:border-border/70
-      sm:bg-card/65
-      sm:p-4
-      sm:text-left
-      sm:shadow-none
-    "
-  >
-    <Skeleton
-      className="
-        h-12
-        w-12
-        shrink-0
-        rounded-xl
-
-        sm:h-12
-        sm:w-12
-        sm:rounded-xl
-      "
-    />
-
-    <div
-      className="
-        mt-1.5
-        flex
-        w-full
-        min-w-0
-        flex-col
-        items-center
-
-        sm:mt-0
-        sm:items-start
-        sm:h-full
-        sm:flex-1
-        sm:pt-0.5
-      "
-    >
-      <Skeleton className="h-2.5 w-16" />
-
-      <Skeleton
-        className="
-          mt-1
-          h-2.5
-          w-12
-
-          sm:mt-3
-          sm:h-3
-          sm:w-4/5
-        "
-      />
+      <div className="mt-1.5 flex w-full min-w-0 flex-col items-center">
+        <Skeleton className="h-2.5 w-16" />
+        <Skeleton className="mt-1 h-2.5 w-12" />
+      </div>
     </div>
-  </div>
+
+    <div className="hidden min-h-[88px] min-w-0 items-center gap-3.5 rounded-md border border-border/70 bg-card p-4 pr-3 sm:flex">
+      <Skeleton className="h-[52px] w-[52px] shrink-0 rounded-md" />
+      <div className="min-w-0 flex-1">
+        <Skeleton className="h-3.5 w-2/3" />
+        <Skeleton className="mt-2 h-3 w-4/5" />
+      </div>
+      <Skeleton className="h-8 w-8 shrink-0 rounded-md" />
+    </div>
+  </>
 ));
 
 AppCardSkeleton.displayName = "AppCardSkeleton";

@@ -8,8 +8,8 @@ function unitNameOf(user: HubUser): string | null {
 }
 
 export function getUserUnitId(user: HubUser | null | undefined): string | null {
-  if (!user || user.source !== "employee") return null;
-  return user.unitId || user.unit_id || null;
+  if (!user) return null;
+  return user.unit_id || (user.source === "employee" ? user.unitId : null) || null;
 }
 
 export function getUserUnitName(

@@ -57,7 +57,8 @@ export const ModelName = {
   AuditLog: 'AuditLog',
   UserSession: 'UserSession',
   RefreshToken: 'RefreshToken',
-  SsoExchangeSeen: 'SsoExchangeSeen'
+  SsoExchangeSeen: 'SsoExchangeSeen',
+  GptCodeAccessRule: 'GptCodeAccessRule'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -166,6 +167,20 @@ export const SsoExchangeSeenScalarFieldEnum = {
 } as const
 
 export type SsoExchangeSeenScalarFieldEnum = (typeof SsoExchangeSeenScalarFieldEnum)[keyof typeof SsoExchangeSeenScalarFieldEnum]
+
+
+export const GptCodeAccessRuleScalarFieldEnum = {
+  id: 'id',
+  card_id: 'card_id',
+  target_type: 'target_type',
+  target_id: 'target_id',
+  target_name: 'target_name',
+  is_active: 'is_active',
+  created_at: 'created_at',
+  updated_at: 'updated_at'
+} as const
+
+export type GptCodeAccessRuleScalarFieldEnum = (typeof GptCodeAccessRuleScalarFieldEnum)[keyof typeof GptCodeAccessRuleScalarFieldEnum]
 
 
 export const SortOrder = {

@@ -403,7 +403,8 @@ export const ModelName = {
   AuditLog: 'AuditLog',
   UserSession: 'UserSession',
   RefreshToken: 'RefreshToken',
-  SsoExchangeSeen: 'SsoExchangeSeen'
+  SsoExchangeSeen: 'SsoExchangeSeen',
+  GptCodeAccessRule: 'GptCodeAccessRule'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -419,7 +420,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "ssoCode" | "appReport" | "accessRequest" | "auditLog" | "userSession" | "refreshToken" | "ssoExchangeSeen"
+    modelProps: "ssoCode" | "appReport" | "accessRequest" | "auditLog" | "userSession" | "refreshToken" | "ssoExchangeSeen" | "gptCodeAccessRule"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -941,6 +942,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    GptCodeAccessRule: {
+      payload: Prisma.$GptCodeAccessRulePayload<ExtArgs>
+      fields: Prisma.GptCodeAccessRuleFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.GptCodeAccessRuleFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GptCodeAccessRulePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.GptCodeAccessRuleFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GptCodeAccessRulePayload>
+        }
+        findFirst: {
+          args: Prisma.GptCodeAccessRuleFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GptCodeAccessRulePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.GptCodeAccessRuleFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GptCodeAccessRulePayload>
+        }
+        findMany: {
+          args: Prisma.GptCodeAccessRuleFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GptCodeAccessRulePayload>[]
+        }
+        create: {
+          args: Prisma.GptCodeAccessRuleCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GptCodeAccessRulePayload>
+        }
+        createMany: {
+          args: Prisma.GptCodeAccessRuleCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.GptCodeAccessRuleCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GptCodeAccessRulePayload>[]
+        }
+        delete: {
+          args: Prisma.GptCodeAccessRuleDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GptCodeAccessRulePayload>
+        }
+        update: {
+          args: Prisma.GptCodeAccessRuleUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GptCodeAccessRulePayload>
+        }
+        deleteMany: {
+          args: Prisma.GptCodeAccessRuleDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.GptCodeAccessRuleUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.GptCodeAccessRuleUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GptCodeAccessRulePayload>[]
+        }
+        upsert: {
+          args: Prisma.GptCodeAccessRuleUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GptCodeAccessRulePayload>
+        }
+        aggregate: {
+          args: Prisma.GptCodeAccessRuleAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateGptCodeAccessRule>
+        }
+        groupBy: {
+          args: Prisma.GptCodeAccessRuleGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.GptCodeAccessRuleGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.GptCodeAccessRuleCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.GptCodeAccessRuleCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -1072,6 +1147,20 @@ export const SsoExchangeSeenScalarFieldEnum = {
 export type SsoExchangeSeenScalarFieldEnum = (typeof SsoExchangeSeenScalarFieldEnum)[keyof typeof SsoExchangeSeenScalarFieldEnum]
 
 
+export const GptCodeAccessRuleScalarFieldEnum = {
+  id: 'id',
+  card_id: 'card_id',
+  target_type: 'target_type',
+  target_id: 'target_id',
+  target_name: 'target_name',
+  is_active: 'is_active',
+  created_at: 'created_at',
+  updated_at: 'updated_at'
+} as const
+
+export type GptCodeAccessRuleScalarFieldEnum = (typeof GptCodeAccessRuleScalarFieldEnum)[keyof typeof GptCodeAccessRuleScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -1200,6 +1289,27 @@ export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'In
  * Reference to a field of type 'Int[]'
  */
 export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
+    
+
+
+/**
+ * Reference to a field of type 'GptCodeTargetType'
+ */
+export type EnumGptCodeTargetTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GptCodeTargetType'>
+    
+
+
+/**
+ * Reference to a field of type 'GptCodeTargetType[]'
+ */
+export type ListEnumGptCodeTargetTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GptCodeTargetType[]'>
+    
+
+
+/**
+ * Reference to a field of type 'Boolean'
+ */
+export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
     
 
 
@@ -1374,6 +1484,7 @@ export type GlobalOmitConfig = {
   userSession?: Prisma.UserSessionOmit
   refreshToken?: Prisma.RefreshTokenOmit
   ssoExchangeSeen?: Prisma.SsoExchangeSeenOmit
+  gptCodeAccessRule?: Prisma.GptCodeAccessRuleOmit
 }
 
 /* Types for Logging */

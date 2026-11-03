@@ -46,6 +46,9 @@ export type EmployeeLookupResponse = {
   job_level: string | CentralNamedRef | null;
   job_level_id?: string | null;
   jobLevelId?: string | null;
+  building?: string | CentralNamedRef | null;
+  building_id?: string | null;
+  buildingId?: string | null;
   // Central's own job_level.is_teaching_role flag - the same signal
   // mws-mtss-system/mws-daily-checkin gate teacher-vs-staff on (see their
   // jobLevelRoleMapping.js). Gating MTSS access on this instead of a
@@ -94,15 +97,44 @@ export type InternLookupResponse = {
   job_position_id?: string | null;
   jobPositionId?: string | null;
   building?: string | null;
+  building_id?: string | null;
+  buildingId?: string | null;
   join_date?: string | null;
   end_date?: string | null;
   status: string;
 } & CentralAccessClaims;
 
+export type AdminLookupResponse = {
+  id: string;
+  admin_no: string;
+  email: string;
+  full_name: string;
+  role: string;
+  avatar_url: string | null;
+  unit_id: string | null;
+  job_position: string | null;
+  job_position_id: string | null;
+  job_level?: string | CentralNamedRef | null;
+  job_level_id: string | null;
+  building?: string | CentralNamedRef | null;
+  building_id: string | null;
+  education_level: string | null;
+  is_active: boolean;
+  last_login: string | null;
+  created_at: string;
+  type: "admin";
+  is_protected: boolean;
+  is_identifier_change_approver: boolean;
+  is_employee_identifier_change_approver: boolean;
+  is_head_of_care: boolean;
+  person_id: string;
+} & CentralAccessClaims;
+
 export type HubUser =
   | ({ source: "employee" } & EmployeeLookupResponse)
   | ({ source: "intern" } & InternLookupResponse)
-  | ({ source: "student" } & StudentLookupResponse);
+  | ({ source: "student" } & StudentLookupResponse)
+  | ({ source: "admin" } & AdminLookupResponse);
 
 export type HubSource = HubUser["source"];
 

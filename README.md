@@ -65,6 +65,12 @@ Routes:
   URL or mints an RS256 relay token for that app's SSO endpoint. Needs
   `HUB_SSO_PRIVATE_KEY`; each satellite app needs the matching public key for
   verification, not any shared signing secret.
+- `GET /admin/api/gpt-code/accounts`, `GET /admin/api/gpt-code/accounts/:cardId`
+  and `POST /admin/api/gpt-code/accounts/:cardId/code` - admin-only bridge to
+  the GPT Code Apps Script Gmail adapter. Hub signs every upstream request with
+  HMAC-SHA256; the Apps Script URL and secret never reach the browser. Code
+  responses are marked `private, no-store`, and audit logs record the actor and
+  card id without recording the OTP.
 - Apps with `sso_central_entitlement_app_id` also require an active Central
   application entitlement. Missing/inactive entitlements deny launch, and any
   Central error fails closed. The entitlement snapshot is included in the
@@ -138,6 +144,100 @@ Routes:
 The applications come from Central: name, icon, address, category, scope, who may open them, and how the card looks (status and keywords) are all changed there (Application Access). The Hub has no catalog and no catalog editor: a card exists only while Central publishes the application, and an address can only come from Central.
 
 The admin area is three pages. **Dashboard** (`GET /admin/api/overview`) shows the health of the Hub (Central answers, the Hub secret and sign-in key are there, every published application answers), launch activity from the audit trail (per application, with refused launches and why) and open reports. **Broken Tools** is the queue of problems people reported from a card. **Audit Logs** can be filtered by action, date and any word (an application id or a person's email).
+
+## GPT Code Apps Script adapter
+
+The Apps Script deployment remains responsible only for searching its Gmail
+mailbox. Hub owns the UI, unit-to-account mapping, authorization and audit
+trail. Configure the backend with:
+
+```text
+GPT_CODE_APPS_SCRIPT_URL=https://script.google.com/macros/s/.../exec
+GPT_CODE_APPS_SCRIPT_SECRET=<same value as the Apps Script HUB_HMAC_SECRET property>
+```
+
+`URL_DEPLOYMENT`, `HUB_HMAC_SECRET` and `HUB_API_SECRET` are accepted as
+compatibility aliases. `GPT_CODE_APPS_SCRIPT_TIMEOUT_MS` optionally changes
+the 15-second upstream timeout, capped at 30 seconds.
+
+Run `bunx prisma migrate deploy` in `backend` before deploying the updated Hub.
+The `20261029090000_add_gpt_code_unit_mappings` migration stores the mapping
+between each Central unit and one fixed GPT card (A1-A5).
+
+An admin configures those mappings at `/admin/gpt-code`. Staff open GPT Code
+from its normal Hub catalog card and are sent to `/gpt-code`; the backend
+refreshes their identity from Central and exposes only the account assigned to
+their current unit. Students, inactive mappings and unmapped units are denied.
+The browser never receives the Apps Script URL or shared secret.
+
+Hub endpoints:
+
+- `GET /api/gpt-code/account` returns the signed-in staff member's assigned
+  account after a fresh Central unit check.
+- `POST /api/gpt-code/code` retrieves the latest code for that assignment,
+  applies a short per-user cooldown and writes an audit event without storing
+  the OTP, email subject or mailbox address.
+- `GET /admin/api/gpt-code/configuration` and the mapping `PUT`/`DELETE`
+  endpoints power the admin screen. All `/admin/api/gpt-code/*` routes require
+  Hub admin access.
+
+### GPT Code Gmail API single-mailbox test
+
+The Gmail API test path is intentionally separate from Hub's ordinary Google
+login and from the A1-A5 Apps Script mapping. Apps Script remains the default.
+To select the test path, configure the backend with:
+
+```text
+GPT_CODE_PROVIDER=gmail
+GPT_CODE_GMAIL_CLIENT_ID=<dedicated OAuth client id>
+GPT_CODE_GMAIL_CLIENT_SECRET=<dedicated OAuth client secret>
+GPT_CODE_GMAIL_REFRESH_TOKEN=<offline refresh token for asror@millennia21.id>
+GPT_CODE_GMAIL_MAILBOX=asror@millennia21.id
+GPT_CODE_GMAIL_FRESHNESS_MINUTES=15
+GPT_CODE_GMAIL_TIMEOUT_MS=15000
+```
+
+The client secret and refresh token are secrets: put them in the deployment's
+backend secret/environment store, never in source control, frontend variables,
+logs, screenshots, tickets, or chat. The client id, mailbox, scope, and callback
+URL are not credentials, though the mailbox should still be treated as internal
+information. `GPT_CODE_GMAIL_FRESHNESS_MINUTES` defaults to 15 and is capped at
+60; the timeout defaults to 15 seconds and is capped at 30 seconds.
+
+External Google setup (not performed by this repository):
+
+1. In the MWS Google Cloud project, enable **Gmail API**.
+2. Configure the OAuth consent screen as **Internal** for the Millennia Workspace
+   organization.
+3. Create a dedicated **Web application** OAuth client. When using Google's
+   OAuth 2.0 Playground to perform the one-time authorization, add exactly
+   `https://developers.google.com/oauthplayground` as an authorized redirect URI.
+4. In OAuth 2.0 Playground settings, enable **Use your own OAuth credentials**
+   and enter the dedicated client id and secret. Set **Access type** to
+   **Offline** and enable **Force prompt: Consent screen**. Select only
+   `https://www.googleapis.com/auth/gmail.readonly`, authorize while signed in
+   as `asror@millennia21.id`, and exchange the authorization code for tokens.
+   This consent is the one-time `access_type=offline` / `prompt=consent` flow
+   needed to issue a refresh token.
+5. Move the refresh token directly into the backend secret/environment store.
+   Do not send it through Hub APIs or paste it into source files. Workspace may
+   require an administrator to approve the Internal app or restricted scope.
+6. Set `GPT_CODE_PROVIDER=gmail` only in the test environment and restart the
+   backend. Set it back to `apps-script` (or remove it) to roll back immediately.
+
+With Gmail selected, the existing `GET /api/gpt-code/account` and
+`POST /api/gpt-code/code` routes are reused. They still require a valid Hub
+session and a fresh Central identity, and this phase additionally requires the
+signed-in Central email to equal `asror@millennia21.id`. The Gmail refresh token
+is checked against the Gmail profile before messages are searched. Clients
+cannot submit a mailbox, recipient, or Gmail query. Email bodies and subjects
+are never returned or written to the audit log.
+
+To verify a real OTP, sign in to Hub as `asror@millennia21.id`, request a login
+code from ChatGPT for that same address, then open `/gpt-code` and choose **Get
+verification code** within 15 minutes. A successful response proves the live
+Google configuration; automated tests use mocked Gmail responses and do not
+prove live mailbox access. No database migration is needed for this test path.
 
 ## Secret between the Hub and an application
 

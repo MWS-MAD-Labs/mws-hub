@@ -15,6 +15,7 @@ describe("service worker navigation denylist", () => {
       "/apps/exima/launch",
       "/admin/dashboard-data",
       "/admin/api/x",
+      "/api/gpt-code/account",
       "/env.js",
     ]) {
       expect(denied(path)).toBe(true);
@@ -31,5 +32,6 @@ describe("service worker navigation denylist", () => {
     expect(NETWORK_ONLY_PREFIXES).toContain("/mtss");
     expect(NETWORK_ONLY_PREFIXES).toContain("/daily-checkin");
     expect(NETWORK_ONLY_PREFIXES).toContain("/sso");
+    expect(NETWORK_ONLY_PREFIXES).toContain("/api");
   });
 });

@@ -173,3 +173,38 @@ model SsoExchangeSeen {
 
   @@map("sso_exchange_seen")
 }
+
+// Hub-owned authorization for the GPT Code feature. Central remains the
+// source of truth for a person's unit; this table only says which fixed
+// Apps Script card (A1-A5) that unit may use. Neither the browser nor the
+// Apps Script decides this mapping.
+// What a GPT Code account (card A1-A5) is offered to. One row per target, so
+// a card can serve several units, job levels, job positions and buildings,
+// and one target can be on several cards. A person matches a card when any
+// of their Central ids (unit, job level, job position, building) is listed.
+enum GptCodeTargetType {
+  UNIT
+  JOB_LEVEL
+  JOB_POSITION
+  BUILDING
+}
+
+model GptCodeAccessRule {
+  id String @id @default(cuid())
+
+  card_id     String
+  target_type GptCodeTargetType
+  target_id   String
+  // Central's name at the time it was saved, for the admin screen and audit.
+  target_name String
+  // Shared by all of a card's rules: the admin screen saves a card at once.
+  is_active   Boolean @default(true)
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@unique([card_id, target_type, target_id])
+  @@index([target_type, target_id])
+  @@index([is_active])
+  @@map("gpt_code_access_rules")
+}

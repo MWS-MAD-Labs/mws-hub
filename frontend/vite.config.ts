@@ -108,6 +108,7 @@ export default defineConfig({
       "/auth": { target: API_TARGET, changeOrigin: true },
       "/apps": { target: API_TARGET, changeOrigin: true },
       "/sso": { target: API_TARGET, changeOrigin: true },
+      "/api": { target: API_TARGET, changeOrigin: true },
       "/admin/dashboard-data": { target: API_TARGET, changeOrigin: true },
       "/admin/api": { target: API_TARGET, changeOrigin: true },
       "/.well-known": { target: API_TARGET, changeOrigin: true },

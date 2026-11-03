@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, mock, spyOn } from "bun:test";
 import * as centralClient from "../lib/central-client";
 import { isHubAdmin } from "../lib/admin-access";
 import { clearHubAccessCacheForTest } from "../lib/hub-access-gate";
@@ -38,6 +38,8 @@ const KEYS = ["HUB_CENTRAL_ACCESS_MODE", "HUB_CENTRAL_ACCESS_BYPASS_EMAILS", "HU
 beforeEach(() => clearHubAccessCacheForTest());
 afterEach(() => {
   for (const key of KEYS) delete process.env[key];
+  // The Central spies would otherwise stay for the test files after this one.
+  mock.restore();
 });
 
 describe("isHubAdmin", () => {

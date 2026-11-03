@@ -10,7 +10,7 @@ import AdminFieldLabel from "@/admin/components/ui/AdminFieldLabel";
 import { adminApi, type AdminAuditLog, type AdminPaginationMeta } from "@/admin/api/adminApi";
 import { cn } from "@/lib/utils";
 
-const ACTION_LABELS: Record<string, string> = { "application.create": "Create app", "application.update": "Update app", "application.delete": "Delete app", "app_report.update_status": "Update report", "access_request.update_status": "Update access", "application.launch": "Launch app", "auth.login": "Sign in", "auth.logout": "Sign out", "hub.login_denied": "Login denied" };
+const ACTION_LABELS: Record<string, string> = { "application.create": "Create app", "application.update": "Update app", "application.delete": "Delete app", "app_report.update_status": "Update report", "access_request.update_status": "Update access", "application.launch": "Launch app", "auth.login": "Sign in", "auth.logout": "Sign out", "hub.login_denied": "Login denied", "gpt_code.fetch": "Fetch GPT code", "gpt_code.mapping_update": "Update GPT mapping", "gpt_code.mapping_delete": "Delete GPT mapping" };
 const formatDate = (value: string) => new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 type RangePreset = "today" | "this_week" | "this_month" | "last_month" | "custom";
 const toDateOnly = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;

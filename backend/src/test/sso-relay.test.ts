@@ -98,7 +98,11 @@ describe("hubSsoJwks / mintRelayToken with a valid key", () => {
     const token = await mintRelayToken(
       { id: "person-1", email: "someone@millennia21.id" },
       { appId: "daily-checkin", entryUrl: "https://app.millenniaws.sch.id/auth/sso" },
-      { source: "employee", tags: ["public", "employee", "staff", "teacher"] },
+      {
+        source: "employee",
+        tags: ["public", "employee", "staff", "teacher"],
+        unitId: "unit-junior-high",
+      },
     );
 
     const [headerPart, payloadPart] = token.split(".");
@@ -116,6 +120,7 @@ describe("hubSsoJwks / mintRelayToken with a valid key", () => {
     expect(payload.exp - payload.iat).toBe(30);
     expect(payload.source).toBe("employee");
     expect(payload.tags).toEqual(["public", "employee", "staff", "teacher"]);
+    expect(payload.unit_id).toBe("unit-junior-high");
   });
 
   it("produces a signature the published public key actually verifies", async () => {

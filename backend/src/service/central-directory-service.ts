@@ -5,6 +5,7 @@ export type CentralAccessRuleOptions = {
   units: AccessRuleOption[];
   jobPositions: AccessRuleOption[];
   jobLevels: AccessRuleOption[];
+  buildings: AccessRuleOption[];
 };
 
 function byLabel(a: AccessRuleOption, b: AccessRuleOption) {
@@ -33,6 +34,7 @@ export class CentralDirectoryService {
     const units = new Map<string, AccessRuleOption>();
     const jobPositions = new Map<string, AccessRuleOption>();
     const jobLevels = new Map<string, AccessRuleOption>();
+    const buildings = new Map<string, AccessRuleOption>();
 
     for (const employee of employees) {
       const unit = labelOf(employee.unit);
@@ -71,12 +73,21 @@ export class CentralDirectoryService {
           ? `Central job_level_id: ${employee.job_level_id}`
           : "Central job_level name.",
       );
+
+      // Id only: a building is matched by Central's building_id, never by name.
+      addOption(
+        buildings,
+        employee.building_id ? `building:${employee.building_id}` : null,
+        labelOf(employee.building),
+        `Central building_id: ${employee.building_id}`,
+      );
     }
 
     return {
       units: [...units.values()].sort(byLabel),
       jobPositions: [...jobPositions.values()].sort(byLabel),
       jobLevels: [...jobLevels.values()].sort(byLabel),
+      buildings: [...buildings.values()].sort(byLabel),
     };
   }
 }
