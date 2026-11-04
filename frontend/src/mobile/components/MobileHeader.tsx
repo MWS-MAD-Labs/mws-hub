@@ -2,6 +2,7 @@ import { memo } from "react";
 import { Link } from "react-router-dom";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import type { HubUser } from "@/model/hub-model";
+import { cn } from "@/lib/utils";
 import { getGreeting } from "@/mobile/utils/Greeting";
 import InstallAppButton from "@/features/fragments/InstallAppButton";
 
@@ -15,10 +16,16 @@ const initialsOf = (user?: HubUser): string =>
 
 type MobileHeaderProps = {
   user?: HubUser;
+  className?: string;
 };
 
-const MobileHeader = memo(({ user }: MobileHeaderProps) => (
-  <header className="sticky top-0 z-[var(--layer-sticky)] border-b border-border/50 bg-background/92 backdrop-blur-xl sm:hidden">
+const MobileHeader = memo(({ user, className }: MobileHeaderProps) => (
+  <header
+    className={cn(
+      "sticky top-0 z-[var(--layer-sticky)] border-b border-border/50 bg-background/92 backdrop-blur-xl sm:hidden",
+      className,
+    )}
+  >
     <div className="flex h-14 items-center gap-3 px-4">
       <Link
         to="/profile"

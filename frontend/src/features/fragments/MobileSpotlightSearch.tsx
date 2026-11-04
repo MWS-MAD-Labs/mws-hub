@@ -50,7 +50,7 @@ const MobileSpotlightSearch = memo(
     };
 
     return (
-      <div className="pointer-events-none fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] z-[var(--layer-floating)] px-4 sm:hidden">
+      <div className="pointer-events-none fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] z-[var(--layer-floating)] px-4">
         {isExpanded && (
           <button
             type="button"
