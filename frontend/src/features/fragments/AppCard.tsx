@@ -191,10 +191,21 @@ const AppCard = memo(
               className={cn(
                 "flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl ring-1 ring-border/55 shadow-[0_2px_8px_rgba(15,23,42,0.08)]",
                 getCategoryTone(app.category),
+                // A logo has its own colors, so it sits on white instead of the category color.
+                app.logo && "bg-white",
                 !isOpenable && "grayscale opacity-60",
               )}
             >
-              <Icon className="h-5 w-5" strokeWidth={1.8} />
+              {app.logo ? (
+                <img
+                  src={`${env.hubApiBaseUrl}/apps/${encodeURIComponent(app.id)}/logo?v=${app.logo.version}`}
+                  alt=""
+                  className="h-full w-full object-contain p-1"
+                  loading="lazy"
+                />
+              ) : (
+                <Icon className="h-5 w-5" strokeWidth={1.8} />
+              )}
             </span>
           </span>
           <div className="mt-1 flex w-full min-w-0 flex-col items-center justify-center gap-0.5">
