@@ -1,11 +1,8 @@
 import { memo } from "react";
 import AppCard from "./AppCard";
+import MobileSpotlightSearch from "./MobileSpotlightSearch";
 import CategoryFilter from "./CategoryFilter";
 import HubEmptyState from "./HubEmptyState";
-import HubIntro from "./HubIntro";
-import HubSearch from "./HubSearch";
-import MobileSpotlightSearch from "./MobileSpotlightSearch";
-import GptCodeCard from "./GptCodeCard";
 import useGptCodeAccess from "@/features/gpt-code/useGptCodeAccess";
 import {
   MOBILE_LAUNCHER_PAGE_CLASS,
@@ -51,40 +48,32 @@ const MobileAppLauncher = memo(
     onRequestAccess,
     onReportProblem,
   }: MobileAppLauncherProps) => {
-    // GPT Code is Hub's own feature, offered by Hub's answer, not Central's
-    // catalog. Its card shows only on the unfiltered view, or when the search
-    // names it, so it never sits in a result list it does not belong to.
+    // GPT Code has no tile in the grid: the bottom bar carries its button.
     const hasGptCode = useGptCodeAccess();
-    const normalizedQuery = query.trim().toLowerCase();
-    const showGptCodeCard =
-      hasGptCode &&
-      activeCategory === "all" &&
-      activeScope === "all" &&
-      (!normalizedQuery ||
-        ["gpt code", "chatgpt verification code"].some((label) =>
-          label.includes(normalizedQuery),
-        ));
 
     return (
-      <section
-        className="relative flex h-full min-h-0 flex-col overflow-hidden pb-[calc(env(safe-area-inset-bottom)+4.75rem)] pt-1 sm:grid sm:h-auto sm:min-h-[calc(100vh-4rem)] sm:grid-cols-1 sm:overflow-visible sm:pb-0 sm:pt-0 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-stretch"
-      >
-        <aside
-          className="contents sm:relative sm:order-2 sm:grid sm:grid-cols-2 sm:gap-4 sm:border-t sm:border-border/70 sm:p-8 lg:block lg:min-w-0 lg:border-l lg:border-t-0 lg:bg-muted/20 lg:p-0"
-          aria-label="Hub updates"
-        >
-          <div className="contents lg:block lg:h-full lg:overflow-hidden lg:px-3 lg:py-3">
-            <div className="contents lg:flex lg:w-full lg:flex-col lg:gap-3">
-              <BirthdayList />
-              <Announcements className="hidden sm:block sm:mb-0" />
-            </div>
-          </div>
-        </aside>
+      <section className="relative flex h-full min-h-0 flex-col overflow-hidden pb-[calc(env(safe-area-inset-bottom)+4.75rem)] pt-1">
+        <BirthdayList />
 
-        <div
-          className={`${MOBILE_LAUNCHER_SCROLLER_CLASS} sm:order-1 sm:overflow-visible py-10 sm:px-6 sm:py-8 lg:px-8 lg:py-10 xl:pr-10 xl:pl-[max(2.5rem,calc((100vw-100rem)/2+2.5rem))]`}
-        >
-          <div className="flex items-baseline gap-1.5 px-1 pt-1 sm:hidden">
+        <div className={`${MOBILE_LAUNCHER_SCROLLER_CLASS} py-10 sm:pb-6 sm:pt-3`}>
+          {/* Category and scope filters: tablet and desktop only. */}
+          <div className="mb-4 hidden space-y-1.5 px-1 sm:block">
+            <CategoryFilter
+              categories={categories}
+              activeCategory={activeCategory}
+              onSelect={onCategorySelect}
+            />
+            {scopes.length > 0 && (
+              <CategoryFilter
+                categories={scopes}
+                activeCategory={activeScope}
+                onSelect={onScopeSelect}
+                label="Application scopes"
+              />
+            )}
+          </div>
+
+          <div className="flex items-baseline gap-1.5 px-1 pt-1">
             <h2 className="text-xs font-semibold text-muted-foreground">
               Your Apps
             </h2>
@@ -93,52 +82,8 @@ const MobileAppLauncher = memo(
             </span>
           </div>
 
-          <div className="hidden sm:block">
-            {user && <HubIntro user={user} />}
-
-            <div className="mt-5 max-w-2xl">
-              <HubSearch query={query} onQueryChange={onQueryChange} />
-            </div>
-
-            <div className="mt-3 space-y-1.5">
-              <CategoryFilter
-                categories={categories}
-                activeCategory={activeCategory}
-                onSelect={onCategorySelect}
-              />
-              {scopes.length > 0 && (
-                <CategoryFilter
-                  categories={scopes}
-                  activeCategory={activeScope}
-                  onSelect={onScopeSelect}
-                  label="Application scopes"
-                />
-              )}
-            </div>
-
-            <div className="mt-8">
-              <h2 className="text-base font-semibold tracking-[-0.01em] text-foreground">
-                Apps
-              </h2>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {apps.length} applications available to your account
-              </p>
-            </div>
-          </div>
-
-          {apps.length === 0 && showGptCodeCard && (
-            // The GPT Code card is tablet/desktop only; mobile still needs
-            // its empty state when no catalog app matches.
-            <div className="flex min-h-36 items-center justify-center rounded-lg border border-dashed border-border/60 bg-card/50 text-sm font-medium text-muted-foreground sm:hidden">
-              No apps found
-            </div>
-          )}
-
-          {apps.length > 0 || showGptCodeCard ? (
-            <div
-              className={`${MOBILE_LAUNCHER_PAGE_CLASS} sm:mt-4 sm:grid-cols-[repeat(auto-fill,minmax(280px,1fr))] sm:justify-items-stretch sm:gap-3 sm:px-0 sm:pb-0 sm:pt-0`}
-            >
-              {showGptCodeCard && <GptCodeCard />}
+          {apps.length > 0 ? (
+            <div className={MOBILE_LAUNCHER_PAGE_CLASS}>
               {apps.map((app) => (
                 <AppCard
                   key={app.id}
@@ -153,7 +98,7 @@ const MobileAppLauncher = memo(
               <div className="flex min-h-36 items-center justify-center rounded-lg border border-dashed border-border/60 bg-card/50 text-sm font-medium text-muted-foreground sm:hidden">
                 No apps found
               </div>
-              <div className="hidden sm:mt-4 sm:block">
+              <div className="mb-2 mt-3 hidden sm:block">
                 <HubEmptyState
                   variant="no-results"
                   query={query}
@@ -163,7 +108,7 @@ const MobileAppLauncher = memo(
             </>
           )}
 
-          <Announcements className="sm:hidden" />
+          <Announcements />
         </div>
 
         <MobileSpotlightSearch

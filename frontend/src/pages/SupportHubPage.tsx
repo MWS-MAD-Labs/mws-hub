@@ -3,7 +3,6 @@ import type { FormEvent } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Dialog } from "radix-ui";
-import HubHeader from "@/features/fragments/HubHeader";
 import MobileAppLauncher from "@/features/fragments/MobileAppLauncher";
 import HubEmptyState from "@/features/fragments/HubEmptyState";
 import { AppCardSkeletonGrid } from "@/features/fragments/AppCardSkeleton";
@@ -278,43 +277,23 @@ const SupportHubPage = memo(() => {
 
   const isSettled = !isLoading && !hasError;
   const showEmptyCatalog = isSettled && !hasCatalog;
-  const isAdmin = isMadLabsUser(user);
 
   return (
-    <div className="h-screen overflow-hidden bg-background text-foreground sm:h-auto sm:min-h-screen sm:overflow-visible">
-      <MobileHeader user={user ? toHubUser(user) : undefined} />
-      <div className="hidden sm:block">
-        <HubHeader
-          user={user ? toHubUser(user) : undefined}
-          isAdmin={isAdmin}
-        />
-      </div>
+    <div className="mx-auto  w-full  overflow-hidden bg-background text-foreground">
+      <MobileHeader
+        user={user ? toHubUser(user) : undefined}
+        className="sm:block"
+        isAdmin={isMadLabsUser(user)}
+      />
 
-      <main
-        className="
-  flex
-  h-[calc(100svh-3.5rem)]
-  w-full
-  flex-col
-  overflow-hidden
-  px-4
-  pb-0
-  pt-4
-
-  sm:block
-  sm:h-auto
-  sm:overflow-visible
-  sm:px-0
-  sm:py-0
-"
-      >
-        <section className="min-h-0 flex-1 sm:block sm:h-auto">
+      <main className="mx-auto flex h-[calc(100svh-3.5rem)] w-full max-w-7xl flex-col overflow-hidden px-4 pb-0 pt-4">
+        <section className="min-h-0 flex-1">
           {isLoading && <AppCardSkeletonGrid />}
 
           {hasError && <HubEmptyState variant="error" onAction={retry} />}
 
           {showEmptyCatalog && (
-            <div className="pt-20 sm:pt-0">
+            <div className="pt-20">
               <HubEmptyState variant="no-apps" supportEmail={SUPPORT_EMAIL} />
             </div>
           )}

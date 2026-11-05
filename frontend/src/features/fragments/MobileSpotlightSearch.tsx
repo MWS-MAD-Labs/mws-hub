@@ -50,7 +50,7 @@ const MobileSpotlightSearch = memo(
     };
 
     return (
-      <div className="pointer-events-none fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] z-[var(--layer-floating)] px-4 sm:hidden">
+      <div className="pointer-events-none fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] z-[var(--layer-floating)] px-4">
         {isExpanded && (
           <button
             type="button"
@@ -60,7 +60,7 @@ const MobileSpotlightSearch = memo(
           />
         )}
 
-        <div className="pointer-events-auto relative z-10 mx-auto flex h-14 max-w-sm items-center gap-2 rounded-full border border-white/40 bg-card/70 px-2 shadow-[0_16px_40px_rgba(15,23,42,0.18)] backdrop-blur-2xl dark:border-white/10 dark:bg-card/60">
+        <div className="pointer-events-auto relative z-10 mx-auto flex h-14 max-w-sm items-center gap-2 sm:max-w-2xl rounded-full border border-white/40 bg-card/70 px-2 shadow-[0_16px_40px_rgba(15,23,42,0.18)] backdrop-blur-2xl dark:border-white/10 dark:bg-card/60">
           {/* Left actions */}
           <div className="flex shrink-0 items-center gap-1">
             <div className="[&_button]:h-10 [&_button]:w-10 [&_svg]:h-5 [&_svg]:w-5">
