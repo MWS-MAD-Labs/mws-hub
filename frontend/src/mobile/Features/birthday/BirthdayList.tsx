@@ -123,20 +123,21 @@ const BirthdayList = memo(({ className }: BirthdayListProps) => {
       <section
         className={cn(
           "mx-1 mb-3 shrink-0 rounded-lg border border-border/60 bg-card/95 px-3 py-2.5 shadow-sm",
+          "sm:mx-0 sm:mb-0 sm:rounded-xl sm:p-6",
           className,
         )}
       >
         <div className="flex items-center gap-2">
-          <span className="flex h-7 w-7 items-center justify-center rounded-md border border-primary/15 bg-primary/10 text-primary">
-            <Cake className="h-3.5 w-3.5" />
+          <span className="flex h-7 w-7 items-center justify-center rounded-md border border-primary/15 bg-primary/10 text-primary sm:h-9 sm:w-9 sm:rounded-lg">
+            <Cake className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           </span>
 
-          <div className="min-w-0">
-            <h2 className="text-sm font-semibold leading-tight text-card-foreground">
+          <div className="min-w-0 sm:ml-1">
+            <h2 className="text-sm font-semibold leading-tight text-card-foreground sm:text-base">
               Birthdays
             </h2>
 
-            <p className="text-[11px] leading-tight text-muted-foreground">
+            <p className="text-[11px] leading-tight text-muted-foreground sm:mt-0.5 sm:text-[13px]">
               Upcoming from Central
             </p>
           </div>
@@ -144,43 +145,43 @@ const BirthdayList = memo(({ className }: BirthdayListProps) => {
           <button
             type="button"
             onClick={() => setIsModalOpen(true)}
-            className="ml-auto shrink-0 rounded-md border border-primary/15 bg-primary/5 px-2.5 py-1 text-[10px] font-semibold text-primary transition-colors hover:bg-primary/10"
+            className="ml-auto shrink-0 rounded-md border border-primary/15 bg-primary/5 px-2.5 py-1 text-[10px] font-semibold text-primary transition-colors hover:bg-primary/10 sm:px-3 sm:py-1.5 sm:text-xs"
           >
             All Birthday
           </button>
         </div>
 
         {isLoading && (
-          <div className="mt-2 flex items-center gap-2 rounded-md bg-muted/35 px-3 py-1.5 text-xs font-medium text-muted-foreground">
+          <div className="mt-2 flex items-center gap-2 rounded-md bg-muted/35 px-3 py-1.5 text-xs font-medium text-muted-foreground sm:mt-4 sm:py-2 sm:text-[15px]">
             <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
             Loading birthdays
           </div>
         )}
 
         {!isLoading && hasError && (
-          <p className="mt-2 rounded-md bg-muted/35 px-3 py-1.5 text-xs font-medium text-muted-foreground">
+          <p className="mt-2 rounded-md bg-muted/35 px-3 py-1.5 text-xs font-medium text-muted-foreground sm:mt-4 sm:py-2 sm:text-[15px]">
             Birthdays are unavailable right now
           </p>
         )}
 
         {!isLoading && !hasError && birthdays.length === 0 && (
-          <p className="mt-2 rounded-md bg-muted/35 px-3 py-1.5 text-xs font-medium text-muted-foreground">
+          <p className="mt-2 rounded-md bg-muted/35 px-3 py-1.5 text-xs font-medium text-muted-foreground sm:mt-4 sm:py-2 sm:text-[15px]">
             No upcoming birthdays
           </p>
         )}
 
         {!isLoading && !hasError && visibleBirthdays.length > 0 && (
-          <div className="mt-2 flex snap-x snap-mandatory gap-2 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="mt-2 flex snap-x snap-mandatory gap-2 overflow-x-auto sm:mt-4 sm:gap-3 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {visibleBirthdays.map((birthday) => (
               <article
                 key={birthday.id}
-                className={`grid shrink-0 snap-start grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2 gap-y-1 rounded-md border border-border/50 bg-background/80 px-2 py-1.5 ${
+                className={`grid shrink-0 snap-start grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2 gap-y-1 rounded-md border border-border/50 bg-background/80 px-2 py-1.5 sm:gap-x-3 sm:rounded-lg sm:px-3 sm:py-2.5 ${
                   visibleBirthdays.length === 1
                     ? "w-full"
                     : "w-[13.5rem] max-w-[85%]"
                 }`}
               >
-                <Avatar className="row-span-2 h-8 w-8">
+                <Avatar className="row-span-2 h-8 w-8 sm:h-10 sm:w-10">
                   {birthday.photo_url && (
                     <AvatarImage src={birthday.photo_url} alt="" />
                   )}
@@ -191,16 +192,16 @@ const BirthdayList = memo(({ className }: BirthdayListProps) => {
                 </Avatar>
 
                 <div className="min-w-0">
-                  <p className="truncate text-xs font-semibold text-foreground">
+                  <p className="truncate text-xs font-semibold text-foreground sm:text-[15px]">
                     {birthday.name}
                   </p>
 
-                  <p className="text-[10px] font-medium text-muted-foreground">
+                  <p className="text-[10px] font-medium text-muted-foreground sm:text-[13px]">
                     {dateLabelOf(birthday.birthday)}
                   </p>
                 </div>
 
-                <span className="w-fit max-w-full truncate rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-semibold text-primary">
+                <span className="w-fit max-w-full truncate rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-semibold text-primary sm:px-2 sm:text-[11px]">
                   {relativeLabelOf(birthday)}
                 </span>
               </article>

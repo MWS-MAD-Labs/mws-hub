@@ -12,7 +12,7 @@ const MOBILE_SKELETON_COUNT = 15;
 const AppCardSkeleton = memo(() => (
   <>
     <div className="flex w-full min-w-0 flex-col items-center text-center">
-      <Skeleton className="h-12 w-12 shrink-0 rounded-xl" />
+      <Skeleton className="h-12 w-12 shrink-0 rounded-xl sm:h-[72px] sm:w-[72px] sm:rounded-2xl" />
 
       <div className="mt-1.5 flex w-full min-w-0 flex-col items-center">
         <Skeleton className="h-2.5 w-16" />

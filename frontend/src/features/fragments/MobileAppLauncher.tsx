@@ -52,12 +52,12 @@ const MobileAppLauncher = memo(
     const hasGptCode = useGptCodeAccess();
 
     return (
-      <section className="relative flex h-full min-h-0 flex-col overflow-hidden pb-[calc(env(safe-area-inset-bottom)+4.75rem)] pt-1">
+      <section className="relative flex h-full min-h-0 flex-col overflow-hidden pb-[calc(env(safe-area-inset-bottom)+4.75rem)] pt-1 sm:h-auto sm:gap-8 sm:overflow-visible sm:pb-0 sm:pt-0">
         <BirthdayList />
 
-        <div className={`${MOBILE_LAUNCHER_SCROLLER_CLASS} py-10 sm:pb-6 sm:pt-3`}>
+        <div className={`${MOBILE_LAUNCHER_SCROLLER_CLASS} py-10 sm:contents`}>
           {/* Category and scope filters: tablet and desktop only. */}
-          <div className="mb-4 hidden space-y-1.5 px-1 sm:block">
+          <div className="mb-4 hidden space-y-1.5 px-1 sm:mb-0 sm:block sm:px-0">
             <CategoryFilter
               categories={categories}
               activeCategory={activeCategory}
@@ -73,40 +73,44 @@ const MobileAppLauncher = memo(
             )}
           </div>
 
-          <div className="flex items-baseline gap-1.5 px-1 pt-1">
-            <h2 className="text-xs font-semibold text-muted-foreground">
-              Your Apps
-            </h2>
-            <span className="text-[10px] font-medium text-muted-foreground/70">
-              {apps.length}
-            </span>
-          </div>
-
-          {apps.length > 0 ? (
-            <div className={MOBILE_LAUNCHER_PAGE_CLASS}>
-              {apps.map((app) => (
-                <AppCard
-                  key={app.id}
-                  app={app}
-                  onRequestAccess={onRequestAccess}
-                  onReportProblem={onReportProblem}
-                />
-              ))}
+          {/* Heading and grid stay one block, so the 32px section gap
+              does not open up between them. */}
+          <div>
+            <div className="flex items-baseline gap-1.5 px-1 pt-1 sm:px-0 sm:pt-0">
+              <h2 className="text-xs font-semibold text-muted-foreground sm:text-base">
+                Your Apps
+              </h2>
+              <span className="text-[10px] font-medium text-muted-foreground/70 sm:text-sm">
+                {apps.length}
+              </span>
             </div>
-          ) : (
-            <>
-              <div className="flex min-h-36 items-center justify-center rounded-lg border border-dashed border-border/60 bg-card/50 text-sm font-medium text-muted-foreground sm:hidden">
-                No apps found
+
+            {apps.length > 0 ? (
+              <div className={MOBILE_LAUNCHER_PAGE_CLASS}>
+                {apps.map((app) => (
+                  <AppCard
+                    key={app.id}
+                    app={app}
+                    onRequestAccess={onRequestAccess}
+                    onReportProblem={onReportProblem}
+                  />
+                ))}
               </div>
-              <div className="mb-2 mt-3 hidden sm:block">
-                <HubEmptyState
-                  variant="no-results"
-                  query={query}
-                  onAction={onClearFilters}
-                />
-              </div>
-            </>
-          )}
+            ) : (
+              <>
+                <div className="flex min-h-36 items-center justify-center rounded-lg border border-dashed border-border/60 bg-card/50 text-sm font-medium text-muted-foreground sm:hidden">
+                  No apps found
+                </div>
+                <div className="mb-2 mt-3 hidden sm:mb-0 sm:mt-4 sm:block">
+                  <HubEmptyState
+                    variant="no-results"
+                    query={query}
+                    onAction={onClearFilters}
+                  />
+                </div>
+              </>
+            )}
+          </div>
 
           <Announcements />
         </div>
