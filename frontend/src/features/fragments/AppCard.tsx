@@ -149,7 +149,7 @@ const AppCard = memo(
     // "Don't show this again". Modified clicks (new tab, etc.) stay native.
     const handleTileClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
       if (!isPlainLeftClick(event)) return;
-      if (shouldSkipAppDetail()) {
+      if (shouldSkipAppDetail(app.id)) {
         void handleLaunchClick(event);
         return;
       }
@@ -163,7 +163,7 @@ const AppCard = memo(
     const handleOpenFromDetail = (
       event: React.MouseEvent<HTMLAnchorElement>,
     ) => {
-      if (dontShowAgain) setSkipAppDetail(true);
+      if (dontShowAgain) setSkipAppDetail(app.id, true);
       void handleLaunchClick(event);
       // Close after the click: on touch devices the link navigates natively,
       // and a link removed from the page mid-click navigates nowhere.

@@ -10,27 +10,27 @@ import { isMadLabsUser } from "@/lib/admin-access";
 import MobileSpotlightSearch from "@/features/fragments/MobileSpotlightSearch";
 import useGptCodeAccess from "@/features/gpt-code/useGptCodeAccess";
 import {
-  setSkipAppDetail,
-  shouldSkipAppDetail,
+  clearSkippedAppDetails,
+  skippedAppDetailCount,
 } from "@/features/fragments/appDetailPreference";
 
 export default function ProfilePage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const hasGptCode = useGptCodeAccess();
-  const [showAppDetails, setShowAppDetails] = useState(
-    () => !shouldSkipAppDetail(),
+  const [hiddenAppDetailCount, setHiddenAppDetailCount] = useState(
+    skippedAppDetailCount,
   );
 
   if (!user) return null;
 
-  function toggleAppDetails() {
-    const next = !showAppDetails;
-    if (!setSkipAppDetail(!next)) {
+  function resetAppDetails() {
+    if (!clearSkippedAppDetails()) {
       toast.error("Couldn't save this preference in this browser");
       return;
     }
-    setShowAppDetails(next);
+    setHiddenAppDetailCount(0);
+    toast.success("App detail popups restored");
   }
 
   const hubUser = toHubUser(user);
@@ -120,33 +120,22 @@ export default function ProfilePage() {
           <div className="mt-6 border-t border-border/60 pt-4">
             <div className="flex items-center gap-4">
               <div className="min-w-0 flex-1">
-                <p id="pref-app-details" className="text-sm font-medium">
-                  Show app details before opening
+                <p className="text-sm font-medium">
+                  App detail popups
                 </p>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  Tapping an app in the Hub shows its details first.
+                  {hiddenAppDetailCount > 0
+                    ? `${hiddenAppDetailCount} ${hiddenAppDetailCount === 1 ? "app is" : "apps are"} set to open directly.`
+                    : "Every app will show its details before opening."}
                 </p>
               </div>
               <button
                 type="button"
-                role="switch"
-                aria-checked={showAppDetails}
-                aria-labelledby="pref-app-details"
-                onClick={toggleAppDetails}
-                className="flex h-11 w-14 shrink-0 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                onClick={resetAppDetails}
+                disabled={hiddenAppDetailCount === 0}
+                className="min-h-11 shrink-0 rounded-lg border border-border/60 px-3 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                <span
-                  aria-hidden="true"
-                  className={`relative block h-7 w-12 rounded-full transition-colors motion-reduce:transition-none ${
-                    showAppDetails ? "bg-primary" : "bg-muted-foreground/30"
-                  }`}
-                >
-                  <span
-                    className={`absolute left-0 top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform motion-reduce:transition-none ${
-                      showAppDetails ? "translate-x-[22px]" : "translate-x-0.5"
-                    }`}
-                  />
-                </span>
+                Reset
               </button>
             </div>
           </div>

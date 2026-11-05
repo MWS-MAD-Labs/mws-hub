@@ -183,13 +183,8 @@ const SupportHubPage = memo(() => {
     query,
     visibleApplications,
     hasCatalog,
-    categories,
-    activeCategory,
     scopes,
-    activeScope,
-    setScope,
     setQuery,
-    setCategory,
     clearFilters,
     retry,
   } = useHubCatalog();
@@ -302,15 +297,10 @@ const SupportHubPage = memo(() => {
             <>
               <MobileAppLauncher
                 apps={visibleApplications}
-                categories={categories}
-                activeCategory={activeCategory}
                 scopes={scopes}
-                activeScope={activeScope}
                 query={query}
                 user={user ? toHubUser(user) : undefined}
                 onQueryChange={setQuery}
-                onCategorySelect={setCategory}
-                onScopeSelect={setScope}
                 onClearFilters={clearFilters}
                 onReportProblem={handleReportProblem}
               />

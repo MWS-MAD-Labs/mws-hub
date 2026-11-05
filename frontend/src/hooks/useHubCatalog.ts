@@ -29,13 +29,8 @@ export type UseHubCatalogResult = {
   visibleApplications: HubApplication[];
   availableApplications: HubApplication[];
   hasCatalog: boolean;
-  categories: HubCategoryFilterOption[];
-  activeCategory: string;
   scopes: HubCategoryFilterOption[];
-  activeScope: string;
-  setScope: (id: string) => void;
   setQuery: (value: string) => void;
-  setCategory: (id: string) => void;
   clearFilters: () => void;
   retry: () => void;
 };
@@ -86,8 +81,6 @@ export default function useHubCatalog(): UseHubCatalogResult {
 
   const query = normalize(searchParams.get("q") || "");
   const rawQuery = searchParams.get("q") || "";
-  const activeCategory = searchParams.get("cat") || ALL_CATEGORY;
-  const activeScope = searchParams.get("scope") || ALL_CATEGORY;
 
   const updateParams = useCallback(
     (patch: Record<string, string>) => {
@@ -107,8 +100,6 @@ export default function useHubCatalog(): UseHubCatalogResult {
   );
 
   const setQuery = useCallback((value: string) => updateParams({ q: value }), [updateParams]);
-  const setCategory = useCallback((id: string) => updateParams({ cat: id }), [updateParams]);
-  const setScope = useCallback((id: string) => updateParams({ scope: id }), [updateParams]);
   const clearFilters = useCallback(() => updateParams({ q: "", cat: "", scope: "" }), [updateParams]);
 
   const retry = useCallback(() => {
@@ -132,55 +123,22 @@ export default function useHubCatalog(): UseHubCatalogResult {
     [applications],
   );
 
-  // Counts follow the search but ignore the selected category, so the row
-  // keeps saying how much is behind each tab. Counting after the category
-  // filter would zero out every tab except the open one, which turns the
-  // counts into noise and hides where the rest of the results went.
-  // Each row's counts follow the search and the other row, but not its own selection.
-  const inScope = useMemo(
-    () => (activeScope === ALL_CATEGORY ? searchable : searchable.filter((app) => app.scope === activeScope)),
-    [searchable, activeScope],
-  );
-  const inCategory = useMemo(
-    () => (activeCategory === ALL_CATEGORY ? searchable : searchable.filter((app) => app.category === activeCategory)),
-    [searchable, activeCategory],
-  );
-
-  const categories = useMemo(() => {
-    const tally = new Map<string, number>();
-    inScope.forEach((app) => tally.set(app.category, (tally.get(app.category) || 0) + 1));
-
-    return [
-      { id: ALL_CATEGORY, label: "All", count: inScope.length },
-      ...taxonomy.categories.map((category) => ({
-        id: category.key,
-        label: category.name,
-        count: tally.get(category.key) || 0,
-      })),
-      // An empty bucket still shows, greyed by its own zero. Tabs that come
-      // and go as you type make the row jump around and cost more than the
-      // space they save.
-    ];
-  }, [inScope, taxonomy.categories]);
-
-  // Only offered once at least one application has a scope, so the row does not sit there empty.
+  // Scopes are section metadata now, not a second filtering axis. Apps stay
+  // visible together and each non-empty scope becomes a divider in the list.
   const scopes = useMemo(() => {
     if (!applications.some((app) => app.scope)) return [];
     const tally = new Map<string, number>();
-    inCategory.forEach((app) => app.scope && tally.set(app.scope, (tally.get(app.scope) || 0) + 1));
+    searchable.forEach((app) => app.scope && tally.set(app.scope, (tally.get(app.scope) || 0) + 1));
     return [
-      { id: ALL_CATEGORY, label: "All scopes", count: inCategory.length },
+      { id: ALL_CATEGORY, label: "All scopes", count: searchable.length },
       ...taxonomy.scopes.map((scope) => ({ id: scope.key, label: scope.name, count: tally.get(scope.key) || 0 })),
     ];
-  }, [applications, inCategory, taxonomy.scopes]);
+  }, [applications, searchable, taxonomy.scopes]);
 
-  const visibleApplications = useMemo(
-    () => (activeScope === ALL_CATEGORY ? inCategory : inCategory.filter((app) => app.scope === activeScope)),
-    [inCategory, activeScope],
-  );
+  const visibleApplications = searchable;
 
   const hasCatalog = !isLoading && !hasError && applications.length > 0;
-  const isFiltering = Boolean(query) || activeCategory !== ALL_CATEGORY || activeScope !== ALL_CATEGORY;
+  const isFiltering = Boolean(query);
 
   return {
     isLoading,
@@ -190,13 +148,8 @@ export default function useHubCatalog(): UseHubCatalogResult {
     visibleApplications,
     availableApplications,
     hasCatalog,
-    categories,
-    activeCategory,
     scopes,
-    activeScope,
-    setScope,
     setQuery,
-    setCategory,
     clearFilters,
     retry,
   };
