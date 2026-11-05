@@ -11,6 +11,7 @@ import useHubCatalog from "@/hooks/useHubCatalog";
 import type { HubApplication } from "@/model/hub-model";
 import { toHubUser } from "@/model/auth-model";
 import { useAuth } from "@/features/auth/hooks/useAuth";
+import { isMadLabsUser } from "@/lib/admin-access";
 import { apiRequest } from "@/lib/api";
 import { getOverlayRoot } from "@/components/overlays/portal";
 
@@ -182,7 +183,14 @@ const SupportHubPage = memo(() => {
     query,
     visibleApplications,
     hasCatalog,
+    categories,
+    activeCategory,
+    scopes,
+    activeScope,
+    setScope,
     setQuery,
+    setCategory,
+    clearFilters,
     retry,
   } = useHubCatalog();
 
@@ -271,15 +279,14 @@ const SupportHubPage = memo(() => {
   const showEmptyCatalog = isSettled && !hasCatalog;
 
   return (
-    // Desktop renders the exact mobile layout, centred in a phone-width
-    // column, so both screens show the same Hub.
-    <div className="mx-auto h-[100svh] w-full max-w-md overflow-hidden bg-background text-foreground sm:border-x sm:border-border/50">
+    <div className="mx-auto  w-full  overflow-hidden bg-background text-foreground">
       <MobileHeader
         user={user ? toHubUser(user) : undefined}
         className="sm:block"
+        isAdmin={isMadLabsUser(user)}
       />
 
-      <main className="flex h-[calc(100svh-3.5rem)] w-full flex-col overflow-hidden px-4 pb-0 pt-4">
+      <main className="mx-auto flex h-[calc(100svh-3.5rem)] w-full max-w-7xl flex-col overflow-hidden px-4 pb-0 pt-4">
         <section className="min-h-0 flex-1">
           {isLoading && <AppCardSkeletonGrid />}
 
@@ -295,9 +302,16 @@ const SupportHubPage = memo(() => {
             <>
               <MobileAppLauncher
                 apps={visibleApplications}
+                categories={categories}
+                activeCategory={activeCategory}
+                scopes={scopes}
+                activeScope={activeScope}
                 query={query}
                 user={user ? toHubUser(user) : undefined}
                 onQueryChange={setQuery}
+                onCategorySelect={setCategory}
+                onScopeSelect={setScope}
+                onClearFilters={clearFilters}
                 onReportProblem={handleReportProblem}
               />
             </>

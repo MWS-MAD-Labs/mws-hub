@@ -1,5 +1,6 @@
 import { memo } from "react";
 import { Link } from "react-router-dom";
+import { LayoutDashboard } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import type { HubUser } from "@/model/hub-model";
 import { cn } from "@/lib/utils";
@@ -17,9 +18,11 @@ const initialsOf = (user?: HubUser): string =>
 type MobileHeaderProps = {
   user?: HubUser;
   className?: string;
+  // Shows the Admin Dashboard button (tablet and desktop only).
+  isAdmin?: boolean;
 };
 
-const MobileHeader = memo(({ user, className }: MobileHeaderProps) => (
+const MobileHeader = memo(({ user, className, isAdmin }: MobileHeaderProps) => (
   <header
     className={cn(
       "sticky top-0 z-[var(--layer-sticky)] border-b border-border/50 bg-background/92 backdrop-blur-xl sm:hidden",
@@ -48,7 +51,25 @@ const MobileHeader = memo(({ user, className }: MobileHeaderProps) => (
         </p>
       </div>
 
-      <InstallAppButton variant="compact" />
+      {isAdmin && (
+        <Link
+          to="/admin"
+          className="hidden h-10 shrink-0 items-center gap-1.5 rounded-lg border border-border/70 px-3 text-xs font-medium text-muted-foreground transition-colors hover:border-border hover:bg-muted/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:inline-flex"
+        >
+          <LayoutDashboard className="h-4 w-4" aria-hidden="true" />
+          Admin Dashboard
+        </Link>
+      )}
+
+      {/* Icon-only on phones, the labelled "Install App" button from tablet up.
+          `contents` keeps an empty wrapper out of the flex gap when the
+          browser offers no install prompt. */}
+      <span className="contents sm:hidden">
+        <InstallAppButton variant="compact" />
+      </span>
+      <span className="hidden sm:contents">
+        <InstallAppButton />
+      </span>
     </div>
   </header>
 ));
