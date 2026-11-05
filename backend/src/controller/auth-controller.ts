@@ -8,6 +8,7 @@ import { frontendOrigin } from "../lib/frontend-origin";
 import { logger } from "../lib/logger";
 import { verifySession } from "../lib/session";
 import { sessionCookieOptions } from "../lib/session-cookie";
+import { sessionSecondsLeft } from "../lib/session-expiry";
 import { AppsService } from "../service/apps-service";
 import { revokeSessionsForUser } from "../lib/session-revocation";
 import { recordAuditLog } from "../service/audit-log-service";
@@ -165,7 +166,7 @@ export class AuthController {
     const cookieName = process.env.SESSION_COOKIE_NAME || "hub_session";
     setCookie(c, cookieName, token, {
       ...cookieOptions(),
-      maxAge: 60 * 60 * 8,
+      maxAge: sessionSecondsLeft(),
     });
 
     await startSharedSession(c, user);
@@ -217,7 +218,7 @@ export class AuthController {
 
     setCookie(c, cookieName, token, {
       ...cookieOptions(),
-      maxAge: 60 * 60 * 8,
+      maxAge: sessionSecondsLeft(),
     });
 
     await startSharedSession(c, user);

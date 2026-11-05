@@ -5,6 +5,7 @@ import type { HubSource, HubUser } from "../type/central-type";
 import type { HubAccessSource } from "../type/catalog-type";
 import { prisma } from "./prisma";
 import { signHubJwt } from "./sso-relay";
+import { MIN_SESSION_SECONDS, sessionEndsAt } from "./session-expiry";
 
 // The session every app shares, made of two cookies:
 //  - the access token (hub_at): a short RS256 token on the parent domain, so every app can read it and check it
@@ -49,7 +50,12 @@ export const hubConfig = () => ({
   issuer: ISSUER,
 });
 export const accessTtlSeconds = () => numberFrom(process.env.HUB_ACCESS_TTL_SECONDS, 300);
-const refreshTtlSeconds = () => numberFrom(process.env.HUB_REFRESH_TTL_SECONDS, 8 * 60 * 60);
+// The refresh family lives as long as the Hub sign-in: until the end of the
+// working week. HUB_REFRESH_TTL_SECONDS, when set, still overrides it.
+const refreshExpiresAt = (): Date =>
+  process.env.HUB_REFRESH_TTL_SECONDS
+    ? new Date(Date.now() + numberFrom(process.env.HUB_REFRESH_TTL_SECONDS, MIN_SESSION_SECONDS) * 1000)
+    : sessionEndsAt();
 // Empty on localhost, where cookies are shared between ports anyway.
 const cookieDomain = () => process.env.HUB_COOKIE_DOMAIN?.trim().replace(/^\./, "") || undefined;
 const refreshCookiePath = () => process.env.HUB_REFRESH_COOKIE_PATH || "/auth";
@@ -166,7 +172,7 @@ export async function startFamily(person: { id: string; source: string }, sessio
   expiresAt: Date;
 }> {
   const familyId = randomUUID();
-  const expiresAt = new Date(Date.now() + refreshTtlSeconds() * 1000);
+  const expiresAt = refreshExpiresAt();
   const token = await createToken({
     family_id: familyId,
     central_id: person.id,
