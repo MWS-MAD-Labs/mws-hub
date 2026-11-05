@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -6,12 +7,31 @@ import HubHeader from "@/features/fragments/HubHeader";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { toHubUser } from "@/model/auth-model";
 import { isMadLabsUser } from "@/lib/admin-access";
+import MobileSpotlightSearch from "@/features/fragments/MobileSpotlightSearch";
+import useGptCodeAccess from "@/features/gpt-code/useGptCodeAccess";
+import {
+  setSkipAppDetail,
+  shouldSkipAppDetail,
+} from "@/features/fragments/appDetailPreference";
 
 export default function ProfilePage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const hasGptCode = useGptCodeAccess();
+  const [showAppDetails, setShowAppDetails] = useState(
+    () => !shouldSkipAppDetail(),
+  );
 
   if (!user) return null;
+
+  function toggleAppDetails() {
+    const next = !showAppDetails;
+    if (!setSkipAppDetail(!next)) {
+      toast.error("Couldn't save this preference in this browser");
+      return;
+    }
+    setShowAppDetails(next);
+  }
 
   const hubUser = toHubUser(user);
   const initials = hubUser.name
@@ -36,7 +56,7 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-background text-foreground">
       <HubHeader user={hubUser} isAdmin={isAdmin} />
 
-      <main className="mx-auto max-w-md px-4 py-10 sm:px-6">
+      <main className="mx-auto max-w-md px-4 pb-32 pt-10 sm:px-6">
         <div className="rounded-2xl border border-border/60 bg-card p-6">
           <div className="flex items-center gap-4">
             <Avatar className="h-14 w-14">
@@ -97,6 +117,40 @@ export default function ProfilePage() {
             </dl>
           )}
 
+          <div className="mt-6 border-t border-border/60 pt-4">
+            <div className="flex items-center gap-4">
+              <div className="min-w-0 flex-1">
+                <p id="pref-app-details" className="text-sm font-medium">
+                  Show app details before opening
+                </p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Tapping an app in the Hub shows its details first.
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={showAppDetails}
+                aria-labelledby="pref-app-details"
+                onClick={toggleAppDetails}
+                className="flex h-11 w-14 shrink-0 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <span
+                  aria-hidden="true"
+                  className={`relative block h-7 w-12 rounded-full transition-colors motion-reduce:transition-none ${
+                    showAppDetails ? "bg-primary" : "bg-muted-foreground/30"
+                  }`}
+                >
+                  <span
+                    className={`absolute left-0 top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform motion-reduce:transition-none ${
+                      showAppDetails ? "translate-x-[22px]" : "translate-x-0.5"
+                    }`}
+                  />
+                </span>
+              </button>
+            </div>
+          </div>
+
           <button
             type="button"
             onClick={handleLogout}
@@ -107,6 +161,14 @@ export default function ProfilePage() {
           </button>
         </div>
       </main>
+
+      <MobileSpotlightSearch
+        query=""
+        user={hubUser}
+        onQueryChange={() => {}}
+        showGptCode={hasGptCode}
+        searchOnHub
+      />
     </div>
   );
 }

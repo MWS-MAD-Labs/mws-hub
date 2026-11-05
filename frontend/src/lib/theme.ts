@@ -25,6 +25,38 @@ export const persistTheme = (theme: Theme): void => {
   }
 };
 
+// The browser/OS status bar takes its color from <meta name="theme-color">.
+// Keep it equal to the page background (the header's color) for the active
+// theme, so the status bar and header read as one surface.
+const STATUS_BAR_FALLBACK: Record<Theme, string> = {
+  light: "#f9f7f6",
+  dark: "#0e121b",
+};
+
+const syncStatusBarColor = (theme: Theme): void => {
+  let color = STATUS_BAR_FALLBACK[theme];
+  try {
+    const background = getComputedStyle(document.documentElement).getPropertyValue("--background").trim();
+    // A canvas turns any CSS color (hsl, oklch, ...) into #rrggbb, which every browser accepts here.
+    const context = background ? document.createElement("canvas").getContext("2d") : null;
+    if (context) {
+      context.fillStyle = color;
+      context.fillStyle = background;
+      color = String(context.fillStyle);
+    }
+  } catch {
+    // keep the fallback
+  }
+
+  let meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+  if (!meta) {
+    meta = document.createElement("meta");
+    meta.name = "theme-color";
+    document.head.appendChild(meta);
+  }
+  meta.content = color;
+};
+
 export const applyThemePreference = (theme: Theme): void => {
   if (typeof document === "undefined") return;
   const root = document.documentElement;
@@ -32,6 +64,7 @@ export const applyThemePreference = (theme: Theme): void => {
   root.classList.toggle("dark", next === "dark");
   root.dataset.theme = next;
   root.style.setProperty("color-scheme", next === "dark" ? "dark" : "light");
+  syncStatusBarColor(next);
 };
 
 export const getThemeIncantation = (theme: Theme): string => (theme === "dark" ? "Nox" : "Lumos Maxima");

@@ -1,6 +1,6 @@
 import { memo, useEffect, useRef, useState } from "react";
-import { Link, NavLink } from "react-router-dom";
-import { Search, X } from "lucide-react";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
+import { Home, Search, X } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import ThemeToggle from "./ThemeToggle";
@@ -12,7 +12,12 @@ type MobileSpotlightSearchProps = {
   onQueryChange: (value: string) => void;
   /** Tampilkan tombol GPT Code hanya untuk user yang punya akses. */
   showGptCode?: boolean;
+
+  searchOnHub?: boolean;
 };
+
+// Set by a page that sends the user to the Hub to search.
+type HubSearchState = { openSearch?: boolean } | null;
 
 const initialsOf = (user?: HubUser): string =>
   String(user?.name || "?")
@@ -31,9 +36,40 @@ const MobileSpotlightSearch = memo(
     user,
     onQueryChange,
     showGptCode = true,
+    searchOnHub = false,
   }: MobileSpotlightSearchProps) => {
-    const [isExpanded, setIsExpanded] = useState(false);
+    const location = useLocation();
+    const navigate = useNavigate();
+    const [isExpanded, setIsExpanded] = useState(
+      () =>
+        !searchOnHub && Boolean((location.state as HubSearchState)?.openSearch),
+    );
     const inputRef = useRef<HTMLInputElement>(null);
+
+    // Forget the "open search" request once used, so a reload or Back does
+    // not open the search again.
+    useEffect(() => {
+      if (!searchOnHub && (location.state as HubSearchState)?.openSearch) {
+        navigate(`${location.pathname}${location.search}`, {
+          replace: true,
+          state: null,
+        });
+      }
+    }, [
+      searchOnHub,
+      location.state,
+      location.pathname,
+      location.search,
+      navigate,
+    ]);
+
+    const openSearch = () => {
+      if (searchOnHub) {
+        navigate("/support-hub", { state: { openSearch: true } });
+        return;
+      }
+      setIsExpanded(true);
+    };
 
     useEffect(() => {
       if (isExpanded) inputRef.current?.focus();
@@ -63,9 +99,25 @@ const MobileSpotlightSearch = memo(
         <div className="pointer-events-auto relative z-10 mx-auto flex h-14 max-w-sm items-center gap-2 sm:max-w-[420px] rounded-full border border-white/40 bg-card/70 px-2 shadow-[0_16px_40px_rgba(15,23,42,0.18)] backdrop-blur-2xl dark:border-white/10 dark:bg-card/60">
           {/* Left actions */}
           <div className="flex shrink-0 items-center gap-1">
-            <div className="[&_button]:h-10 [&_button]:w-10 [&_svg]:h-5 [&_svg]:w-5">
-              <ThemeToggle />
-            </div>
+            {searchOnHub ? (
+              // Off the Hub the first slot leads back home instead of
+              // switching the theme.
+              <Link
+                to="/support-hub"
+                aria-label="Back to Hub"
+                title="Back to Hub"
+                className={cn(
+                  ICON_BUTTON,
+                  "text-muted-foreground hover:bg-muted/70 hover:text-foreground",
+                )}
+              >
+                <Home className="h-5 w-5" aria-hidden="true" />
+              </Link>
+            ) : (
+              <div className="[&_button]:h-10 [&_button]:w-10 [&_svg]:h-5 [&_svg]:w-5">
+                <ThemeToggle />
+              </div>
+            )}
 
             {showGptCode && (
               <NavLink
@@ -102,7 +154,7 @@ const MobileSpotlightSearch = memo(
             <button
               type="button"
               aria-label="Search applications"
-              onClick={() => setIsExpanded(true)}
+              onClick={openSearch}
               className={cn(
                 "flex h-full items-center gap-2 text-foreground",
                 isExpanded ? "shrink-0" : "min-w-0 flex-1",
@@ -145,17 +197,24 @@ const MobileSpotlightSearch = memo(
           </div>
 
           {/* Profile */}
-          <Link
+          <NavLink
             to="/profile"
             aria-label="Open profile"
-            className={cn(ICON_BUTTON, "p-0")}
+            className={({ isActive }) =>
+              cn(
+                ICON_BUTTON,
+                "p-0",
+                isActive &&
+                  "ring-2 ring-primary ring-offset-2 ring-offset-card",
+              )
+            }
           >
             <Avatar className="h-10 w-10">
               <AvatarFallback className="text-xs">
                 {initialsOf(user)}
               </AvatarFallback>
             </Avatar>
-          </Link>
+          </NavLink>
         </div>
       </div>
     );

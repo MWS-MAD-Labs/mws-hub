@@ -279,14 +279,14 @@ const SupportHubPage = memo(() => {
   const showEmptyCatalog = isSettled && !hasCatalog;
 
   return (
-    <div className="mx-auto  w-full  overflow-hidden bg-background text-foreground">
+    <div className="mx-auto w-full overflow-hidden bg-background text-foreground sm:overflow-visible">
       <MobileHeader
         user={user ? toHubUser(user) : undefined}
-        className="sm:block"
+        className="sm:block sm:bg-background sm:backdrop-blur-none"
         isAdmin={isMadLabsUser(user)}
       />
 
-      <main className="mx-auto flex h-[calc(100svh-3.5rem)] w-full flex-col overflow-hidden px-4 pb-0 pt-4 sm:block sm:h-auto sm:max-w-[880px] sm:overflow-visible sm:px-8 sm:pb-32 sm:pt-10 sm:text-[15px]">
+      <main className="mx-auto flex h-[calc(100svh-3.5rem)] w-full flex-col overflow-hidden px-4 pb-0 pt-4 sm:block sm:h-auto sm:max-w-[880px] sm:overflow-visible sm:px-8 sm:pb-32 sm:pt-6 sm:text-sm">
         <section className="min-h-0 flex-1">
           {isLoading && <AppCardSkeletonGrid />}
 

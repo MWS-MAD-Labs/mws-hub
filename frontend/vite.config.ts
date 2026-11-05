@@ -35,8 +35,8 @@ export default defineConfig({
         scope: "/",
         display: "standalone",
         orientation: "portrait-primary",
-        theme_color: "#f8fafc",
-        background_color: "#f8fafc",
+        theme_color: "#f9f7f6",
+        background_color: "#f9f7f6",
         categories: ["education", "productivity"],
         // "any" and "maskable" are separate files on purpose: the rounded
         // "any" icon gets cropped badly when a launcher applies its own mask,

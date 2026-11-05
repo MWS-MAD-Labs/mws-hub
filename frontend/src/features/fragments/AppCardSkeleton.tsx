@@ -9,10 +9,12 @@ const MOBILE_SKELETON_COUNT = 15;
 
 // Geometry mirrors AppCard exactly, so nothing shifts when the real tiles
 // arrive.
-const AppCardSkeleton = memo(() => (
+const AppCardSkeleton = memo(({ className = "" }: { className?: string }) => (
   <>
-    <div className="flex w-full min-w-0 flex-col items-center text-center">
-      <Skeleton className="h-12 w-12 shrink-0 rounded-xl sm:h-[72px] sm:w-[72px] sm:rounded-2xl" />
+    <div
+      className={`flex w-full min-w-0 flex-col items-center text-center ${className}`}
+    >
+      <Skeleton className="h-12 w-12 shrink-0 rounded-xl sm:h-[60px] sm:w-[60px] sm:rounded-2xl" />
 
       <div className="mt-1.5 flex w-full min-w-0 flex-col items-center">
         <Skeleton className="h-2.5 w-16" />
@@ -27,7 +29,10 @@ AppCardSkeleton.displayName = "AppCardSkeleton";
 export const AppCardSkeletonGrid = memo(
   ({ count = MOBILE_SKELETON_COUNT }: { count?: number }) => {
     const skeletons = Array.from({ length: count }, (_, index) => (
-      <AppCardSkeleton key={index} />
+      <AppCardSkeleton
+        key={index}
+        className={index >= 9 ? "hidden sm:flex" : ""}
+      />
     ));
 
     return (
