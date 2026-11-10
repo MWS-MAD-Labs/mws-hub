@@ -8,11 +8,14 @@
          <head> ahead of the bundle so the order is explicit rather than
          relying on module scripts being implicitly deferred. -->
   <script src="/env.js"></script>
-  <meta name="theme-color" content="#f8fafc" />
+  <meta name="theme-color" content="#f9f7f6" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="MWS Hub" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <!-- "default" lets iOS color the installed app's status bar from theme-color
+       (kept equal to the header by lib/theme.ts) and pick a readable clock color.
+       "black-translucent" forced white text and could not follow the theme. -->
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="description" content="Millennia World School app launcher and support hub." />
   <link rel="icon" type="image/svg+xml" href="/pwa-icon.svg" />
   <link rel="icon" type="image/png" sizes="192x192" href="/pwa-192x192.png" />

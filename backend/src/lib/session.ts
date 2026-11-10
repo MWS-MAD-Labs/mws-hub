@@ -1,8 +1,7 @@
 import { sign, verify } from "hono/jwt";
 import type { HubUser } from "../type/central-type";
 import { prisma } from "./prisma";
-
-const SESSION_EXP_SECONDS = 60 * 60 * 8;
+import { sessionEndsAt } from "./session-expiry";
 
 export type SessionPayload = {
   user: HubUser;
@@ -27,7 +26,8 @@ export async function signSession(user: HubUser): Promise<string> {
   const payload: SessionPayload = {
     user,
     sessionVersion: session_version,
-    exp: Math.floor(Date.now() / 1000) + SESSION_EXP_SECONDS,
+    // Until the end of the working week (see session-expiry.ts).
+    exp: Math.floor(sessionEndsAt().getTime() / 1000),
     identityAt: Math.floor(Date.now() / 1000),
   };
   return sign(payload, process.env.JWT_SECRET!, "HS256");

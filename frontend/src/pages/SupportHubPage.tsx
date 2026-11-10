@@ -3,7 +3,6 @@ import type { FormEvent } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Dialog } from "radix-ui";
-import HubHeader from "@/features/fragments/HubHeader";
 import MobileAppLauncher from "@/features/fragments/MobileAppLauncher";
 import HubEmptyState from "@/features/fragments/HubEmptyState";
 import { AppCardSkeletonGrid } from "@/features/fragments/AppCardSkeleton";
@@ -184,13 +183,8 @@ const SupportHubPage = memo(() => {
     query,
     visibleApplications,
     hasCatalog,
-    categories,
-    activeCategory,
     scopes,
-    activeScope,
-    setScope,
     setQuery,
-    setCategory,
     clearFilters,
     retry,
   } = useHubCatalog();
@@ -278,43 +272,23 @@ const SupportHubPage = memo(() => {
 
   const isSettled = !isLoading && !hasError;
   const showEmptyCatalog = isSettled && !hasCatalog;
-  const isAdmin = isMadLabsUser(user);
 
   return (
-    <div className="h-screen overflow-hidden bg-background text-foreground sm:h-auto sm:min-h-screen sm:overflow-visible">
-      <MobileHeader user={user ? toHubUser(user) : undefined} />
-      <div className="hidden sm:block">
-        <HubHeader
-          user={user ? toHubUser(user) : undefined}
-          isAdmin={isAdmin}
-        />
-      </div>
+    <div className="mx-auto w-full overflow-hidden bg-background text-foreground sm:overflow-visible">
+      <MobileHeader
+        user={user ? toHubUser(user) : undefined}
+        className="sm:block sm:bg-background sm:backdrop-blur-none"
+        isAdmin={isMadLabsUser(user)}
+      />
 
-      <main
-        className="
-  flex
-  h-[calc(100svh-3.5rem)]
-  w-full
-  flex-col
-  overflow-hidden
-  px-4
-  pb-0
-  pt-4
-
-  sm:block
-  sm:h-auto
-  sm:overflow-visible
-  sm:px-0
-  sm:py-0
-"
-      >
-        <section className="min-h-0 flex-1 sm:block sm:h-auto">
+      <main className="mx-auto flex h-[calc(100svh-3.5rem)] w-full flex-col overflow-hidden px-4 pb-0 pt-4 sm:block sm:h-auto sm:max-w-[880px] sm:overflow-visible sm:px-8 sm:pb-32 sm:pt-6 sm:text-sm">
+        <section className="min-h-0 flex-1">
           {isLoading && <AppCardSkeletonGrid />}
 
           {hasError && <HubEmptyState variant="error" onAction={retry} />}
 
           {showEmptyCatalog && (
-            <div className="pt-20 sm:pt-0">
+            <div className="pt-20">
               <HubEmptyState variant="no-apps" supportEmail={SUPPORT_EMAIL} />
             </div>
           )}
@@ -323,15 +297,10 @@ const SupportHubPage = memo(() => {
             <>
               <MobileAppLauncher
                 apps={visibleApplications}
-                categories={categories}
-                activeCategory={activeCategory}
                 scopes={scopes}
-                activeScope={activeScope}
                 query={query}
                 user={user ? toHubUser(user) : undefined}
                 onQueryChange={setQuery}
-                onCategorySelect={setCategory}
-                onScopeSelect={setScope}
                 onClearFilters={clearFilters}
                 onReportProblem={handleReportProblem}
               />

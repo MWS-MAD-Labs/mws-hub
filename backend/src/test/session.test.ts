@@ -34,6 +34,7 @@ mock.module("../lib/prisma", () => ({
 }));
 
 const { signSession, verifySession } = await import("../lib/session");
+const { sessionEndsAt } = await import("../lib/session-expiry");
 
 const testUser: HubUser = {
   source: "employee",
@@ -63,13 +64,15 @@ describe("signSession / verifySession", () => {
     expect(session?.user).toEqual(testUser);
   });
 
-  it("sets an expiry roughly 8 hours in the future", async () => {
-    const before = Math.floor(Date.now() / 1000);
+  it("expires at the end of the working week", async () => {
+    const before = Date.now();
     const token = await signSession(testUser);
     const session = await verifySession(token);
+    const expected = Math.floor(sessionEndsAt(before).getTime() / 1000);
 
-    expect(session?.exp).toBeGreaterThan(before + 60 * 60 * 7);
-    expect(session?.exp).toBeLessThanOrEqual(before + 60 * 60 * 8 + 5);
+    // Within a few seconds of the work-week end (the 8-hour floor can drift by the test's runtime).
+    expect(session?.exp).toBeGreaterThanOrEqual(expected);
+    expect(session?.exp).toBeLessThanOrEqual(expected + 5);
   });
 
   it("returns null for a garbage token instead of throwing", async () => {

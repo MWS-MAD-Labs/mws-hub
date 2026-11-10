@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -6,12 +7,31 @@ import HubHeader from "@/features/fragments/HubHeader";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { toHubUser } from "@/model/auth-model";
 import { isMadLabsUser } from "@/lib/admin-access";
+import MobileSpotlightSearch from "@/features/fragments/MobileSpotlightSearch";
+import useGptCodeAccess from "@/features/gpt-code/useGptCodeAccess";
+import {
+  clearSkippedAppDetails,
+  skippedAppDetailCount,
+} from "@/features/fragments/appDetailPreference";
 
 export default function ProfilePage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const hasGptCode = useGptCodeAccess();
+  const [hiddenAppDetailCount, setHiddenAppDetailCount] = useState(
+    skippedAppDetailCount,
+  );
 
   if (!user) return null;
+
+  function resetAppDetails() {
+    if (!clearSkippedAppDetails()) {
+      toast.error("Couldn't save this preference in this browser");
+      return;
+    }
+    setHiddenAppDetailCount(0);
+    toast.success("App detail popups restored");
+  }
 
   const hubUser = toHubUser(user);
   const initials = hubUser.name
@@ -36,7 +56,7 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-background text-foreground">
       <HubHeader user={hubUser} isAdmin={isAdmin} />
 
-      <main className="mx-auto max-w-md px-4 py-10 sm:px-6">
+      <main className="mx-auto max-w-md px-4 pb-32 pt-10 sm:px-6">
         <div className="rounded-2xl border border-border/60 bg-card p-6">
           <div className="flex items-center gap-4">
             <Avatar className="h-14 w-14">
@@ -97,6 +117,29 @@ export default function ProfilePage() {
             </dl>
           )}
 
+          <div className="mt-6 border-t border-border/60 pt-4">
+            <div className="flex items-center gap-4">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium">
+                  App detail popups
+                </p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {hiddenAppDetailCount > 0
+                    ? `${hiddenAppDetailCount} ${hiddenAppDetailCount === 1 ? "app is" : "apps are"} set to open directly.`
+                    : "Every app will show its details before opening."}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={resetAppDetails}
+                disabled={hiddenAppDetailCount === 0}
+                className="min-h-11 shrink-0 rounded-lg border border-border/60 px-3 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                Reset
+              </button>
+            </div>
+          </div>
+
           <button
             type="button"
             onClick={handleLogout}
@@ -107,6 +150,14 @@ export default function ProfilePage() {
           </button>
         </div>
       </main>
+
+      <MobileSpotlightSearch
+        query=""
+        user={hubUser}
+        onQueryChange={() => {}}
+        showGptCode={hasGptCode}
+        searchOnHub
+      />
     </div>
   );
 }
