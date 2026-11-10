@@ -160,7 +160,10 @@ const AppCard = memo(
               {statusText}
             </span>
           ) : desktopDescription ? (
-            <span className="mt-1 block truncate text-xs text-muted-foreground">
+            <span
+              className="mt-1 line-clamp-2 break-words text-xs text-muted-foreground"
+              title={desktopDescription}
+            >
               {desktopDescription}
             </span>
           ) : null}
