@@ -61,6 +61,7 @@ export function toCentralEntry(
     name: app.name,
     icon: app.icon || "AppWindow",
     ...(app.logo ? { logo: { version: app.logo.version } } : {}),
+    ...(typeof app.icon_bg === "string" && /^#[0-9a-fA-F]{6}$/.test(app.icon_bg) ? { iconBg: app.icon_bg } : {}),
     description: app.description || "",
     category: taxonomy.categories.some((item) => item.key === category) ? category : "utilities",
     ...(taxonomy.scopes.some((item) => item.key === scope) ? { scope } : {}),

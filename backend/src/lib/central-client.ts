@@ -261,6 +261,8 @@ export type CentralPublishedApplication = {
   keywords?: string[];
   // The picture of the card, when Central has one for it. The version changes when the picture does.
   logo?: { version: number } | null;
+  // Hex colour behind the icon or logo, set in Central. Older Central versions send none.
+  icon_bg?: string | null;
   // How this application proves itself to the Hub, and the version that counts now. Older Central versions send none.
   hub_secret?: { mode: "shared" | "own"; version: number };
   // shared: the application reads the Hub's session. relay: it gets a one-time code and a token. Older Central versions send none.

@@ -7,6 +7,8 @@ export type HubApplication = {
   icon: string;
   // A picture from Central. When there is one it is shown instead of the icon.
   logo?: { version: number };
+  // Hex colour behind the icon or logo, set in Central. Without one the tile uses its default.
+  iconBg?: string;
   description: string;
   category: string;
   scope?: string;

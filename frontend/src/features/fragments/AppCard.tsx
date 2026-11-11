@@ -6,6 +6,7 @@ import { X } from "lucide-react";
 import { getOverlayRoot } from "@/components/overlays/portal";
 import { setSkipAppDetail, shouldSkipAppDetail } from "./appDetailPreference";
 import { cn } from "@/lib/utils";
+import { iconTileStyle } from "@/lib/iconBackground";
 import { getAppIcon, getCategoryTone } from "@/data/hubCategories";
 import { env } from "@/config/env";
 import { loadHiddenIframe } from "@/lib/hiddenIframe";
@@ -47,6 +48,8 @@ const AppCard = memo(
     const [isDetailOpen, setIsDetailOpen] = useState(false);
     const [dontShowAgain, setDontShowAgain] = useState(false);
     const description = app.description.trim();
+    // A colour set in Central replaces the category colour and the white behind a logo.
+    const tileStyle = iconTileStyle(app.iconBg);
 
     // Radix registers the dialog's Escape handling only after the popup has
     // painted. Listen from the moment it opens, so an early Escape closes the
@@ -190,11 +193,12 @@ const AppCard = memo(
             <span
               className={cn(
                 "flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl ring-1 sm:h-[60px] sm:w-[60px] sm:rounded-2xl ring-border/55 shadow-[0_2px_8px_rgba(15,23,42,0.08)]",
-                getCategoryTone(app.category),
+                !tileStyle && getCategoryTone(app.category),
                 // A logo has its own colors, so it sits on white instead of the category color.
-                app.logo && "bg-white",
+                !tileStyle && app.logo && "bg-white",
                 !isOpenable && "grayscale opacity-60",
               )}
+              style={tileStyle}
             >
               {logoSrc ? (
                 <img
@@ -275,9 +279,10 @@ const AppCard = memo(
                   aria-hidden="true"
                   className={cn(
                     "mx-auto mt-2 flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl ring-1 ring-border/55 shadow-[0_2px_8px_rgba(15,23,42,0.08)]",
-                    getCategoryTone(app.category),
-                    logoSrc && "bg-white",
+                    !tileStyle && getCategoryTone(app.category),
+                    !tileStyle && logoSrc && "bg-white",
                   )}
+                  style={tileStyle}
                 >
                   {logoSrc ? (
                     <img

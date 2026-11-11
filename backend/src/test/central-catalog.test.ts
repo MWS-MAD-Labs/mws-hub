@@ -118,6 +118,19 @@ describe("applications published in Central", () => {
     expect(cards.find((app) => app.id === "b")?.category).toBe("utilities");
   });
 
+  it("passes the icon background of Central to the card and drops a value that is not a hex colour", async () => {
+    spyOn(centralClient, "listPublishedApplications").mockResolvedValue([
+      published("bg-ok", { icon_bg: "#1F2A44" }),
+      published("bg-bad", { icon_bg: "url(javascript:alert(1))" }),
+      published("bg-none", { icon_bg: null }),
+    ] as never);
+    spyOn(centralClient, "lookupApplicationEntitlement").mockResolvedValue({ is_active: true } as never);
+    const cards = await AppsService.listFor(user);
+    expect(cards.find((app) => app.id === "bg-ok")?.iconBg).toBe("#1F2A44");
+    expect(cards.find((app) => app.id === "bg-bad")?.iconBg).toBeUndefined();
+    expect(cards.find((app) => app.id === "bg-none")?.iconBg).toBeUndefined();
+  });
+
   it("uses the categories and scopes Central keeps, and keeps the scope on the card", async () => {
     spyOn(centralClient, "getCentralTaxonomy").mockResolvedValue({
       categories: [{ key: "clinic", name: "Clinic" }],

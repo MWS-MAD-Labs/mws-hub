@@ -38,6 +38,8 @@ export type HubCatalogEntry = {
   keywords: string[];
   // A picture from Central instead of the icon. The version is part of its address so a new picture shows at once.
   logo?: { version: number };
+  // Hex colour behind the icon or logo, set in Central.
+  iconBg?: string;
   href: string | null;
   external: boolean;
   status: HubAppStatus;
