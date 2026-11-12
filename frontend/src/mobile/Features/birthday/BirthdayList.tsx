@@ -181,8 +181,8 @@ const BirthdayList = memo(({ className }: BirthdayListProps) => {
                 }`}
               >
                 <Avatar className="row-span-2 h-8 w-8">
-                  {birthday.photo_url && (
-                    <AvatarImage src={birthday.photo_url} alt="" />
+                  {birthday.avatar_url && (
+                    <AvatarImage src={birthday.avatar_url} alt="" />
                   )}
 
                   <AvatarFallback className="text-[10px]">

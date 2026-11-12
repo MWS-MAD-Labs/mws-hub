@@ -18,13 +18,21 @@ export class AuthService {
       throw new ResponseError(403, `Only @${allowedDomain} accounts can sign in.`);
     }
 
-    const user = await resolveCentralIdentity(payload.email);
-    if (!user) {
+    const centralUser = await resolveCentralIdentity(payload.email);
+    if (!centralUser) {
       throw new ResponseError(
         404,
         "This account isn't registered in the Central database yet.",
       );
     }
+
+    const user =
+      (centralUser.source === "employee" || centralUser.source === "intern") &&
+      !centralUser.avatar_url &&
+      !centralUser.photo_url &&
+      payload.avatar_url
+        ? { ...centralUser, avatar_url: payload.avatar_url }
+        : centralUser;
 
     // Before a session exists, so a refused person never ends anyone else's session.
     await enforceHubAccessOnLogin(user);

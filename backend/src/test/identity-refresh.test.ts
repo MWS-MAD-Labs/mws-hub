@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, it, mock, spyOn } from "bun:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, mock, spyOn } from "bun:test";
 import { Hono } from "hono";
 import { ResponseError } from "../error/response-error";
 import * as centralClient from "../lib/central-client";
@@ -47,6 +47,10 @@ const person = (extra: Partial<HubUser> = {}): HubUser =>
 
 beforeAll(() => {
   process.env.JWT_SECRET = "test-jwt-secret-for-bun-test";
+});
+
+beforeEach(() => {
+  process.env.HUB_CENTRAL_ACCESS_MODE = "off";
 });
 
 afterEach(() => {
@@ -99,6 +103,29 @@ describe("keeping the copy of the person in the session current", () => {
     expect(after.user.full_name).toBe("Renamed Employee");
     expect(after.sessionVersion).toBe(before.sessionVersion);
     expect(after.exp).toBe(before.exp);
+    lookup.mockRestore();
+  });
+
+  it("keeps the Google avatar when a refreshed Central employee has no photo", async () => {
+    const avatarUrl = "https://google.test/avatar.jpg";
+    const token = await signSession(person({ avatar_url: avatarUrl }));
+    const lookup = spyOn(centralClient, "resolveCentralIdentityById").mockResolvedValue(person());
+    const clock = later(11);
+
+    const res = await buildApp().request("/protected", {
+      headers: { Cookie: `hub_session=${token}` },
+    });
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as { data: HubUser }).data).toMatchObject({
+      avatar_url: avatarUrl,
+    });
+
+    const cookie = res.headers.get("set-cookie") ?? "";
+    const newToken = cookie.split("hub_session=")[1].split(";")[0];
+    clock.mockRestore();
+    expect((await verifySession(newToken))?.user).toMatchObject({
+      avatar_url: avatarUrl,
+    });
     lookup.mockRestore();
   });
 

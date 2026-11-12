@@ -2,6 +2,7 @@ import { describe, it, expect, afterEach, beforeAll } from "bun:test";
 import {
   centralAuthHeaders,
   listActiveEmployees,
+  listUpcomingEmployeeBirthdays,
   lookupApplicationEntitlement,
   resolveCentralIdentity,
   resolveCentralIdentityById,
@@ -323,6 +324,26 @@ describe("resolveCentralIdentity", () => {
     expect(calls).toHaveLength(1);
   });
 
+  it("normalizes an admin photo_url to avatar_url", async () => {
+    global.fetch = (async () =>
+      jsonResponse(200, {
+        data: {
+          id: "admin-2",
+          admin_no: "ADM-00002",
+          email: "asror@millennia21.id",
+          photo_url: "https://central.test/admin-photo.avif",
+        },
+      })) as unknown as typeof fetch;
+
+    const user = await resolveCentralIdentity("asror@millennia21.id");
+
+    expect(user).toMatchObject({
+      source: "admin",
+      avatar_url: "https://central.test/admin-photo.avif",
+    });
+    expect(user).not.toHaveProperty("photo_url");
+  });
+
   it("returns null for a source it does not know instead of calling it a student", async () => {
     mockAdminNotFoundThen(
       jsonResponse(200, {
@@ -517,5 +538,41 @@ describe("resolveCentralIdentity", () => {
     expect(calls[0]).toContain("/employees?page=1&size=100&status=ACTIVE");
     expect(employees[0]?.unit).toBe("Junior High");
     expect(employees[0]?.unit_id).toBe("unit-junior-high");
+  });
+
+  it("returns employee avatars as avatar_url in upcoming birthdays", async () => {
+    const today = new Date();
+    const birthDate = `2000-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    global.fetch = (async () =>
+      jsonResponse(200, {
+        success: true,
+        data: [
+          {
+            id: "emp-1",
+            employee_id: "22.22.222",
+            full_name: "Dummy Staff",
+            nick_name: "Staff",
+            email: "dummystaff@millennia21.id",
+            birth_date: birthDate,
+            photo_url: null,
+            avatar_url: "https://central.test/avatar.avif",
+            unit: "Junior High",
+            unit_id: "unit-junior-high",
+            job_position: "Homeroom Teacher",
+            job_level: "Teacher",
+            status: "ACTIVE",
+            employment_type: "CONTRACT",
+          },
+        ],
+        paging: { current_page: 1, total_page: 1 },
+      })) as unknown as typeof fetch;
+
+    const birthdays = await listUpcomingEmployeeBirthdays();
+
+    expect(birthdays[0]).toMatchObject({
+      id: "emp-1",
+      avatar_url: "https://central.test/avatar.avif",
+    });
+    expect(birthdays[0]).not.toHaveProperty("photo_url");
   });
 });

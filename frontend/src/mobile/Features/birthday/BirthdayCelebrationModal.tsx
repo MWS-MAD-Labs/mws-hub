@@ -307,8 +307,8 @@ export default function BirthdayCelebrationModal({
               </h2>
 
               <Avatar className="mt-7 h-28 w-28 border-4 border-white shadow-lg">
-                {birthday.photo_url && (
-                  <AvatarImage src={birthday.photo_url} alt="" />
+                {birthday.avatar_url && (
+                  <AvatarImage src={birthday.avatar_url} alt="" />
                 )}
                 <AvatarFallback className="bg-primary/10 text-2xl font-bold text-primary">
                   {initialsOf(birthday.name)}

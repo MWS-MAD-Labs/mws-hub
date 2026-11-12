@@ -14,6 +14,11 @@ import { logger } from "./logger";
 const baseUrl = () => process.env.CENTRAL_API_BASE_URL;
 const apiToken = () => process.env.CENTRAL_API_TOKEN;
 
+type CentralAdminLookupResponse = Omit<AdminLookupResponse, "avatar_url"> & {
+  avatar_url?: string | null;
+  photo_url?: string | null;
+};
+
 // The Hub says which Organization ID it was set up with, so Central can show whether it is the one it made.
 export function centralAuthHeaders(): Record<string, string> {
   const organization = process.env.CENTRAL_ORGANIZATION_ID?.trim();
@@ -23,10 +28,12 @@ export function centralAuthHeaders(): Record<string, string> {
   };
 }
 
-function normalizeAdmin(admin: AdminLookupResponse): Extract<HubUser, { source: "admin" }> {
+function normalizeAdmin(admin: CentralAdminLookupResponse): Extract<HubUser, { source: "admin" }> {
+  const { photo_url, ...adminFields } = admin;
   return {
     source: "admin",
-    ...admin,
+    ...adminFields,
+    avatar_url: admin.avatar_url ?? photo_url ?? null,
     type: "admin",
   };
 }
@@ -50,7 +57,7 @@ export type CentralBirthdayResponse = {
   id: string;
   name: string;
   nick_name: string | null;
-  photo_url: string | null;
+  avatar_url: string | null;
   unit: string | null;
   birthday: string;
   days_until: number;
@@ -371,7 +378,7 @@ type PersonLookupResponse =
   | ({ source: "employee" } & EmployeeLookupResponse)
   | ({ source: "intern" } & InternLookupResponse)
   | ({ source: "student" } & StudentLookupResponse)
-  | ({ type: "admin"; source?: "admin" } & AdminLookupResponse);
+  | ({ type: "admin"; source?: "admin" } & CentralAdminLookupResponse);
 
 function normalizeIntern(intern: InternLookupResponse): Extract<HubUser, { source: "intern" }> {
   const unitId = unitIdOf(intern);
@@ -466,7 +473,7 @@ function normalizeEmployee(
 export async function resolveCentralIdentity(
   email: string,
 ): Promise<HubUser | null> {
-  const admin = await lookup<AdminLookupResponse>("/admins/lookup", { email });
+  const admin = await lookup<CentralAdminLookupResponse>("/admins/lookup", { email });
   if (admin) return normalizeAdmin(admin);
 
   const person = await lookup<PersonLookupResponse>("/persons/lookup", {
@@ -518,7 +525,7 @@ export async function resolveCentralIdentityById(
   }
 
   if (source === "admin") {
-    const admin = await lookup<AdminLookupResponse>("/admins/lookup", { id });
+    const admin = await lookup<CentralAdminLookupResponse>("/admins/lookup", { id });
     return admin ? normalizeAdmin(admin) : null;
   }
 
@@ -564,7 +571,7 @@ export async function listUpcomingEmployeeBirthdays(
         id: employee.id,
         name: employee.nick_name || employee.full_name,
         nick_name: employee.nick_name,
-        photo_url: employee.photo_url,
+        avatar_url: employee.avatar_url ?? employee.photo_url,
         unit: unitNameOf(employee),
         birthday,
         days_until: daysUntil,
