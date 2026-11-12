@@ -1,6 +1,6 @@
 import { memo, useEffect, useState } from "react";
 import { Cake, LoaderCircle } from "lucide-react";
-import { Avatar, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { hubApi } from "@/features/hub/api/hubApi";
 import { cn } from "@/lib/utils";
 import type { HubBirthday } from "@/model/hub-model";
@@ -173,6 +173,7 @@ const BirthdayList = memo(({ className }: BirthdayListProps) => {
                 }`}
               >
                 <Avatar className="row-span-2 h-8 w-8 sm:h-9 sm:w-9">
+                  <AvatarFallback>{birthday.name.trim().charAt(0)}</AvatarFallback>
                   {birthday.avatar_url && (
                     <AvatarImage src={birthday.avatar_url} alt="" />
                   )}

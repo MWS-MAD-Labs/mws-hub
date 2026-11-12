@@ -1,7 +1,7 @@
 import { memo } from "react";
 import { Link } from "react-router-dom";
 import { LayoutDashboard } from "lucide-react";
-import { Avatar, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Logo from "@/assets/logo.webp";
 import type { HubUser } from "@/model/hub-model";
 import InstallAppButton from "./InstallAppButton";
@@ -44,6 +44,7 @@ const HubHeader = memo(({ user, isAdmin }: HubHeaderProps) => (
               {user?.name || "Profile"}
             </span>
             <Avatar className="h-8 w-8">
+              {user?.name && <AvatarFallback>{user.name.trim().charAt(0)}</AvatarFallback>}
               {user?.avatar_url && <AvatarImage src={user.avatar_url} alt="" />}
             </Avatar>
           </Link>

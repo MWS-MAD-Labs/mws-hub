@@ -1,7 +1,7 @@
 import { memo, useEffect, useRef, useState } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { Home, Search, X } from "lucide-react";
-import { Avatar, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import ThemeToggle from "./ThemeToggle";
 import type { HubUser } from "@/model/hub-model";
@@ -202,6 +202,7 @@ const MobileSpotlightSearch = memo(
             }
           >
             <Avatar className="h-10 w-10">
+              {user?.name && <AvatarFallback>{user.name.trim().charAt(0)}</AvatarFallback>}
               {user?.avatar_url && <AvatarImage src={user.avatar_url} alt="" />}
             </Avatar>
           </NavLink>

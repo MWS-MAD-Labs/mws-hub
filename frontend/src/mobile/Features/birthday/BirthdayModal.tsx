@@ -1,6 +1,6 @@
 import { Cake, X } from "lucide-react";
 import { createPortal } from "react-dom";
-import { Avatar, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getOverlayRoot } from "@/components/overlays/portal";
 import type { HubBirthday } from "@/model/hub-model";
 
@@ -125,6 +125,7 @@ export default function BirthdayModal({
                   }`}
                 >
                   <Avatar className="h-11 w-11 shrink-0 border-2 border-white shadow-sm">
+                    <AvatarFallback>{birthday.name.trim().charAt(0)}</AvatarFallback>
                     {birthday.avatar_url && (
                       <AvatarImage src={birthday.avatar_url} alt="" />
                     )}
