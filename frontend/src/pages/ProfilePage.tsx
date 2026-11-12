@@ -2,7 +2,7 @@ import { useState } from "react";
 import { LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import HubHeader from "@/features/fragments/HubHeader";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { toHubUser } from "@/model/auth-model";
@@ -34,12 +34,6 @@ export default function ProfilePage() {
   }
 
   const hubUser = toHubUser(user);
-  const initials = hubUser.name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("");
 
   async function handleLogout() {
     try {
