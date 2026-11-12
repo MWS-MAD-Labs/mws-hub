@@ -1,6 +1,6 @@
 import { Cake, X } from "lucide-react";
 import { createPortal } from "react-dom";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { getOverlayRoot } from "@/components/overlays/portal";
 import type { HubBirthday } from "@/model/hub-model";
 
@@ -9,15 +9,6 @@ const birthdayDateFormatter = new Intl.DateTimeFormat("en", {
   day: "numeric",
   timeZone: "UTC",
 });
-
-function initialsOf(name: string): string {
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("");
-}
 
 function dateLabelOf(value: string): string {
   const match = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
@@ -137,9 +128,6 @@ export default function BirthdayModal({
                     {birthday.avatar_url && (
                       <AvatarImage src={birthday.avatar_url} alt="" />
                     )}
-                    <AvatarFallback className="bg-primary/10 text-xs font-bold text-primary">
-                      {initialsOf(birthday.name)}
-                    </AvatarFallback>
                   </Avatar>
 
                   <div className="min-w-0 flex-1">

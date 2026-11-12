@@ -1,7 +1,7 @@
 import { memo, useEffect, useRef, useState } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { Home, Search, X } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import ThemeToggle from "./ThemeToggle";
 import type { HubUser } from "@/model/hub-model";
@@ -18,14 +18,6 @@ type MobileSpotlightSearchProps = {
 
 // Set by a page that sends the user to the Hub to search.
 type HubSearchState = { openSearch?: boolean } | null;
-
-const initialsOf = (user?: HubUser): string =>
-  String(user?.name || "?")
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("");
 
 const ICON_BUTTON =
   "flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
@@ -210,9 +202,7 @@ const MobileSpotlightSearch = memo(
             }
           >
             <Avatar className="h-10 w-10">
-              <AvatarFallback className="text-xs">
-                {initialsOf(user)}
-              </AvatarFallback>
+              {user?.avatar_url && <AvatarImage src={user.avatar_url} alt="" />}
             </Avatar>
           </NavLink>
         </div>

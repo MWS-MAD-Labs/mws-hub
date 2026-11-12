@@ -1,18 +1,10 @@
 import { memo } from "react";
 import { Link } from "react-router-dom";
 import { LayoutDashboard } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import Logo from "@/assets/logo.webp";
 import type { HubUser } from "@/model/hub-model";
 import InstallAppButton from "./InstallAppButton";
-
-const initialsOf = (user?: HubUser): string =>
-  String(user?.name || "?")
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("");
 
 type HubHeaderProps = {
   user?: HubUser;
@@ -53,7 +45,6 @@ const HubHeader = memo(({ user, isAdmin }: HubHeaderProps) => (
             </span>
             <Avatar className="h-8 w-8">
               {user?.avatar_url && <AvatarImage src={user.avatar_url} alt="" />}
-              <AvatarFallback className="text-[10px]">{initialsOf(user)}</AvatarFallback>
             </Avatar>
           </Link>
         </div>

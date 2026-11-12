@@ -1,6 +1,6 @@
 import { memo, useEffect, useState } from "react";
 import { Cake, LoaderCircle } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { hubApi } from "@/features/hub/api/hubApi";
 import { cn } from "@/lib/utils";
 import type { HubBirthday } from "@/model/hub-model";
@@ -12,15 +12,6 @@ const birthdayDateFormatter = new Intl.DateTimeFormat("en", {
   day: "numeric",
   timeZone: "UTC",
 });
-
-function initialsOf(name: string): string {
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("");
-}
 
 function dateLabelOf(value: string): string {
   const match = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
@@ -185,10 +176,6 @@ const BirthdayList = memo(({ className }: BirthdayListProps) => {
                   {birthday.avatar_url && (
                     <AvatarImage src={birthday.avatar_url} alt="" />
                   )}
-
-                  <AvatarFallback className="text-[10px]">
-                    {initialsOf(birthday.name)}
-                  </AvatarFallback>
                 </Avatar>
 
                 <div className="min-w-0">

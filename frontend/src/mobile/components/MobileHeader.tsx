@@ -1,19 +1,11 @@
 import { memo } from "react";
 import { Link } from "react-router-dom";
 import { LayoutDashboard } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import type { HubUser } from "@/model/hub-model";
 import { cn } from "@/lib/utils";
 import { getGreeting } from "@/mobile/utils/Greeting";
 import InstallAppButton from "@/features/fragments/InstallAppButton";
-
-const initialsOf = (user?: HubUser): string =>
-  String(user?.name || "?")
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("");
 
 type MobileHeaderProps = {
   user?: HubUser;
@@ -37,9 +29,6 @@ const MobileHeader = memo(({ user, className, isAdmin }: MobileHeaderProps) => (
       >
         <Avatar className="h-9 w-9">
           {user?.avatar_url && <AvatarImage src={user.avatar_url} alt="" />}
-          <AvatarFallback className="text-[10px]">
-            {initialsOf(user)}
-          </AvatarFallback>
         </Avatar>
       </Link>
 

@@ -2,7 +2,7 @@ import { Cake, Crown, X } from "lucide-react";
 import type { CSSProperties } from "react";
 import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { getOverlayRoot } from "@/components/overlays/portal";
 import type { HubBirthday } from "@/model/hub-model";
 
@@ -56,15 +56,6 @@ const CARD_CONFETTI = [
   { left: "61%", top: "74%", color: "#34d399", rotate: "34deg", delay: "1960ms", w: 5, h: 9, shape: "1px" },
   { left: "51%", top: "84%", color: "#38bdf8", rotate: "-46deg", delay: "2000ms", w: 4, h: 10, shape: "2px" },
 ] as const;
-
-function initialsOf(name: string): string {
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("");
-}
 
 interface BirthdayCelebrationModalProps {
   open: boolean;
@@ -310,9 +301,6 @@ export default function BirthdayCelebrationModal({
                 {birthday.avatar_url && (
                   <AvatarImage src={birthday.avatar_url} alt="" />
                 )}
-                <AvatarFallback className="bg-primary/10 text-2xl font-bold text-primary">
-                  {initialsOf(birthday.name)}
-                </AvatarFallback>
               </Avatar>
 
               <p className="mt-5 max-w-full text-xl font-extrabold leading-tight text-foreground">
