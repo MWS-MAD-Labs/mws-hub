@@ -1,7 +1,7 @@
 import { memo } from "react";
 import { Link } from "react-router-dom";
 import { LayoutDashboard } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { HubUser } from "@/model/hub-model";
 import { cn } from "@/lib/utils";
 import { getGreeting } from "@/mobile/utils/Greeting";
@@ -36,6 +36,7 @@ const MobileHeader = memo(({ user, className, isAdmin }: MobileHeaderProps) => (
         aria-label="Profile"
       >
         <Avatar className="h-9 w-9">
+          {user?.avatar_url && <AvatarImage src={user.avatar_url} alt="" />}
           <AvatarFallback className="text-[10px]">
             {initialsOf(user)}
           </AvatarFallback>

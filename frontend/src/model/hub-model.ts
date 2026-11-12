@@ -51,7 +51,7 @@ export type HubBirthday = {
   id: string;
   name: string;
   nick_name: string | null;
-  photo_url: string | null;
+  avatar_url: string | null;
   unit: string | null;
   birthday: string;
   days_until: number;
@@ -64,4 +64,5 @@ export type HubUser = {
   name: string;
   email: string;
   role: string;
+  avatar_url?: string | null;
 };

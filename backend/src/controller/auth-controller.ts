@@ -116,6 +116,20 @@ async function authUserResponse(user: SessionVariables["user"]) {
     };
   }
 
+  if (user.source === "employee" || user.source === "intern") {
+    const { photo_url, ...userFields } = user;
+    return {
+      ...userFields,
+      avatar_url: user.avatar_url ?? photo_url ?? null,
+      unitId: getUserUnitId(user),
+      unit_id: getUserUnitId(user),
+      isAdmin: await isHubAdmin(user),
+      ...(hubAccessMode() === "off"
+        ? {}
+        : await hubAccessSummary(user)),
+    };
+  }
+
   return {
     ...user,
     unitId: getUserUnitId(user),

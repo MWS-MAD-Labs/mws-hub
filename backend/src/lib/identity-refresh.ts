@@ -44,6 +44,24 @@ export async function currentSessionUser(c: Context, session: SessionPayload): P
   }
   if (!fresh) throw new ResponseError(401, "Your account is no longer active.");
 
+  if (
+    fresh.source === "employee" &&
+    session.user.source === "employee" &&
+    !fresh.avatar_url &&
+    !fresh.photo_url &&
+    session.user.avatar_url
+  ) {
+    fresh = { ...fresh, avatar_url: session.user.avatar_url };
+  } else if (
+    fresh.source === "intern" &&
+    session.user.source === "intern" &&
+    !fresh.avatar_url &&
+    !fresh.photo_url &&
+    session.user.avatar_url
+  ) {
+    fresh = { ...fresh, avatar_url: session.user.avatar_url };
+  }
+
   const token = await signRefreshedSession(session, fresh);
   setCookie(c, sessionCookieName(), token, {
     ...sessionCookieOptions(),

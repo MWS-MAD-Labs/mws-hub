@@ -37,6 +37,7 @@ export type EmployeeLookupResponse = {
   nick_name: string | null;
   email: string;
   photo_url: string | null;
+  avatar_url?: string | null;
   unit: string | CentralUnitRef | null;
   unit_id?: string | null;
   unitId?: string | null;
@@ -90,6 +91,7 @@ export type InternLookupResponse = {
   nick_name: string | null;
   email: string;
   photo_url: string | null;
+  avatar_url?: string | null;
   unit: string | CentralUnitRef | null;
   unit_id?: string | null;
   unitId?: string | null;

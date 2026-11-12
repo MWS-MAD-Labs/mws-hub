@@ -2,7 +2,7 @@ import { useState } from "react";
 import { LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import HubHeader from "@/features/fragments/HubHeader";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { toHubUser } from "@/model/auth-model";
@@ -60,6 +60,7 @@ export default function ProfilePage() {
         <div className="rounded-2xl border border-border/60 bg-card p-6">
           <div className="flex items-center gap-4">
             <Avatar className="h-14 w-14">
+              {hubUser.avatar_url && <AvatarImage src={hubUser.avatar_url} alt="" />}
               <AvatarFallback className="text-base">{initials}</AvatarFallback>
             </Avatar>
             <div>

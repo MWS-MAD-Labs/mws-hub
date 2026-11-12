@@ -5,10 +5,6 @@ import * as sessionRevocation from "../lib/session-revocation";
 import type { HubUser } from "../type/central-type";
 import type { GooglePayload } from "../type/google-type";
 
-// signSession/verifySession (used inside AuthService.loginWithGoogle and
-// below) now check a real DB row (session_version) - tests are hermetic
-// (see .github/workflows/ci-cd.yml), so this stands in for it with a plain
-// in-memory map instead of a live Postgres.
 const sessionVersions = new Map<string, number>();
 
 mock.module("../lib/prisma", () => ({
@@ -137,6 +133,21 @@ describe("AuthService.loginWithGoogle", () => {
 
     const session = await verifySession(token);
     expect(session?.user).toEqual(centralUser);
+  });
+
+  it("uses the verified Google avatar when Central has no employee photo", async () => {
+    const avatarUrl = "https://google.test/avatar.jpg";
+    spyOn(GoogleAuth, "verifyCode").mockResolvedValue({
+      ...googlePayload,
+      avatar_url: avatarUrl,
+    });
+    spyOn(centralClient, "resolveCentralIdentity").mockResolvedValue(centralUser);
+
+    const { token, user } = await AuthService.loginWithGoogle("code");
+    expect(user).toMatchObject({ avatar_url: avatarUrl });
+
+    const session = await verifySession(token);
+    expect(session?.user).toMatchObject({ avatar_url: avatarUrl });
   });
 
   // Regression: revokeSessionsForUser's second argument must be the

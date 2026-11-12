@@ -134,8 +134,8 @@ export default function BirthdayModal({
                   }`}
                 >
                   <Avatar className="h-11 w-11 shrink-0 border-2 border-white shadow-sm">
-                    {birthday.photo_url && (
-                      <AvatarImage src={birthday.photo_url} alt="" />
+                    {birthday.avatar_url && (
+                      <AvatarImage src={birthday.avatar_url} alt="" />
                     )}
                     <AvatarFallback className="bg-primary/10 text-xs font-bold text-primary">
                       {initialsOf(birthday.name)}
