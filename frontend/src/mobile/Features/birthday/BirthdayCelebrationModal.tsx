@@ -57,15 +57,6 @@ const CARD_CONFETTI = [
   { left: "51%", top: "84%", color: "#38bdf8", rotate: "-46deg", delay: "2000ms", w: 4, h: 10, shape: "2px" },
 ] as const;
 
-function initialsOf(name: string): string {
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("");
-}
-
 interface BirthdayCelebrationModalProps {
   open: boolean;
   birthdays: HubBirthday[];
@@ -307,12 +298,10 @@ export default function BirthdayCelebrationModal({
               </h2>
 
               <Avatar className="mt-7 h-28 w-28 border-4 border-white shadow-lg">
-                {birthday.photo_url && (
-                  <AvatarImage src={birthday.photo_url} alt="" />
+                <AvatarFallback>{birthday.name.trim().charAt(0)}</AvatarFallback>
+                {birthday.avatar_url && (
+                  <AvatarImage src={birthday.avatar_url} alt="" />
                 )}
-                <AvatarFallback className="bg-primary/10 text-2xl font-bold text-primary">
-                  {initialsOf(birthday.name)}
-                </AvatarFallback>
               </Avatar>
 
               <p className="mt-5 max-w-full text-xl font-extrabold leading-tight text-foreground">

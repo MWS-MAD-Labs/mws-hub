@@ -7,7 +7,7 @@ export type EmployeeIdentity = {
   full_name: string;
   nick_name: string | null;
   email: string;
-  photo_url: string | null;
+  avatar_url: string | null;
   unit: string | null;
   unit_id?: string | null;
   unitId?: string | null;
@@ -47,7 +47,7 @@ export type InternIdentity = {
   full_name: string;
   nick_name: string | null;
   email: string;
-  photo_url: string | null;
+  avatar_url: string | null;
   unit: string | null;
   unit_id?: string | null;
   unitId?: string | null;
@@ -98,6 +98,7 @@ export function toHubUser(user: AuthUser): HubUser {
   return {
     name: ("nick_name" in user ? user.nick_name : null) || user.full_name,
     email: user.email,
+    avatar_url: "avatar_url" in user ? user.avatar_url : null,
     role:
       "type" in user
         ? user.role

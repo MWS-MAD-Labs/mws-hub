@@ -114,6 +114,7 @@ function AccountSelect({
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls="gpt-account-list"
+        aria-activedescendant={open ? `gpt-account-${active}` : undefined}
         aria-labelledby="gpt-account-label"
         disabled={disabled}
         onClick={() => {
@@ -140,7 +141,6 @@ function AccountSelect({
           id="gpt-account-list"
           role="listbox"
           aria-labelledby="gpt-account-label"
-          aria-activedescendant={`gpt-account-${active}`}
           className="absolute inset-x-0 top-full z-20 mt-1.5 list-none rounded-2xl border border-border bg-card p-1.5 shadow-[0_12px_32px_rgba(60,30,30,0.16)]"
         >
           {accounts.map((email, index) => {

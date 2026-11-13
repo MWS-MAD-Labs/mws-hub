@@ -98,4 +98,54 @@ describe("AuthController.me", () => {
       education_level: null,
     });
   });
+
+  it("returns an employee avatar_url and omits photo_url", async () => {
+    const employee: HubUser = {
+      source: "employee",
+      id: "cmv0aisvv000q7i7by3g3wbgc",
+      person_id: "cmv0aisvt000p7i7bolfjklwn",
+      employee_id: "32.12.312",
+      full_name: "Asror",
+      nick_name: "Asror",
+      email: "asror@millennia21.id",
+      photo_url: null,
+      avatar_url: "https://central.test/avatar.avif",
+      unit: "MAD Lab",
+      job_position: "Junior Full Stack Web Developer",
+      job_level: "Staff",
+      status: "ACTIVE",
+      employment_type: "PROBATION",
+    };
+
+    const response = await getMeResponse(employee);
+    expect(response.data).toMatchObject({
+      source: "employee",
+      avatar_url: "https://central.test/avatar.avif",
+    });
+    expect(response.data).not.toHaveProperty("photo_url");
+  });
+
+  it("maps an employee photo_url to avatar_url when Central has no avatar_url", async () => {
+    const employee: HubUser = {
+      source: "employee",
+      id: "employee-1",
+      person_id: "person-1",
+      employee_id: "E001",
+      full_name: "Test Employee",
+      nick_name: null,
+      email: "employee@millennia21.id",
+      photo_url: "https://central.test/photo.avif",
+      unit: null,
+      job_position: null,
+      job_level: null,
+      status: "ACTIVE",
+      employment_type: null,
+    };
+
+    const response = await getMeResponse(employee);
+    expect(response.data).toMatchObject({
+      avatar_url: "https://central.test/photo.avif",
+    });
+    expect(response.data).not.toHaveProperty("photo_url");
+  });
 });

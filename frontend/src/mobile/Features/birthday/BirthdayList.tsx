@@ -13,15 +13,6 @@ const birthdayDateFormatter = new Intl.DateTimeFormat("en", {
   timeZone: "UTC",
 });
 
-function initialsOf(name: string): string {
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("");
-}
-
 function dateLabelOf(value: string): string {
   const match = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (!match) return "Birthday";
@@ -182,13 +173,10 @@ const BirthdayList = memo(({ className }: BirthdayListProps) => {
                 }`}
               >
                 <Avatar className="row-span-2 h-8 w-8 sm:h-9 sm:w-9">
-                  {birthday.photo_url && (
-                    <AvatarImage src={birthday.photo_url} alt="" />
+                  <AvatarFallback>{birthday.name.trim().charAt(0)}</AvatarFallback>
+                  {birthday.avatar_url && (
+                    <AvatarImage src={birthday.avatar_url} alt="" />
                   )}
-
-                  <AvatarFallback className="text-[10px]">
-                    {initialsOf(birthday.name)}
-                  </AvatarFallback>
                 </Avatar>
 
                 <div className="min-w-0">

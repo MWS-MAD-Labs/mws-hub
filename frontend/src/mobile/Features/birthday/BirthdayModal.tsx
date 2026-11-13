@@ -10,15 +10,6 @@ const birthdayDateFormatter = new Intl.DateTimeFormat("en", {
   timeZone: "UTC",
 });
 
-function initialsOf(name: string): string {
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("");
-}
-
 function dateLabelOf(value: string): string {
   const match = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (!match) return "Birthday";
@@ -134,12 +125,10 @@ export default function BirthdayModal({
                   }`}
                 >
                   <Avatar className="h-11 w-11 shrink-0 border-2 border-white shadow-sm">
-                    {birthday.photo_url && (
-                      <AvatarImage src={birthday.photo_url} alt="" />
+                    <AvatarFallback>{birthday.name.trim().charAt(0)}</AvatarFallback>
+                    {birthday.avatar_url && (
+                      <AvatarImage src={birthday.avatar_url} alt="" />
                     )}
-                    <AvatarFallback className="bg-primary/10 text-xs font-bold text-primary">
-                      {initialsOf(birthday.name)}
-                    </AvatarFallback>
                   </Avatar>
 
                   <div className="min-w-0 flex-1">

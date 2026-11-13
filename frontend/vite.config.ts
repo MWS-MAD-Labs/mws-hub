@@ -100,6 +100,9 @@ export default defineConfig({
     port: 5175,
     // A taken port stops the start. Moving to another port would put the Hub where another app is expected.
     strictPort: true,
+    // Vite's own CORS answers preflights before the proxy, without Access-Control-Allow-Credentials, so the apps'
+    // credentialed POST /auth/refresh failed in dev. Off, the backend answers CORS here the same as behind nginx.
+    cors: false,
     // Dev proxies the same prefixes nginx proxies in production, so both
     // run on one origin. Without this the session cookie (SameSite=Strict)
     // would behave differently here than in production - exactly the class

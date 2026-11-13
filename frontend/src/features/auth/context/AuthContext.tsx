@@ -74,7 +74,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       authApi
         .currentUser()
         .then((current) => {
-          if (!current) setUser(null);
+          setUser(current);
         })
         .catch(() => {});
     };
