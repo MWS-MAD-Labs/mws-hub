@@ -12,7 +12,7 @@ export function productionUrl(env: Record<string, string | undefined> = process.
   }
 }
 
-// What GET /public-config answers.
+// What GET /api/public-config answers. Under /api because that is a prefix nginx and the dev proxy pass on to the backend.
 export const publicConfig = (env: Record<string, string | undefined> = process.env) => ({
   data: { production_url: productionUrl(env) },
 });

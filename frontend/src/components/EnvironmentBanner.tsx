@@ -7,7 +7,7 @@ export default function EnvironmentBanner() {
 
   useEffect(() => {
     let active = true;
-    apiRequest<{ data: { production_url: string | null } }>("/public-config")
+    apiRequest<{ data: { production_url: string | null } }>("/api/public-config")
       .then((response) => {
         if (active) setProductionUrl(response?.data?.production_url ?? null);
       })

@@ -79,7 +79,7 @@ app.get("/.well-known/jwks.json", (c) => {
 });
 
 // No sign in needed: the login page shows the test version note too.
-app.get("/public-config", (c) => c.json(publicConfig()));
+app.get("/api/public-config", (c) => c.json(publicConfig()));
 
 app.get("/.well-known/hub-config", (c) => {
   c.header("Cache-Control", "public, max-age=300");
