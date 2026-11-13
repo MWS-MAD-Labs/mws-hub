@@ -4,6 +4,7 @@ import { Toaster } from "sonner";
 import { AuthProvider } from "@/features/auth/context/AuthContext";
 import { RequireAuth } from "@/features/auth/components/RequireAuth";
 import { RequireAdmin } from "@/features/auth/components/RequireAdmin";
+import EnvironmentBanner from "@/components/EnvironmentBanner";
 
 const SupportHubPage = lazy(() => import("@/pages/SupportHubPage"));
 const SupportHubConceptsPage = lazy(
@@ -36,6 +37,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <EnvironmentBanner />
         <Routes>
           <Route path="/" element={<Navigate to="/support-hub" replace />} />
           <Route
