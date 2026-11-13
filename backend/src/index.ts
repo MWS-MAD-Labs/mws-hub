@@ -9,6 +9,7 @@ import { gptCodeRoute } from "./route/gpt-code-route";
 import { ResponseError } from "./error/response-error";
 import { logger } from "./lib/logger";
 import { frontendOrigin } from "./lib/frontend-origin";
+import { publicConfig } from "./lib/public-config";
 import { hubSsoJwks } from "./lib/sso-relay";
 import { startPermissionSync } from "./lib/permission-sync";
 import { hubConfig, refreshOriginAllowed } from "./lib/shared-session";
@@ -76,6 +77,9 @@ app.get("/.well-known/jwks.json", (c) => {
   c.header("Cache-Control", "public, max-age=300");
   return c.json(hubSsoJwks());
 });
+
+// No sign in needed: the login page shows the test version note too.
+app.get("/public-config", (c) => c.json(publicConfig()));
 
 app.get("/.well-known/hub-config", (c) => {
   c.header("Cache-Control", "public, max-age=300");

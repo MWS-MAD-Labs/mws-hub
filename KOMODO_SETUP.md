@@ -127,6 +127,9 @@ NODE_ENV=production
 PORT=4001
 
 FRONTEND_ORIGIN=https://app-stg.mws.web.id
+# Staging only: the address of the real Hub, no trailing slash. A bar on top of every page then says this is a test version.
+# Leave it out in production.
+PRODUCTION_URL=https://hub.example.org
 
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
