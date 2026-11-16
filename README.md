@@ -254,7 +254,7 @@ Besides its own `hub_session`, the Hub signs a person in to every app on the sam
 | Cookie | What it is | Where it goes |
 |---|---|---|
 | `hub_at` | Access token. RS256, 5 minutes, says who the person is (`sub`, email, source, tags, `sid`). Apps verify it against `/.well-known/jwks.json`. | Parent domain (`HUB_COOKIE_DOMAIN`), `HttpOnly`, `Secure`, `SameSite=Lax` |
-| `hub_rt` | Refresh token. Opaque, 8 hours from sign-in, turns over on every use. Only the Hub can use it. | The Hub's own host, path `/auth`, `HttpOnly`, `Secure`, `SameSite=Strict` |
+| `hub_rt` | Refresh token. Opaque, 7 days from sign-in, turns over on every use. Only the Hub can use it. | The Hub's own host, path `/auth`, `HttpOnly`, `Secure`, `SameSite=Strict` |
 
 An app's page calls `POST /auth/refresh` (with cookies and an `X-Requested-With` header) shortly before the access token ends. The Hub asks Central whether the person is still active, issues a new access token and a new refresh token, and keeps the old one for 10 seconds so two tabs refreshing together do not fight. An old refresh token shown again after that revokes the whole session. A page that arrives with no access token (it ended while nobody was looking) sends the browser to `GET /auth/restore?return=<app url>`. With a valid refresh token the Hub sets new cookies and sends the person back (adding `restored=1`); otherwise it shows its front page. A person who is signed in to the Hub but has no refresh token yet (they signed in before this existed) gets the shared session started from the Hub's own cookie, so nobody has to sign in again after a deploy. `return` must be on the parent domain. Logging out of the Hub (`POST /auth/logout`) revokes it and deletes both cookies, which signs the person out of every app.
 
@@ -263,7 +263,7 @@ An app's page calls `POST /auth/refresh` (with cookies and an `X-Requested-With`
 | `HUB_SHARED_SESSION_APPS` | empty | Not needed any more: Central sets the sign-in way per application (`session_mode`) and the Hub reads it. Still honoured for a Central that does not send it: application ids (comma separated, or `*`). |
 | `HUB_COOKIE_DOMAIN` | empty | Parent domain, for example `mws.web.id`. Leave empty on localhost. |
 | `HUB_ACCESS_TTL_SECONDS` | 300 | |
-| `HUB_REFRESH_TTL_SECONDS` | 28800 | |
+| `HUB_REFRESH_TTL_SECONDS` | empty (7 days = 604800) | Optional override of the sign-in length, in seconds. Leave empty for 7 days. |
 | `HUB_ACCESS_AUDIENCE` | `mws-apps` | `aud` of the access token |
 | `HUB_ACCESS_COOKIE_NAME` / `HUB_REFRESH_COOKIE_NAME` | `hub_at` / `hub_rt` | |
 | `HUB_REFRESH_COOKIE_PATH` | `/auth` | Must match where the Hub's `/auth` routes are served |
