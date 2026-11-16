@@ -222,12 +222,12 @@ export default function BirthdayCelebrationModal({
 
       <section
         data-birthday-celebration
-        className="relative flex h-[min(34rem,calc(100svh-2rem))] w-[calc(100%-2rem)] max-w-[22rem] flex-col overflow-hidden rounded-2xl border border-white/80 bg-[#fffdf9] shadow-2xl motion-safe:animate-[birthday-card-rise_620ms_660ms_cubic-bezier(0.2,0.85,0.25,1)_both]"
+        className="relative flex h-[min(34rem,calc(100svh-2rem))] w-[calc(100%-2rem)] max-w-[22rem] flex-col overflow-hidden rounded-2xl border border-white/80 bg-[#fffdf9] shadow-2xl dark:border-border dark:bg-card motion-safe:animate-[birthday-card-rise_620ms_660ms_cubic-bezier(0.2,0.85,0.25,1)_both]"
         onMouseDown={(event) => event.stopPropagation()}
       >
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-rose-100"
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-rose-100 dark:bg-primary/10"
           style={{
             clipPath:
               "polygon(0 32%, 16% 24%, 33% 35%, 50% 22%, 68% 33%, 84% 24%, 100% 34%, 100% 100%, 0 100%)",
@@ -288,7 +288,7 @@ export default function BirthdayCelebrationModal({
                 <span className="flex h-14 w-14 items-center justify-center rounded-xl border border-primary/15 bg-primary/10 text-primary shadow-sm">
                   <Cake className="h-7 w-7" />
                 </span>
-                <span className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-md bg-amber-100 text-amber-600 shadow-sm">
+                <span className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-md bg-amber-100 text-amber-600 shadow-sm dark:bg-amber-500/20 dark:text-amber-300">
                   <Crown className="h-3.5 w-3.5" />
                 </span>
               </div>
@@ -297,7 +297,7 @@ export default function BirthdayCelebrationModal({
                 Happy Birthday!
               </h2>
 
-              <Avatar className="mt-7 h-28 w-28 border-4 border-white shadow-lg">
+              <Avatar className="mt-7 h-28 w-28 border-4 border-white shadow-lg dark:border-card">
                 <AvatarFallback>{birthday.name.trim().charAt(0)}</AvatarFallback>
                 {birthday.avatar_url && (
                   <AvatarImage src={birthday.avatar_url} alt="" />

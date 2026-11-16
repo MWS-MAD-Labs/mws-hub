@@ -127,7 +127,7 @@ const MobileSpotlightSearch = memo(
                 <img
                   src="/ChatGPT-Logo.svg"
                   alt=""
-                  className="h-5 w-5 object-contain"
+                  className="h-5 w-5 object-contain dark:invert"
                   aria-hidden="true"
                 />
               </NavLink>
