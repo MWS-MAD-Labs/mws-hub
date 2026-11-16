@@ -277,6 +277,23 @@ export type BoolWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedBoolFilter<$PrismaModel>
 }
 
+export type EnumGptCodeExceptionActionFilter<$PrismaModel = never> = {
+  equals?: $Enums.GptCodeExceptionAction | Prisma.EnumGptCodeExceptionActionFieldRefInput<$PrismaModel>
+  in?: $Enums.GptCodeExceptionAction[] | Prisma.ListEnumGptCodeExceptionActionFieldRefInput<$PrismaModel>
+  notIn?: $Enums.GptCodeExceptionAction[] | Prisma.ListEnumGptCodeExceptionActionFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumGptCodeExceptionActionFilter<$PrismaModel> | $Enums.GptCodeExceptionAction
+}
+
+export type EnumGptCodeExceptionActionWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.GptCodeExceptionAction | Prisma.EnumGptCodeExceptionActionFieldRefInput<$PrismaModel>
+  in?: $Enums.GptCodeExceptionAction[] | Prisma.ListEnumGptCodeExceptionActionFieldRefInput<$PrismaModel>
+  notIn?: $Enums.GptCodeExceptionAction[] | Prisma.ListEnumGptCodeExceptionActionFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumGptCodeExceptionActionWithAggregatesFilter<$PrismaModel> | $Enums.GptCodeExceptionAction
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumGptCodeExceptionActionFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumGptCodeExceptionActionFilter<$PrismaModel>
+}
+
 export type NestedStringFilter<$PrismaModel = never> = {
   equals?: string | Prisma.StringFieldRefInput<$PrismaModel>
   in?: string[] | Prisma.ListStringFieldRefInput<$PrismaModel>
@@ -524,6 +541,23 @@ export type NestedBoolWithAggregatesFilter<$PrismaModel = never> = {
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedBoolFilter<$PrismaModel>
   _max?: Prisma.NestedBoolFilter<$PrismaModel>
+}
+
+export type NestedEnumGptCodeExceptionActionFilter<$PrismaModel = never> = {
+  equals?: $Enums.GptCodeExceptionAction | Prisma.EnumGptCodeExceptionActionFieldRefInput<$PrismaModel>
+  in?: $Enums.GptCodeExceptionAction[] | Prisma.ListEnumGptCodeExceptionActionFieldRefInput<$PrismaModel>
+  notIn?: $Enums.GptCodeExceptionAction[] | Prisma.ListEnumGptCodeExceptionActionFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumGptCodeExceptionActionFilter<$PrismaModel> | $Enums.GptCodeExceptionAction
+}
+
+export type NestedEnumGptCodeExceptionActionWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.GptCodeExceptionAction | Prisma.EnumGptCodeExceptionActionFieldRefInput<$PrismaModel>
+  in?: $Enums.GptCodeExceptionAction[] | Prisma.ListEnumGptCodeExceptionActionFieldRefInput<$PrismaModel>
+  notIn?: $Enums.GptCodeExceptionAction[] | Prisma.ListEnumGptCodeExceptionActionFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumGptCodeExceptionActionWithAggregatesFilter<$PrismaModel> | $Enums.GptCodeExceptionAction
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumGptCodeExceptionActionFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumGptCodeExceptionActionFilter<$PrismaModel>
 }
 
 

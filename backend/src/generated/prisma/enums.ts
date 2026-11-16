@@ -35,3 +35,11 @@ export const GptCodeTargetType = {
 } as const
 
 export type GptCodeTargetType = (typeof GptCodeTargetType)[keyof typeof GptCodeTargetType]
+
+
+export const GptCodeExceptionAction = {
+  ASSIGN: 'ASSIGN',
+  BLOCK: 'BLOCK'
+} as const
+
+export type GptCodeExceptionAction = (typeof GptCodeExceptionAction)[keyof typeof GptCodeExceptionAction]

@@ -99,4 +99,51 @@ export class GptCodeController {
 
     return c.body(null, 204);
   }
+
+  static async setException(c: Context<{ Variables: SessionVariables }>) {
+    noStore(c);
+    const body: unknown = await c.req.json().catch(() => null);
+    const raw = body && typeof body === "object"
+      ? (body as { email?: unknown; action?: unknown; cardId?: unknown; note?: unknown })
+      : {};
+    const exception = await GptCodeAccessService.setException(raw);
+
+    await recordAuditLog({
+      actor: c.var.user,
+      action: "gpt_code.exception_update",
+      entity: { type: "gpt_code_exception", id: exception.id },
+      summary:
+        exception.action === "block"
+          ? `Blocked ${exception.email} from GPT Code`
+          : `Assigned ${exception.cardId} to ${exception.email} as an exception`,
+      metadata: {
+        email: exception.email,
+        action: exception.action,
+        card_id: exception.cardId,
+      },
+    });
+
+    return c.json({ data: exception });
+  }
+
+  static async deleteException(c: Context<{ Variables: SessionVariables }>) {
+    noStore(c);
+    const id = c.req.param("id");
+    if (!id) throw new ResponseError(400, "Exception id is required.");
+    const exception = await GptCodeAccessService.deleteException(id);
+
+    await recordAuditLog({
+      actor: c.var.user,
+      action: "gpt_code.exception_delete",
+      entity: { type: "gpt_code_exception", id: exception.id },
+      summary: `Removed the GPT Code exception for ${exception.email}`,
+      metadata: {
+        email: exception.email,
+        action: exception.action,
+        card_id: exception.cardId,
+      },
+    });
+
+    return c.body(null, 204);
+  }
 }

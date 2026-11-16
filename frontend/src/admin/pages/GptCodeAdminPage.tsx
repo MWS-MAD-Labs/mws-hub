@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import { CheckCircle2, KeyRound, Plus, RefreshCw, Save, Trash2, TriangleAlert, X } from "lucide-react";
+import { Ban, CheckCircle2, KeyRound, Plus, RefreshCw, Save, Trash2, TriangleAlert, UserRound, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   adminApi,
   type AdminGptCodeConfiguration,
+  type AdminGptCodeException,
   type AdminGptCodeTarget,
   type AdminGptCodeTargetKind,
 } from "@/admin/api/adminApi";
@@ -46,6 +47,108 @@ function draftsFrom(configuration: AdminGptCodeConfiguration): Record<string, Dr
         },
       ];
     }),
+  );
+}
+
+const BLOCK = "block";
+
+function ExceptionsPanel({
+  configuration,
+  onChanged,
+}: {
+  configuration: AdminGptCodeConfiguration;
+  onChanged: () => Promise<void>;
+}) {
+  const [email, setEmail] = useState("");
+  const [choice, setChoice] = useState<string>("");
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState<string | null>(null);
+
+  const choiceOptions = [
+    ...configuration.accounts.map((account) => ({ value: account.cardId, label: `${account.cardId} · ${account.email}` })),
+    { value: BLOCK, label: "Block from GPT Code" },
+  ];
+  const accountEmail = (cardId: string | null) =>
+    configuration.accounts.find((account) => account.cardId === cardId)?.email ?? "";
+
+  async function add() {
+    if (!email.trim() || !choice) return;
+    setBusy("new");
+    try {
+      await adminApi.saveGptCodeException({
+        email: email.trim(),
+        action: choice === BLOCK ? "block" : "assign",
+        cardId: choice === BLOCK ? undefined : choice,
+        note: note.trim() || undefined,
+      });
+      toast.success(`Exception saved for ${email.trim().toLowerCase()}`);
+      setEmail("");
+      setChoice("");
+      setNote("");
+      await onChanged();
+    } catch (cause) {
+      toast.error(cause instanceof Error ? cause.message : "Exception could not be saved.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function remove(exception: AdminGptCodeException) {
+    setBusy(exception.id);
+    try {
+      await adminApi.deleteGptCodeException(exception.id);
+      toast.success(`Exception removed for ${exception.email}`);
+      await onChanged();
+    } catch (cause) {
+      toast.error(cause instanceof Error ? cause.message : "Exception could not be removed.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <section className="mt-9" aria-labelledby="gpt-exceptions-heading">
+      <h2 id="gpt-exceptions-heading" className="admin-heading text-lg font-extrabold text-[var(--admin-text)]">Exceptions</h2>
+      <p className="mt-1 max-w-2xl text-sm leading-6 text-[var(--admin-text-secondary)]">For one person, by sign-in email. An exception beats every rule above: give someone a specific account (also when no rule covers them), or block them. Saving an email that already has an exception replaces it.</p>
+
+      <div className="mt-4 overflow-hidden rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-card)] shadow-[var(--admin-shadow)]">
+        <form
+          className="grid gap-2 border-b border-[var(--admin-border)] bg-[var(--admin-card-subtle)] px-5 py-4 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1.2fr)_minmax(0,1fr)_auto] md:px-6"
+          onSubmit={(event) => { event.preventDefault(); void add(); }}
+        >
+          <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="name@millennia21.id" aria-label="Email of the person" className="admin-focus h-9 rounded-lg border border-[var(--admin-border-strong)] bg-[var(--admin-card)] px-3 text-sm text-[var(--admin-text)]" />
+          <Dropdown value={choice || undefined} options={choiceOptions} placeholder="Choose an account or block" ariaLabel="Account to assign, or block" onChange={setChoice} />
+          <input type="text" value={note} maxLength={200} onChange={(event) => setNote(event.target.value)} placeholder="Note (optional)" aria-label="Note" className="admin-focus h-9 rounded-lg border border-[var(--admin-border-strong)] bg-[var(--admin-card)] px-3 text-sm text-[var(--admin-text)]" />
+          <button type="submit" disabled={busy !== null || !email.trim() || !choice} className="admin-focus admin-heading inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-[var(--admin-brand)] px-3 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-45 dark:text-[#241718]">
+            <Plus className="h-3.5 w-3.5" />{busy === "new" ? "Saving" : "Add"}
+          </button>
+        </form>
+
+        {configuration.exceptions.length === 0 ? (
+          <p className="px-6 py-5 text-xs text-[var(--admin-text-tertiary)]">No exceptions. Everyone follows the rules above.</p>
+        ) : (
+          <ul>
+            {configuration.exceptions.map((exception) => (
+              <li key={exception.id} className="flex items-center gap-3 border-b border-[var(--admin-border)] px-5 py-3.5 last:border-b-0 md:px-6">
+                <span className={cn("grid h-8 w-8 shrink-0 place-items-center rounded-lg", exception.action === "block" ? "bg-[var(--admin-rose-soft)] text-[var(--admin-rose)]" : "bg-[var(--admin-brand-soft)] text-[var(--admin-brand)]")}>
+                  {exception.action === "block" ? <Ban className="h-4 w-4" /> : <UserRound className="h-4 w-4" />}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-[var(--admin-text)]">{exception.email}</p>
+                  <p className="truncate text-xs text-[var(--admin-text-tertiary)]">
+                    {exception.action === "block" ? "Blocked" : `${exception.cardId} · ${accountEmail(exception.cardId)}`}
+                    {exception.note ? ` — ${exception.note}` : ""}
+                  </p>
+                </div>
+                <button type="button" disabled={busy !== null} onClick={() => void remove(exception)} aria-label={`Remove the exception for ${exception.email}`} className="admin-focus inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[var(--admin-border-strong)] text-[var(--admin-text-tertiary)] hover:bg-[var(--admin-rose-soft)] hover:text-[var(--admin-rose)] disabled:opacity-50">
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </section>
   );
 }
 
@@ -138,7 +241,7 @@ export default function GptCodeAdminPage() {
           <header className="flex flex-col gap-5 border-b border-[var(--admin-border-strong)] pb-7 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <h1 className="admin-heading text-3xl font-extrabold tracking-[-0.035em] text-[var(--admin-text)] sm:text-4xl">GPT Code access</h1>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--admin-text-secondary)]">Offer each ChatGPT account to any number of Central units, job levels, job positions and buildings. Staff see every account that matches one of theirs and can pick between them; Hub admins see all accounts.</p>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--admin-text-secondary)]">Offer each ChatGPT account to Central units, job levels, job positions and buildings. Each person gets one account: when several rules match, the most specific wins (job position, then job level, then unit, then building). Hub admins see all accounts.</p>
             </div>
             <button type="button" onClick={() => void load()} disabled={loading} className="admin-focus admin-heading inline-flex h-10 w-fit items-center gap-2 rounded-full border border-[var(--admin-border-strong)] bg-[var(--admin-card)] px-4 text-xs font-bold text-[var(--admin-text)] disabled:opacity-60">
               <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
@@ -235,6 +338,8 @@ export default function GptCodeAdminPage() {
                   );
                 })}
               </div>
+
+              <ExceptionsPanel configuration={configuration} onChanged={load} />
             </div>
           ) : null}
         </div>

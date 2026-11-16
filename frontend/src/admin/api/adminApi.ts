@@ -87,9 +87,21 @@ export type AdminGptCodeMapping = {
 
 export type AdminGptCodeTargetOption = { id: string; label: string };
 
+// A per-person exception by email: assign one specific account, or block.
+// It beats every rule.
+export type AdminGptCodeException = {
+  id: string;
+  email: string;
+  action: "assign" | "block";
+  cardId: string | null;
+  note: string | null;
+  updatedAt: string;
+};
+
 export type AdminGptCodeConfiguration = {
   accounts: AdminGptCodeAccount[];
   mappings: AdminGptCodeMapping[];
+  exceptions: AdminGptCodeException[];
   targets: Record<AdminGptCodeTargetKind, AdminGptCodeTargetOption[]>;
   centralAvailable: boolean;
 };
@@ -188,6 +200,27 @@ export const adminApi = {
   async deleteGptCodeMapping(cardId: string): Promise<void> {
     await apiRequest(
       `/admin/api/gpt-code/mappings/${encodeURIComponent(cardId)}`,
+      { method: "DELETE" },
+    );
+  },
+
+  // Adds or replaces the exception for that email.
+  async saveGptCodeException(input: {
+    email: string;
+    action: "assign" | "block";
+    cardId?: string;
+    note?: string;
+  }) {
+    const response = await apiRequest<{ data: AdminGptCodeException }>(
+      "/admin/api/gpt-code/exceptions",
+      { method: "PUT", body: input },
+    );
+    return response!.data;
+  },
+
+  async deleteGptCodeException(id: string): Promise<void> {
+    await apiRequest(
+      `/admin/api/gpt-code/exceptions/${encodeURIComponent(id)}`,
       { method: "DELETE" },
     );
   },
