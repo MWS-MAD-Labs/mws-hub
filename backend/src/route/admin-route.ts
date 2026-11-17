@@ -34,3 +34,5 @@ adminRoute.post("/api/gpt-code/accounts/:cardId/code", GptCodeController.code);
 adminRoute.get("/api/gpt-code/configuration", GptCodeController.configuration);
 adminRoute.put("/api/gpt-code/mappings/:cardId", GptCodeController.setMapping);
 adminRoute.delete("/api/gpt-code/mappings/:cardId", GptCodeController.deleteMapping);
+adminRoute.put("/api/gpt-code/exceptions", GptCodeController.setException);
+adminRoute.delete("/api/gpt-code/exceptions/:id", GptCodeController.deleteException);

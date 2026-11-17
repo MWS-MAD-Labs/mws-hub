@@ -13,11 +13,11 @@ const SupportHubConceptsPage = lazy(
 const ProfilePage = lazy(() => import("@/pages/ProfilePage"));
 const LoginPage = lazy(() => import("@/pages/LoginPage"));
 const LogoutRelayPage = lazy(() => import("@/pages/LogoutRelayPage"));
-const Dashboard = lazy(() => import("@/admin/pages/Dashboard"));
-const BrokenTools = lazy(() => import("@/admin/pages/BrokenTools"));
-const AuditLogsPage = lazy(() => import("@/admin/pages/AuditLogsPage"));
+const Dashboard = lazy(() => import("@/admin/features/dashboard/DashboardPage"));
+const BrokenTools = lazy(() => import("@/admin/features/broken-tools/BrokenToolsPage"));
+const AuditLogsPage = lazy(() => import("@/admin/features/audit-logs/AuditLogsPage"));
 const GptCodePage = lazy(() => import("@/pages/GptCodePage"));
-const GptCodeAdminPage = lazy(() => import("@/admin/pages/GptCodeAdminPage"));
+const GptCodeAdminPage = lazy(() => import("@/admin/features/gpt-code/GptCodePage"));
 
 function PageLoader({ children }: { children: ReactNode }) {
   return (

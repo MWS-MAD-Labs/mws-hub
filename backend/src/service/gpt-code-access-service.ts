@@ -1,7 +1,7 @@
 import { ResponseError } from "../error/response-error";
 import * as adminAccess from "../lib/admin-access";
 import { prisma } from "../lib/prisma";
-import type { GptCodeTargetType } from "../generated/prisma/enums";
+import type { GptCodeExceptionAction, GptCodeTargetType } from "../generated/prisma/enums";
 import type { HubUser } from "../type/central-type";
 import { CentralDirectoryService, type CentralAccessRuleOptions } from "./central-directory-service";
 import { GptCodeService, type GptCodeAccount, type GptCodeResult } from "./gpt-code-service";
@@ -25,8 +25,7 @@ export type GptCodeTargetOption = { id: string; label: string };
 export type GptCodeAssignment = GptCodeAccount & {
   unitId: string;
   unitName: string;
-  // Present when the person may pick between accounts: every account for a
-  // Hub admin, or every matching account when more than one matches.
+  // Present only for a Hub admin, who may pick between every account.
   accounts?: string[];
 };
 
@@ -137,6 +136,39 @@ function targetsOf(user: HubUser): { target_type: GptCodeTargetType; target_id: 
 
 const byCardId = (a: GptCodeAccount, b: GptCodeAccount) => a.cardId.localeCompare(b.cardId);
 
+// Most specific first: when one person matches rules of several kinds, the
+// earliest kind here decides their single account.
+const SPECIFICITY: GptCodeTargetType[] = ["JOB_POSITION", "JOB_LEVEL", "UNIT", "BUILDING"];
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export type GptCodeException = {
+  id: string;
+  email: string;
+  action: "assign" | "block";
+  cardId: string | null;
+  note: string | null;
+  updatedAt: string;
+};
+
+function toException(row: {
+  id: string;
+  email: string;
+  action: GptCodeExceptionAction;
+  card_id: string | null;
+  note: string | null;
+  updated_at: Date;
+}): GptCodeException {
+  return {
+    id: row.id,
+    email: row.email,
+    action: row.action === "BLOCK" ? "block" : "assign",
+    cardId: row.card_id,
+    note: row.note,
+    updatedAt: row.updated_at.toISOString(),
+  };
+}
+
 export class GptCodeAccessService {
   static async listMappings(): Promise<GptCodeMapping[]> {
     const rows = await prisma.gptCodeAccessRule.findMany({
@@ -146,18 +178,22 @@ export class GptCodeAccessService {
   }
 
   static async adminConfiguration() {
-    const [accounts, mappings, directory] = await Promise.all([
+    const [accounts, mappings, exceptions, directory] = await Promise.all([
       GptCodeService.listAccounts(),
       this.listMappings(),
-      CentralDirectoryService.accessRuleOptions().catch(() => null),
+      this.listExceptions(),
+      CentralDirectoryService.directory().catch(() => null),
     ]);
 
     return {
       accounts,
       mappings,
+      exceptions,
       targets: directory
-        ? optionsByKind(directory)
+        ? optionsByKind(directory.options)
         : { unit: [], job_level: [], job_position: [], building: [] },
+      // Active staff, so an exception can be added by picking a name.
+      people: directory?.people ?? [],
       centralAvailable: Boolean(directory),
     };
   }
@@ -231,8 +267,9 @@ export class GptCodeAccessService {
   }
 
   // Admins (hub.admin in Central, i.e. MAD Labs) may use every GPT account.
-  // Everyone else gets the accounts whose rules list their unit, job level,
-  // job position or building. When Central cannot answer, isHubAdmin says
+  // Everyone else gets exactly one: their exception if they have one,
+  // otherwise the most specific rule that lists their job position, job
+  // level, unit or building. When Central cannot answer, isHubAdmin says
   // no, so this falls back to the rules rather than widening access.
   private static async resolve(user: HubUser): Promise<Resolved> {
     if (user.source === "student") {
@@ -258,6 +295,9 @@ export class GptCodeAccessService {
       };
     }
 
+    const viaException = await this.exceptionFor(user, unitId);
+    if (viaException) return viaException;
+
     const targets = targetsOf(user);
     if (targets.length === 0) {
       throw new ResponseError(
@@ -270,40 +310,88 @@ export class GptCodeAccessService {
       where: { is_active: true, OR: targets },
       orderBy: { card_id: "asc" },
     });
-    const cardIds = [...new Set(rows.map((row) => row.card_id))].sort();
-    if (cardIds.length === 0) {
-      throw new ResponseError(
-        403,
-        "No active GPT account is assigned to you. Ask a Hub admin.",
-      );
-    }
 
     const unitName =
       adminAccess.getUserUnitName(user) ??
       rows.find((row) => row.target_type === "UNIT")?.target_name ??
       "";
 
-    if (cardIds.length === 1) {
-      const account = await GptCodeService.getAccount(cardIds[0]);
-      return { assignment: { ...account, unitId, unitName }, options: null, viaAdmin: false };
+    // One person, one account. When rules of several kinds match, the most
+    // specific kind wins; within that kind the lowest card id does.
+    const winner = [...rows].sort(
+      (a, b) =>
+        SPECIFICITY.indexOf(a.target_type) - SPECIFICITY.indexOf(b.target_type) ||
+        a.card_id.localeCompare(b.card_id),
+    )[0];
+    if (!winner) {
+      throw new ResponseError(
+        403,
+        "No active GPT account is assigned to you. Ask a Hub admin.",
+      );
     }
 
-    const options = (await GptCodeService.listAccounts())
-      .filter((account) => cardIds.includes(account.cardId))
-      .sort(byCardId);
-    if (options.length === 0) {
-      throw new ResponseError(503, "No GPT accounts are available right now.");
+    const account = await GptCodeService.getAccount(winner.card_id);
+    return { assignment: { ...account, unitId, unitName }, options: null, viaAdmin: false };
+  }
+
+  // A per-person exception, by sign-in email, beats every rule.
+  private static async exceptionFor(user: HubUser, unitId: string): Promise<Resolved | null> {
+    const email = user.email?.trim().toLowerCase();
+    if (!email) return null;
+    const exception = await prisma.gptCodeAccessException.findUnique({ where: { email } });
+    if (!exception) return null;
+    if (exception.action === "BLOCK" || !exception.card_id) {
+      throw new ResponseError(403, "GPT Code is not available to you. Ask a Hub admin.");
     }
+    const account = await GptCodeService.getAccount(exception.card_id);
     return {
-      assignment: {
-        ...options[0],
-        unitId,
-        unitName,
-        accounts: options.map((account) => account.email),
-      },
-      options,
+      assignment: { ...account, unitId, unitName: adminAccess.getUserUnitName(user) ?? "" },
+      options: null,
       viaAdmin: false,
     };
+  }
+
+  static async listExceptions(): Promise<GptCodeException[]> {
+    const rows = await prisma.gptCodeAccessException.findMany({ orderBy: { email: "asc" } });
+    return rows.map(toException);
+  }
+
+  // Adds or replaces the exception for one email.
+  static async setException(input: {
+    email?: unknown;
+    action?: unknown;
+    cardId?: unknown;
+    note?: unknown;
+  }): Promise<GptCodeException> {
+    const email = typeof input.email === "string" ? input.email.trim().toLowerCase() : "";
+    if (!EMAIL_PATTERN.test(email)) throw new ResponseError(400, "Enter a valid email address.");
+
+    const action = input.action === "block" ? "BLOCK" : input.action === "assign" ? "ASSIGN" : null;
+    if (!action) throw new ResponseError(400, "An exception is either assign or block.");
+
+    let cardId: string | null = null;
+    if (action === "ASSIGN") {
+      if (typeof input.cardId !== "string" || !input.cardId.trim()) {
+        throw new ResponseError(400, "Choose the GPT account to assign.");
+      }
+      cardId = (await GptCodeService.getAccount(input.cardId.trim())).cardId;
+    }
+
+    const note = typeof input.note === "string" && input.note.trim() ? input.note.trim().slice(0, 200) : null;
+    const data = { action, card_id: cardId, note } as const;
+    const row = await prisma.gptCodeAccessException.upsert({
+      where: { email },
+      create: { email, ...data },
+      update: data,
+    });
+    return toException(row);
+  }
+
+  static async deleteException(id: string): Promise<GptCodeException> {
+    const row = await prisma.gptCodeAccessException.findUnique({ where: { id } });
+    if (!row) throw new ResponseError(404, "GPT Code exception was not found.");
+    await prisma.gptCodeAccessException.delete({ where: { id } });
+    return toException(row);
   }
 
   static async assignmentFor(user: HubUser): Promise<GptCodeAssignment> {
