@@ -343,6 +343,10 @@ describe("GptCodeAccessService for staff", () => {
 describe("GptCodeAccessService mappings (admin screen)", () => {
   beforeEach(() => {
     spyOn(CentralDirectoryService, "accessRuleOptions").mockResolvedValue({ ...DIRECTORY });
+    spyOn(CentralDirectoryService, "directory").mockResolvedValue({
+      options: { ...DIRECTORY },
+      people: [{ email: "nama.guru@millennia21.id", name: "Nama Guru", unit: "Elementary" }],
+    });
   });
 
   it("saves several targets of every kind for one card, with Central's names", async () => {
@@ -430,6 +434,8 @@ describe("GptCodeAccessService mappings (admin screen)", () => {
     expect(configuration.targets.building).toEqual([{ id: "bld-main", label: "Main Building" }]);
     // A name-only position has no Central id to match on, so it is not offered.
     expect(configuration.targets.job_position).toEqual([{ id: "pos-dev", label: "Developer" }]);
+    // Active staff, for picking an exception by name.
+    expect(configuration.people).toEqual([{ email: "nama.guru@millennia21.id", name: "Nama Guru", unit: "Elementary" }]);
   });
 
   it("removes every rule of a card", async () => {

@@ -182,7 +182,7 @@ export class GptCodeAccessService {
       GptCodeService.listAccounts(),
       this.listMappings(),
       this.listExceptions(),
-      CentralDirectoryService.accessRuleOptions().catch(() => null),
+      CentralDirectoryService.directory().catch(() => null),
     ]);
 
     return {
@@ -190,8 +190,10 @@ export class GptCodeAccessService {
       mappings,
       exceptions,
       targets: directory
-        ? optionsByKind(directory)
+        ? optionsByKind(directory.options)
         : { unit: [], job_level: [], job_position: [], building: [] },
+      // Active staff, so an exception can be added by picking a name.
+      people: directory?.people ?? [],
       centralAvailable: Boolean(directory),
     };
   }
