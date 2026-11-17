@@ -452,8 +452,9 @@ describe("GptCodeAccessService mappings (admin screen)", () => {
 
 describe("GptCodeAccessService exceptions", () => {
   it("gives an assigned person their card even when no rule matches them", async () => {
-    await GptCodeAccessService.setException({ email: " Directorate@Millennia21.id ", action: "assign", cardId: "A4" });
+    // Mocked first: setException checks the card with Apps Script, which CI cannot reach.
     spyOn(GptCodeService, "getAccount").mockImplementation(async (cardId: string) => ({ cardId, email: "ai4@millennia21.id" }));
+    await GptCodeAccessService.setException({ email: " Directorate@Millennia21.id ", action: "assign", cardId: "A4" });
 
     expect(exceptions[0]).toMatchObject({ email: "directorate@millennia21.id", action: "ASSIGN", card_id: "A4" });
     await expect(GptCodeAccessService.assignmentFor(employee("unit-nowhere"))).resolves.toMatchObject({ cardId: "A4" });
