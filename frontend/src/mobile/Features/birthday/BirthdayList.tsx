@@ -24,6 +24,7 @@ function dateLabelOf(value: string): string {
 
 function relativeLabelOf(birthday: HubBirthday): string {
   if (birthday.is_today) return "Today";
+  if (birthday.has_passed) return "Passed";
   if (birthday.days_until === 1) return "Tomorrow";
   return `${birthday.days_until} days`;
 }
@@ -56,6 +57,11 @@ function rememberCelebrationDismissed(key: string) {
   }
 }
 
+const monthLabel = new Intl.DateTimeFormat("en", {
+  month: "long",
+  year: "numeric",
+}).format(new Date());
+
 type BirthdayListProps = {
   className?: string;
 };
@@ -76,7 +82,7 @@ const BirthdayList = memo(({ className }: BirthdayListProps) => {
         setIsLoading(true);
         setHasError(false);
 
-        const data = await hubApi.listBirthdays(8);
+        const data = await hubApi.listBirthdays();
 
         if (isCurrent) {
           setBirthdays(data);
@@ -104,9 +110,11 @@ const BirthdayList = memo(({ className }: BirthdayListProps) => {
     };
   }, []);
 
-  const visibleBirthdays = birthdays.filter(
-    (birthday) => birthday.is_today || birthday.days_until === 1,
-  );
+  // Today and the rest of the month first; ones already passed go last.
+  const visibleBirthdays = [
+    ...birthdays.filter((birthday) => !birthday.has_passed),
+    ...birthdays.filter((birthday) => birthday.has_passed),
+  ];
   const todayBirthdays = birthdays.filter((birthday) => birthday.is_today);
 
   return (
@@ -125,11 +133,11 @@ const BirthdayList = memo(({ className }: BirthdayListProps) => {
 
           <div className="min-w-0 sm:ml-1">
             <h2 className="text-sm font-semibold leading-tight text-card-foreground sm:text-[15px]">
-              Birthdays
+              Birthday This Month
             </h2>
 
             <p className="text-[11px] leading-tight text-muted-foreground sm:mt-0.5 sm:text-xs">
-              Upcoming from Central
+              {monthLabel}
             </p>
           </div>
 
@@ -138,7 +146,7 @@ const BirthdayList = memo(({ className }: BirthdayListProps) => {
             onClick={() => setIsModalOpen(true)}
             className="ml-auto shrink-0 rounded-md border border-primary/15 bg-primary/5 px-2.5 py-1 text-[10px] font-semibold text-primary transition-colors hover:bg-primary/10 sm:px-3 sm:py-1.5 sm:text-xs"
           >
-            All Birthday
+            See All
           </button>
         </div>
 
@@ -157,7 +165,7 @@ const BirthdayList = memo(({ className }: BirthdayListProps) => {
 
         {!isLoading && !hasError && birthdays.length === 0 && (
           <p className="mt-2 rounded-md bg-muted/35 px-3 py-1.5 text-xs font-medium text-muted-foreground sm:mt-3 sm:py-2 sm:text-sm">
-            No upcoming birthdays
+            No birthdays this month
           </p>
         )}
 

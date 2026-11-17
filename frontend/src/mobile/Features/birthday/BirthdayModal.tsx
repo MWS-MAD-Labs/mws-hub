@@ -20,6 +20,7 @@ function dateLabelOf(value: string): string {
 
 function relativeLabelOf(birthday: HubBirthday): string {
   if (birthday.is_today) return "Today";
+  if (birthday.has_passed) return "Passed";
   if (birthday.days_until === 1) return "Tomorrow";
   return `${birthday.days_until} days`;
 }
@@ -27,6 +28,10 @@ function relativeLabelOf(birthday: HubBirthday): string {
 function badgeClassOf(birthday: HubBirthday): string {
   if (birthday.is_today) {
     return "bg-primary text-primary-foreground";
+  }
+
+  if (birthday.has_passed) {
+    return "bg-muted text-muted-foreground";
   }
 
   if (birthday.days_until === 1) {
@@ -55,7 +60,7 @@ export default function BirthdayModal({
       className="fixed inset-0 z-[var(--layer-modal)] flex items-center justify-center bg-black/60 px-4 backdrop-blur-[2px] [padding-bottom:calc(env(safe-area-inset-bottom)+1rem)] [padding-top:calc(env(safe-area-inset-top)+1rem)]"
       role="dialog"
       aria-modal="true"
-      aria-label="All birthdays"
+      aria-label="Birthdays this month"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) {
           onClose();
@@ -79,10 +84,10 @@ export default function BirthdayModal({
 
           <div className="min-w-0 flex-1">
             <h2 className="text-base font-extrabold leading-tight text-card-foreground">
-              All Birthdays
+              Birthday This Month
             </h2>
             <p className="text-xs font-medium text-muted-foreground">
-              Upcoming birthdays from Central
+              Everyone celebrating this month
             </p>
           </div>
 
@@ -107,10 +112,10 @@ export default function BirthdayModal({
                 <Cake className="h-5 w-5" />
               </span>
               <p className="text-sm font-semibold text-foreground">
-                No upcoming birthdays
+                No birthdays this month
               </p>
               <p className="mt-1 text-xs font-medium text-muted-foreground">
-                We will show the next birthdays here.
+                Check back next month.
               </p>
             </div>
           ) : (
