@@ -98,10 +98,14 @@ export type AdminGptCodeException = {
   updatedAt: string;
 };
 
+// An active staff member from Central, to pick an exception by name.
+export type AdminCentralPerson = { email: string; name: string; unit: string | null };
+
 export type AdminGptCodeConfiguration = {
   accounts: AdminGptCodeAccount[];
   mappings: AdminGptCodeMapping[];
   exceptions: AdminGptCodeException[];
+  people: AdminCentralPerson[];
   targets: Record<AdminGptCodeTargetKind, AdminGptCodeTargetOption[]>;
   centralAvailable: boolean;
 };
