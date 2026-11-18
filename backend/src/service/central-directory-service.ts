@@ -9,7 +9,7 @@ export type CentralAccessRuleOptions = {
 };
 
 // An active employee as an admin screen offers them: to pick a person by name.
-export type CentralPerson = { email: string; name: string; unit: string | null };
+export type CentralPerson = { person_id: string | null; email: string; name: string; unit: string | null };
 
 type ActiveEmployee = Awaited<ReturnType<typeof listActiveEmployees>>[number];
 
@@ -99,7 +99,7 @@ function peopleFrom(employees: ActiveEmployee[]): CentralPerson[] {
   for (const employee of employees) {
     const email = employee.email?.trim().toLowerCase();
     if (!email || byEmail.has(email)) continue;
-    byEmail.set(email, { email, name: employee.full_name?.trim() || email, unit: labelOf(employee.unit) });
+    byEmail.set(email, { person_id: employee.person_id ?? null, email, name: employee.full_name?.trim() || email, unit: labelOf(employee.unit) });
   }
   return [...byEmail.values()].sort((a, b) => a.name.localeCompare(b.name));
 }

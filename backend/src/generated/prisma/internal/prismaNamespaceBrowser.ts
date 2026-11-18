@@ -186,6 +186,7 @@ export type GptCodeAccessRuleScalarFieldEnum = (typeof GptCodeAccessRuleScalarFi
 
 export const GptCodeAccessExceptionScalarFieldEnum = {
   id: 'id',
+  person_id: 'person_id',
   email: 'email',
   action: 'action',
   card_id: 'card_id',

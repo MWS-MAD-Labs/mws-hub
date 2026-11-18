@@ -222,7 +222,11 @@ enum GptCodeExceptionAction {
 model GptCodeAccessException {
   id String @id @default(cuid())
 
-  // Always stored lower case.
+  // Central's person id. The email can change in Central, the person does not: an exception is found by this first
+  // and by the email for a row made before it existed (the row is tied the first time its email matches).
+  person_id String? @unique
+
+  // Always stored lower case. A label that follows the person once the person id is known.
   email   String                 @unique
   action  GptCodeExceptionAction
   // Set for ASSIGN, null for BLOCK.

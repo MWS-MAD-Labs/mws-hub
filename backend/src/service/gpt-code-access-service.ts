@@ -1,5 +1,7 @@
 import { ResponseError } from "../error/response-error";
 import * as adminAccess from "../lib/admin-access";
+import { resolveCentralIdentity } from "../lib/central-client";
+import { logger } from "../lib/logger";
 import { prisma } from "../lib/prisma";
 import type { GptCodeExceptionAction, GptCodeTargetType } from "../generated/prisma/enums";
 import type { HubUser } from "../type/central-type";
@@ -144,6 +146,8 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export type GptCodeException = {
   id: string;
+  // Null until the exception is tied to a person in Central.
+  personId: string | null;
   email: string;
   action: "assign" | "block";
   cardId: string | null;
@@ -153,6 +157,7 @@ export type GptCodeException = {
 
 function toException(row: {
   id: string;
+  person_id: string | null;
   email: string;
   action: GptCodeExceptionAction;
   card_id: string | null;
@@ -161,6 +166,7 @@ function toException(row: {
 }): GptCodeException {
   return {
     id: row.id,
+    personId: row.person_id,
     email: row.email,
     action: row.action === "BLOCK" ? "block" : "assign",
     cardId: row.card_id,
@@ -184,6 +190,8 @@ export class GptCodeAccessService {
       this.listExceptions(),
       CentralDirectoryService.directory().catch(() => null),
     ]);
+
+    if (directory) await this.tieExceptions(exceptions, directory.people);
 
     return {
       accounts,
@@ -334,11 +342,30 @@ export class GptCodeAccessService {
     return { assignment: { ...account, unitId, unitName }, options: null, viaAdmin: false };
   }
 
-  // A per-person exception, by sign-in email, beats every rule.
+  // A per-person exception beats every rule. It is found by the Central person id; a row made before the id existed is
+  // found by the sign-in email and tied to the person from then on, and a row whose email Central changed takes the new
+  // one. The tying is best effort: a failure never changes the answer.
   private static async exceptionFor(user: HubUser, unitId: string): Promise<Resolved | null> {
     const email = user.email?.trim().toLowerCase();
-    if (!email) return null;
-    const exception = await prisma.gptCodeAccessException.findUnique({ where: { email } });
+    const personId = user.person_id || null;
+    if (!email && !personId) return null;
+
+    let exception = personId ? await prisma.gptCodeAccessException.findUnique({ where: { person_id: personId } }) : null;
+    if (exception && email && exception.email !== email) {
+      await prisma.gptCodeAccessException
+        .update({ where: { id: exception.id }, data: { email } })
+        .catch((error) => logger.error("GPT Code exception kept its old email label:", error));
+    }
+    if (!exception && email) {
+      exception = await prisma.gptCodeAccessException.findUnique({ where: { email } });
+      // A row tied to another person is theirs: an email Central gave to someone else does not carry it over.
+      if (exception?.person_id && personId && exception.person_id !== personId) exception = null;
+      if (exception && personId && !exception.person_id) {
+        await prisma.gptCodeAccessException
+          .update({ where: { id: exception.id }, data: { person_id: personId } })
+          .catch((error) => logger.error("GPT Code exception could not be tied to its person:", error));
+      }
+    }
     if (!exception) return null;
     if (exception.action === "BLOCK" || !exception.card_id) {
       throw new ResponseError(403, "GPT Code is not available to you. Ask a Hub admin.");
@@ -379,12 +406,52 @@ export class GptCodeAccessService {
 
     const note = typeof input.note === "string" && input.note.trim() ? input.note.trim().slice(0, 200) : null;
     const data = { action, card_id: cardId, note } as const;
-    const row = await prisma.gptCodeAccessException.upsert({
-      where: { email },
-      create: { email, ...data },
-      update: data,
-    });
-    return toException(row);
+
+    // Who Central says this email is. Someone Central does not have, or a Central that cannot be reached, leaves the
+    // exception on the email alone, to be tied later.
+    const personId = await this.personIdOf(email);
+    const existing =
+      (personId ? await prisma.gptCodeAccessException.findUnique({ where: { person_id: personId } }) : null) ??
+      (await prisma.gptCodeAccessException.findUnique({ where: { email } }));
+    try {
+      const row = existing
+        ? await prisma.gptCodeAccessException.update({
+            where: { id: existing.id },
+            data: { ...data, email, ...(personId ? { person_id: personId } : {}) },
+          })
+        : await prisma.gptCodeAccessException.create({ data: { email, person_id: personId, ...data } });
+      return toException(row);
+    } catch (error) {
+      if ((error as { code?: string } | null)?.code === "P2002") {
+        throw new ResponseError(409, "Another exception already uses this email or person.");
+      }
+      throw error;
+    }
+  }
+
+  private static async personIdOf(email: string): Promise<string | null> {
+    try {
+      return (await resolveCentralIdentity(email))?.person_id ?? null;
+    } catch (error) {
+      logger.error("Central could not name the person of an exception email:", error);
+      return null;
+    }
+  }
+
+  // Ties exceptions made before the person id existed to the people Central lists with that email. Best effort.
+  private static async tieExceptions(
+    exceptions: GptCodeException[],
+    people: { person_id: string | null; email: string }[],
+  ): Promise<void> {
+    const idByEmail = new Map(people.filter((person) => person.person_id).map((person) => [person.email, person.person_id as string]));
+    for (const exception of exceptions) {
+      if (exception.personId) continue;
+      const personId = idByEmail.get(exception.email);
+      if (!personId) continue;
+      await prisma.gptCodeAccessException
+        .update({ where: { id: exception.id }, data: { person_id: personId } })
+        .catch((error) => logger.error("GPT Code exception could not be tied to its person:", error));
+    }
   }
 
   static async deleteException(id: string): Promise<GptCodeException> {

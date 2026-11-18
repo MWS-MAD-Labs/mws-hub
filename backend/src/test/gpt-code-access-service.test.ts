@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, mock, spyOn } from "bun:test";
+import * as centralClient from "../lib/central-client";
 import type { HubUser } from "../type/central-type";
 
 type TargetType = "UNIT" | "JOB_LEVEL" | "JOB_POSITION" | "BUILDING";
@@ -24,6 +25,7 @@ const rows: RuleRow[] = [];
 
 type ExceptionRow = {
   id: string;
+  person_id: string | null;
   email: string;
   action: "ASSIGN" | "BLOCK";
   card_id: string | null;
@@ -34,8 +36,10 @@ type ExceptionRow = {
 
 const exceptions: ExceptionRow[] = [];
 
-const findException = (where: { id?: string; email?: string }) =>
-  exceptions.find((row) => (where.id ? row.id === where.id : row.email === where.email)) ?? null;
+const findException = (where: { id?: string; email?: string; person_id?: string }) =>
+  exceptions.find((row) =>
+    where.id ? row.id === where.id : where.person_id ? row.person_id === where.person_id : row.email === where.email,
+  ) ?? null;
 
 const matches = (row: RuleRow, where: RuleWhere = {}) =>
   (where.card_id === undefined || row.card_id === where.card_id) &&
@@ -69,23 +73,25 @@ mock.module("../lib/prisma", () => ({
     gptCodeAccessException: {
       findUnique: async ({ where }: { where: { id?: string; email?: string } }) => findException(where),
       findMany: async () => [...exceptions].sort((a, b) => a.email.localeCompare(b.email)),
-      upsert: async ({
-        where,
-        create,
-        update,
-      }: {
-        where: { email: string };
-        create: Pick<ExceptionRow, "email" | "action" | "card_id" | "note">;
-        update: Pick<ExceptionRow, "action" | "card_id" | "note">;
-      }) => {
+      create: async ({ data }: { data: Pick<ExceptionRow, "email" | "person_id" | "action" | "card_id" | "note"> }) => {
         const now = new Date("2026-11-16T00:00:00Z");
-        const existing = findException(where);
-        if (existing) {
-          Object.assign(existing, update, { updated_at: now });
-          return existing;
+        if (exceptions.some((row) => row.email === data.email || (data.person_id && row.person_id === data.person_id))) {
+          throw Object.assign(new Error("Unique constraint"), { code: "P2002" });
         }
-        const row = { id: `exc-${exceptions.length + 1}`, ...create, created_at: now, updated_at: now };
+        const row = { id: `exc-${exceptions.length + 1}`, ...data, created_at: now, updated_at: now };
         exceptions.push(row);
+        return row;
+      },
+      update: async ({ where, data }: { where: { id: string }; data: Partial<ExceptionRow> }) => {
+        const row = exceptions.find((candidate) => candidate.id === where.id);
+        if (!row) throw Object.assign(new Error("Not found"), { code: "P2025" });
+        if (
+          (data.email && exceptions.some((other) => other.id !== row.id && other.email === data.email)) ||
+          (data.person_id && exceptions.some((other) => other.id !== row.id && other.person_id === data.person_id))
+        ) {
+          throw Object.assign(new Error("Unique constraint"), { code: "P2002" });
+        }
+        Object.assign(row, data, { updated_at: new Date("2026-11-17T00:00:00Z") });
         return row;
       },
       delete: async ({ where }: { where: { id: string } }) => {
@@ -345,7 +351,7 @@ describe("GptCodeAccessService mappings (admin screen)", () => {
     spyOn(CentralDirectoryService, "accessRuleOptions").mockResolvedValue({ ...DIRECTORY });
     spyOn(CentralDirectoryService, "directory").mockResolvedValue({
       options: { ...DIRECTORY },
-      people: [{ email: "nama.guru@millennia21.id", name: "Nama Guru", unit: "Elementary" }],
+      people: [{ person_id: "person-guru", email: "nama.guru@millennia21.id", name: "Nama Guru", unit: "Elementary" }],
     });
   });
 
@@ -435,7 +441,7 @@ describe("GptCodeAccessService mappings (admin screen)", () => {
     // A name-only position has no Central id to match on, so it is not offered.
     expect(configuration.targets.job_position).toEqual([{ id: "pos-dev", label: "Developer" }]);
     // Active staff, for picking an exception by name.
-    expect(configuration.people).toEqual([{ email: "nama.guru@millennia21.id", name: "Nama Guru", unit: "Elementary" }]);
+    expect(configuration.people).toEqual([{ person_id: "person-guru", email: "nama.guru@millennia21.id", name: "Nama Guru", unit: "Elementary" }]);
   });
 
   it("removes every rule of a card", async () => {
@@ -451,6 +457,11 @@ describe("GptCodeAccessService mappings (admin screen)", () => {
 });
 
 describe("GptCodeAccessService exceptions", () => {
+  // Central does not name the person unless a test says so.
+  beforeEach(() => {
+    spyOn(centralClient, "resolveCentralIdentity").mockResolvedValue(null);
+  });
+
   it("gives an assigned person their card even when no rule matches them", async () => {
     // Mocked first: setException checks the card with Apps Script, which CI cannot reach.
     spyOn(GptCodeService, "getAccount").mockImplementation(async (cardId: string) => ({ cardId, email: "ai4@millennia21.id" }));
@@ -481,7 +492,7 @@ describe("GptCodeAccessService exceptions", () => {
   it("does not apply to a Hub admin, who keeps every account", async () => {
     isAdmin.mockResolvedValue(true);
     exceptions.push({
-      id: "exc-1", email: "directorate@millennia21.id", action: "BLOCK", card_id: null, note: null,
+      id: "exc-1", person_id: null, email: "directorate@millennia21.id", action: "BLOCK", card_id: null, note: null,
       created_at: new Date(), updated_at: new Date(),
     });
     spyOn(GptCodeService, "listAccounts").mockResolvedValue([...ALL_ACCOUNTS]);
@@ -577,5 +588,83 @@ describe("GptCodeAccessService for Hub admins (MAD Labs)", () => {
   it("still refuses students, admin or not", async () => {
     isAdmin.mockResolvedValue(true);
     await expect(GptCodeAccessService.assignmentFor(student())).rejects.toMatchObject({ status: 403 });
+  });
+});
+
+describe("GptCodeAccessService exceptions follow the person, not the email", () => {
+  const row = (over: Partial<ExceptionRow> = {}): ExceptionRow => ({
+    id: "exc-1", person_id: null, email: "directorate@millennia21.id", action: "BLOCK", card_id: null, note: null,
+    created_at: new Date(), updated_at: new Date(), ...over,
+  });
+  const movedEmployee = () => ({ ...employee(), email: "directorate.new@millennia21.id" });
+
+  beforeEach(() => {
+    spyOn(centralClient, "resolveCentralIdentity").mockResolvedValue(null);
+  });
+
+  it("still blocks a person whose email changed in Central, and takes the new email", async () => {
+    addRule();
+    exceptions.push(row({ person_id: "person-1", email: "directorate@millennia21.id" }));
+    const fetchCode = spyOn(GptCodeService, "getCode");
+
+    await expect(GptCodeAccessService.codeFor(movedEmployee())).rejects.toMatchObject({ status: 403 });
+
+    expect(fetchCode).not.toHaveBeenCalled();
+    expect(exceptions[0].email).toBe("directorate.new@millennia21.id");
+  });
+
+  it("finds an older row by its email the first time and ties it to the person", async () => {
+    addRule();
+    exceptions.push(row({ person_id: null }));
+
+    await expect(GptCodeAccessService.codeFor(employee())).rejects.toMatchObject({ status: 403 });
+
+    expect(exceptions[0].person_id).toBe("person-1");
+  });
+
+  it("does not apply a row tied to another person to the one who now has that email", async () => {
+    addRule();
+    // The block belongs to person 9, whose old email is the one person 1 has now.
+    exceptions.push(row({ person_id: "person-9", email: "directorate@millennia21.id" }));
+    spyOn(GptCodeService, "getAccount").mockImplementation(async (cardId: string) => ({ cardId, email: "ai@millennia21.id" }));
+
+    // The rule's card (A5) applies, as it would without the row, and the row stays with person 9.
+    await expect(GptCodeAccessService.assignmentFor(employee())).resolves.toMatchObject({ cardId: "A5" });
+    expect(exceptions[0].person_id).toBe("person-9");
+  });
+
+  it("stores the person id when Central names the person, and not when it does not", async () => {
+    spyOn(GptCodeService, "getAccount").mockImplementation(async (cardId: string) => ({ cardId, email: "x@millennia21.id" }));
+    spyOn(centralClient, "resolveCentralIdentity").mockResolvedValue({ person_id: "person-1" } as never);
+    const known = await GptCodeAccessService.setException({ email: "directorate@millennia21.id", action: "block" });
+    expect(exceptions[0].person_id).toBe("person-1");
+    expect(known.personId).toBe("person-1");
+
+    spyOn(centralClient, "resolveCentralIdentity").mockRejectedValue(new Error("Central is down"));
+    await GptCodeAccessService.setException({ email: "guest@example.org", action: "block" });
+    expect(exceptions.find((item) => item.email === "guest@example.org")?.person_id).toBeNull();
+  });
+
+  it("keeps one exception per person when the admin saves the person under a new email", async () => {
+    spyOn(GptCodeService, "getAccount").mockImplementation(async (cardId: string) => ({ cardId, email: "x@millennia21.id" }));
+    spyOn(centralClient, "resolveCentralIdentity").mockResolvedValue({ person_id: "person-1" } as never);
+    await GptCodeAccessService.setException({ email: "old@millennia21.id", action: "assign", cardId: "A1" });
+    await GptCodeAccessService.setException({ email: "new@millennia21.id", action: "assign", cardId: "A2" });
+
+    expect(exceptions).toHaveLength(1);
+    expect(exceptions[0]).toMatchObject({ email: "new@millennia21.id", person_id: "person-1", card_id: "A2" });
+  });
+
+  it("ties older exceptions to the people Central lists when the admin screen opens", async () => {
+    spyOn(GptCodeService, "listAccounts").mockResolvedValue([...ALL_ACCOUNTS]);
+    spyOn(CentralDirectoryService, "directory").mockResolvedValue({
+      options: { ...DIRECTORY },
+      people: [{ person_id: "person-1", email: "directorate@millennia21.id", name: "Directorate User", unit: "Directorate" }],
+    });
+    exceptions.push(row({ person_id: null }));
+
+    await GptCodeAccessService.adminConfiguration();
+
+    expect(exceptions[0].person_id).toBe("person-1");
   });
 });
