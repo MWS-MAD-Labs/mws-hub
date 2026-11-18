@@ -181,6 +181,15 @@ refreshes their identity from Central and exposes only the account assigned to
 their current unit. Students, inactive mappings and unmapped units are denied.
 The browser never receives the Apps Script URL or shared secret.
 
+A per-person exception (assign a card or block) follows the person, not the email. It stores
+Central's person id (`gpt_code_access_exceptions.person_id`, migration
+`20261119090000_gpt_code_exception_person_id`) and is found by it first, so a block still
+applies after Central changes the person's email, and the row takes the new email. The id is
+filled when an admin saves an exception for someone Central knows, when the admin screen opens
+(rows are tied to the people Central lists), and the first time an older row matches by its
+email. A row tied to another person is never applied to whoever now has its old email. An
+exception for an email Central does not have stays on the email alone.
+
 Hub endpoints:
 
 - `GET /api/gpt-code/account` returns the signed-in staff member's assigned

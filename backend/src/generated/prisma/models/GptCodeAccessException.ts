@@ -26,6 +26,7 @@ export type AggregateGptCodeAccessException = {
 
 export type GptCodeAccessExceptionMinAggregateOutputType = {
   id: string | null
+  person_id: string | null
   email: string | null
   action: $Enums.GptCodeExceptionAction | null
   card_id: string | null
@@ -36,6 +37,7 @@ export type GptCodeAccessExceptionMinAggregateOutputType = {
 
 export type GptCodeAccessExceptionMaxAggregateOutputType = {
   id: string | null
+  person_id: string | null
   email: string | null
   action: $Enums.GptCodeExceptionAction | null
   card_id: string | null
@@ -46,6 +48,7 @@ export type GptCodeAccessExceptionMaxAggregateOutputType = {
 
 export type GptCodeAccessExceptionCountAggregateOutputType = {
   id: number
+  person_id: number
   email: number
   action: number
   card_id: number
@@ -58,6 +61,7 @@ export type GptCodeAccessExceptionCountAggregateOutputType = {
 
 export type GptCodeAccessExceptionMinAggregateInputType = {
   id?: true
+  person_id?: true
   email?: true
   action?: true
   card_id?: true
@@ -68,6 +72,7 @@ export type GptCodeAccessExceptionMinAggregateInputType = {
 
 export type GptCodeAccessExceptionMaxAggregateInputType = {
   id?: true
+  person_id?: true
   email?: true
   action?: true
   card_id?: true
@@ -78,6 +83,7 @@ export type GptCodeAccessExceptionMaxAggregateInputType = {
 
 export type GptCodeAccessExceptionCountAggregateInputType = {
   id?: true
+  person_id?: true
   email?: true
   action?: true
   card_id?: true
@@ -161,6 +167,7 @@ export type GptCodeAccessExceptionGroupByArgs<ExtArgs extends runtime.Types.Exte
 
 export type GptCodeAccessExceptionGroupByOutputType = {
   id: string
+  person_id: string | null
   email: string
   action: $Enums.GptCodeExceptionAction
   card_id: string | null
@@ -192,6 +199,7 @@ export type GptCodeAccessExceptionWhereInput = {
   OR?: Prisma.GptCodeAccessExceptionWhereInput[]
   NOT?: Prisma.GptCodeAccessExceptionWhereInput | Prisma.GptCodeAccessExceptionWhereInput[]
   id?: Prisma.StringFilter<"GptCodeAccessException"> | string
+  person_id?: Prisma.StringNullableFilter<"GptCodeAccessException"> | string | null
   email?: Prisma.StringFilter<"GptCodeAccessException"> | string
   action?: Prisma.EnumGptCodeExceptionActionFilter<"GptCodeAccessException"> | $Enums.GptCodeExceptionAction
   card_id?: Prisma.StringNullableFilter<"GptCodeAccessException"> | string | null
@@ -202,6 +210,7 @@ export type GptCodeAccessExceptionWhereInput = {
 
 export type GptCodeAccessExceptionOrderByWithRelationInput = {
   id?: Prisma.SortOrder
+  person_id?: Prisma.SortOrderInput | Prisma.SortOrder
   email?: Prisma.SortOrder
   action?: Prisma.SortOrder
   card_id?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -212,6 +221,7 @@ export type GptCodeAccessExceptionOrderByWithRelationInput = {
 
 export type GptCodeAccessExceptionWhereUniqueInput = Prisma.AtLeast<{
   id?: string
+  person_id?: string
   email?: string
   AND?: Prisma.GptCodeAccessExceptionWhereInput | Prisma.GptCodeAccessExceptionWhereInput[]
   OR?: Prisma.GptCodeAccessExceptionWhereInput[]
@@ -221,10 +231,11 @@ export type GptCodeAccessExceptionWhereUniqueInput = Prisma.AtLeast<{
   note?: Prisma.StringNullableFilter<"GptCodeAccessException"> | string | null
   created_at?: Prisma.DateTimeFilter<"GptCodeAccessException"> | Date | string
   updated_at?: Prisma.DateTimeFilter<"GptCodeAccessException"> | Date | string
-}, "id" | "email">
+}, "id" | "person_id" | "email">
 
 export type GptCodeAccessExceptionOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
+  person_id?: Prisma.SortOrderInput | Prisma.SortOrder
   email?: Prisma.SortOrder
   action?: Prisma.SortOrder
   card_id?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -241,6 +252,7 @@ export type GptCodeAccessExceptionScalarWhereWithAggregatesInput = {
   OR?: Prisma.GptCodeAccessExceptionScalarWhereWithAggregatesInput[]
   NOT?: Prisma.GptCodeAccessExceptionScalarWhereWithAggregatesInput | Prisma.GptCodeAccessExceptionScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"GptCodeAccessException"> | string
+  person_id?: Prisma.StringNullableWithAggregatesFilter<"GptCodeAccessException"> | string | null
   email?: Prisma.StringWithAggregatesFilter<"GptCodeAccessException"> | string
   action?: Prisma.EnumGptCodeExceptionActionWithAggregatesFilter<"GptCodeAccessException"> | $Enums.GptCodeExceptionAction
   card_id?: Prisma.StringNullableWithAggregatesFilter<"GptCodeAccessException"> | string | null
@@ -251,6 +263,7 @@ export type GptCodeAccessExceptionScalarWhereWithAggregatesInput = {
 
 export type GptCodeAccessExceptionCreateInput = {
   id?: string
+  person_id?: string | null
   email: string
   action: $Enums.GptCodeExceptionAction
   card_id?: string | null
@@ -261,6 +274,7 @@ export type GptCodeAccessExceptionCreateInput = {
 
 export type GptCodeAccessExceptionUncheckedCreateInput = {
   id?: string
+  person_id?: string | null
   email: string
   action: $Enums.GptCodeExceptionAction
   card_id?: string | null
@@ -271,6 +285,7 @@ export type GptCodeAccessExceptionUncheckedCreateInput = {
 
 export type GptCodeAccessExceptionUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  person_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   email?: Prisma.StringFieldUpdateOperationsInput | string
   action?: Prisma.EnumGptCodeExceptionActionFieldUpdateOperationsInput | $Enums.GptCodeExceptionAction
   card_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -281,6 +296,7 @@ export type GptCodeAccessExceptionUpdateInput = {
 
 export type GptCodeAccessExceptionUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  person_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   email?: Prisma.StringFieldUpdateOperationsInput | string
   action?: Prisma.EnumGptCodeExceptionActionFieldUpdateOperationsInput | $Enums.GptCodeExceptionAction
   card_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -291,6 +307,7 @@ export type GptCodeAccessExceptionUncheckedUpdateInput = {
 
 export type GptCodeAccessExceptionCreateManyInput = {
   id?: string
+  person_id?: string | null
   email: string
   action: $Enums.GptCodeExceptionAction
   card_id?: string | null
@@ -301,6 +318,7 @@ export type GptCodeAccessExceptionCreateManyInput = {
 
 export type GptCodeAccessExceptionUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  person_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   email?: Prisma.StringFieldUpdateOperationsInput | string
   action?: Prisma.EnumGptCodeExceptionActionFieldUpdateOperationsInput | $Enums.GptCodeExceptionAction
   card_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -311,6 +329,7 @@ export type GptCodeAccessExceptionUpdateManyMutationInput = {
 
 export type GptCodeAccessExceptionUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  person_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   email?: Prisma.StringFieldUpdateOperationsInput | string
   action?: Prisma.EnumGptCodeExceptionActionFieldUpdateOperationsInput | $Enums.GptCodeExceptionAction
   card_id?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -321,6 +340,7 @@ export type GptCodeAccessExceptionUncheckedUpdateManyInput = {
 
 export type GptCodeAccessExceptionCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  person_id?: Prisma.SortOrder
   email?: Prisma.SortOrder
   action?: Prisma.SortOrder
   card_id?: Prisma.SortOrder
@@ -331,6 +351,7 @@ export type GptCodeAccessExceptionCountOrderByAggregateInput = {
 
 export type GptCodeAccessExceptionMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  person_id?: Prisma.SortOrder
   email?: Prisma.SortOrder
   action?: Prisma.SortOrder
   card_id?: Prisma.SortOrder
@@ -341,6 +362,7 @@ export type GptCodeAccessExceptionMaxOrderByAggregateInput = {
 
 export type GptCodeAccessExceptionMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  person_id?: Prisma.SortOrder
   email?: Prisma.SortOrder
   action?: Prisma.SortOrder
   card_id?: Prisma.SortOrder
@@ -357,6 +379,7 @@ export type EnumGptCodeExceptionActionFieldUpdateOperationsInput = {
 
 export type GptCodeAccessExceptionSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  person_id?: boolean
   email?: boolean
   action?: boolean
   card_id?: boolean
@@ -367,6 +390,7 @@ export type GptCodeAccessExceptionSelect<ExtArgs extends runtime.Types.Extension
 
 export type GptCodeAccessExceptionSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  person_id?: boolean
   email?: boolean
   action?: boolean
   card_id?: boolean
@@ -377,6 +401,7 @@ export type GptCodeAccessExceptionSelectCreateManyAndReturn<ExtArgs extends runt
 
 export type GptCodeAccessExceptionSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  person_id?: boolean
   email?: boolean
   action?: boolean
   card_id?: boolean
@@ -387,6 +412,7 @@ export type GptCodeAccessExceptionSelectUpdateManyAndReturn<ExtArgs extends runt
 
 export type GptCodeAccessExceptionSelectScalar = {
   id?: boolean
+  person_id?: boolean
   email?: boolean
   action?: boolean
   card_id?: boolean
@@ -395,13 +421,14 @@ export type GptCodeAccessExceptionSelectScalar = {
   updated_at?: boolean
 }
 
-export type GptCodeAccessExceptionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "email" | "action" | "card_id" | "note" | "created_at" | "updated_at", ExtArgs["result"]["gptCodeAccessException"]>
+export type GptCodeAccessExceptionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "person_id" | "email" | "action" | "card_id" | "note" | "created_at" | "updated_at", ExtArgs["result"]["gptCodeAccessException"]>
 
 export type $GptCodeAccessExceptionPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "GptCodeAccessException"
   objects: {}
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
+    person_id: string | null
     email: string
     action: $Enums.GptCodeExceptionAction
     card_id: string | null
@@ -832,6 +859,7 @@ export interface Prisma__GptCodeAccessExceptionClient<T, Null = never, ExtArgs e
  */
 export interface GptCodeAccessExceptionFieldRefs {
   readonly id: Prisma.FieldRef<"GptCodeAccessException", 'String'>
+  readonly person_id: Prisma.FieldRef<"GptCodeAccessException", 'String'>
   readonly email: Prisma.FieldRef<"GptCodeAccessException", 'String'>
   readonly action: Prisma.FieldRef<"GptCodeAccessException", 'GptCodeExceptionAction'>
   readonly card_id: Prisma.FieldRef<"GptCodeAccessException", 'String'>
