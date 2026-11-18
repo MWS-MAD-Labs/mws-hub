@@ -28,7 +28,9 @@ beforeAll(() => {
 
 beforeEach(() => {
   gate.clearAppAccessCacheForTest();
-  spyOn(centralClient, "lookupApplicationEntitlement").mockResolvedValue({ is_active: true } as never);
+  spyOn(centralClient, "lookupApplicationEntitlements").mockResolvedValue([
+    { application_id: "gpt-code", is_active: true } as never,
+  ]);
 });
 
 // The approved-access stub stays: other files set the same one at load time

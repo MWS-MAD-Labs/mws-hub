@@ -60,6 +60,7 @@ async function failure(promise: Promise<unknown>) {
 beforeEach(() => {
   gate.clearHubAccessCacheForTest();
   audits.length = 0;
+  delete process.env.HUB_CENTRAL_ACCESS_MODE;
   delete process.env.HUB_CENTRAL_ACCESS_BYPASS_EMAILS;
   delete process.env.HUB_CENTRAL_ACCESS_APP_ID;
 });
