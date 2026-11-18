@@ -3,7 +3,7 @@ import {
   normalizeAccessToken,
   userMatchesAccessRule,
 } from "../lib/access-rules";
-import { centralAccessForApp } from "../lib/hub-access-gate";
+import { centralAccessForApps } from "../lib/hub-access-gate";
 import { deriveAppSecret } from "../lib/hub-app-secret";
 import { centralCatalogState } from "./central-catalog-service";
 import type { CentralClaim, HubUser } from "../type/central-type";
@@ -227,30 +227,38 @@ async function effectiveCatalog(): Promise<HubCatalogEntry[]> {
 
 export class AppsService {
   static async listFor(user: HubUser): Promise<HubAppResponse[]> {
+    return (await this.listWithStatus(user)).apps;
+  }
+
+  // The cards, and whether Central could not be asked for some of them, so the page can say so instead of showing a
+  // menu that is quietly short.
+  static async listWithStatus(user: HubUser): Promise<{
+    apps: HubAppResponse[];
+    unavailable: { retryAfterSeconds: number | null } | null;
+  }> {
     const [catalog, approvedApplicationIds] = await Promise.all([
       effectiveCatalog(),
       approvedApplicationIdsFor(user),
     ]);
     const visible = catalog.filter((entry) => isVisibleTo(entry, user));
-    const central = await Promise.all(
-      visible.map((entry) =>
-        entry.centralEntitlementAppId
-          ? centralAccessForApp(user, entry.centralEntitlementAppId)
-          : Promise.resolve(null),
-      ),
+    const centralIds = visible.flatMap((entry) =>
+      entry.centralEntitlementAppId ? [entry.centralEntitlementAppId] : [],
     );
+    const { access, unavailable } = await centralAccessForApps(user, centralIds);
     // An app Central published has no rule of Hub's own to fall back on, so it needs a clear yes.
-    return visible
-      .filter((entry, index) =>
+    const apps = visible
+      .filter((entry) =>
         entry.source === "central"
-          ? central[index] === "granted"
-          : central[index] !== "denied",
+          ? access.get(entry.centralEntitlementAppId!) === "granted"
+          : !entry.centralEntitlementAppId ||
+            access.get(entry.centralEntitlementAppId) !== "denied",
       )
       .map((entry) =>
         entry.centralEntitlementAppId
           ? toResponse(entry, user, new Set([entry.id]))
           : toResponse(entry, user, approvedApplicationIds),
       );
+    return { apps, unavailable };
   }
 
   static async findByLaunchId(appId: string): Promise<HubCatalogEntry | null> {

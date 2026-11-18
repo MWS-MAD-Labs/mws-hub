@@ -58,6 +58,12 @@ const published = (id: string, extra: Record<string, unknown> = {}) => ({
 beforeEach(() => {
   gate.clearAppAccessCacheForTest();
   clearCentralCatalogCacheForTest();
+  spyOn(centralClient, "lookupApplicationEntitlements").mockImplementation(
+    async (personId, applicationIds) =>
+      applicationIds.map((applicationId) =>
+        ({ person_id: personId, application_id: applicationId, is_active: true }) as never,
+      ),
+  );
 });
 
 afterEach(() => {
@@ -84,13 +90,13 @@ describe("applications published in Central", () => {
 
   it("leaves it out for a person Central gives no access", async () => {
     spyOn(centralClient, "listPublishedApplications").mockResolvedValue([published("demo")] as never);
-    spyOn(centralClient, "lookupApplicationEntitlement").mockResolvedValue(null);
+    spyOn(centralClient, "lookupApplicationEntitlements").mockResolvedValue([]);
     expect((await AppsService.listFor(user)).some((app) => app.id === "demo")).toBe(false);
   });
 
   it("leaves it out when Central cannot answer the access question", async () => {
     spyOn(centralClient, "listPublishedApplications").mockResolvedValue([published("demo")] as never);
-    spyOn(centralClient, "lookupApplicationEntitlement").mockRejectedValue(new Error("down"));
+    spyOn(centralClient, "lookupApplicationEntitlements").mockRejectedValue(new Error("down"));
     expect((await AppsService.listFor(user)).some((app) => app.id === "demo")).toBe(false);
   });
 
@@ -238,7 +244,7 @@ describe("applications published in Central", () => {
 
     // Nobody without access in Central sees it.
     gate.clearAppAccessCacheForTest();
-    spyOn(centralClient, "lookupApplicationEntitlement").mockResolvedValue(null);
+    spyOn(centralClient, "lookupApplicationEntitlements").mockResolvedValue([]);
     expect((await AppsService.listFor(user)).some((app) => app.id === "guide")).toBe(false);
   });
 

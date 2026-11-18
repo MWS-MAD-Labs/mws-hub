@@ -81,7 +81,14 @@ export class AppsController {
   // show; only launch below re-checks with Central, because only launch
   // hands out a credential.
   static async list(c: Context<{ Variables: SessionVariables }>) {
-    return c.json({ data: await AppsService.listFor(c.var.user) });
+    const { apps, unavailable } = await AppsService.listWithStatus(c.var.user);
+    return c.json({
+      data: apps,
+      // Central could not be asked for some cards, so the menu may be short. The page says so and offers a retry.
+      ...(unavailable
+        ? { meta: { central_unavailable: true, retry_after_seconds: unavailable.retryAfterSeconds } }
+        : {}),
+    });
   }
 
   // The picture of a card, from Central, served from the Hub's own address.

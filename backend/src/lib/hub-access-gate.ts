@@ -1,4 +1,9 @@
-import { lookupApplicationEntitlement } from "./central-client";
+import {
+  CentralRateLimitedError,
+  isBatchLookupUnavailable,
+  lookupApplicationEntitlement,
+  lookupApplicationEntitlements,
+} from "./central-client";
 import { HUB_ADMIN_PERMISSION, HUB_USE_PERMISSION } from "./hub-permissions";
 import { logger } from "./logger";
 import { revokeSessionsForUser } from "./session-revocation";
@@ -108,6 +113,88 @@ export async function centralAccessForApp(user: HubUser, appId: string): Promise
     logger.error(`Central access lookup failed for card ${appId}:`, error);
     return "unknown";
   }
+}
+
+// A grant Central confirmed lately is still shown for this long when Central cannot be asked, so a limit or an outage
+// does not empty the menu. Taking access away is seen again as soon as Central answers.
+function staleMs(): number {
+  const seconds = Number(process.env.HUB_CENTRAL_ACCESS_STALE_SECONDS);
+  return (Number.isFinite(seconds) && seconds >= 0 ? seconds : 600) * 1000;
+}
+
+export type CentralAccessAnswer = {
+  access: Map<string, "granted" | "denied" | "unknown">;
+  // Set when Central could not be asked and some card is left unknown. `retryAfterSeconds` is what Central asked for.
+  unavailable: { retryAfterSeconds: number | null } | null;
+};
+
+// Fallback for a Central without the batch endpoint: one request per card, a few at a time so it is not a burst.
+const FALLBACK_CONCURRENCY = 5;
+
+export async function centralAccessForApps(user: HubUser, appIds: string[]): Promise<CentralAccessAnswer> {
+  const uniqueIds = [...new Set(appIds)];
+  const access = new Map<string, "granted" | "denied" | "unknown">();
+  const missing: string[] = [];
+  let unavailable: CentralAccessAnswer["unavailable"] = null;
+
+  for (const appId of uniqueIds) {
+    const cached = appCache.get(`${appId}:${user.person_id}`);
+    if (cached && Date.now() - cached.at < cacheMs()) {
+      access.set(appId, "granted");
+    } else {
+      missing.push(appId);
+    }
+  }
+
+  const remember = (appId: string, granted: boolean) => {
+    if (granted) appCache.set(`${appId}:${user.person_id}`, { at: Date.now(), active: true });
+    access.set(appId, granted ? "granted" : "denied");
+  };
+
+  // Central could not answer for these cards: a grant from a little while ago still counts, else it stays unknown.
+  const useLastKnown = (appIds: string[], error: unknown) => {
+    for (const appId of appIds) {
+      const last = appCache.get(`${appId}:${user.person_id}`);
+      if (last && Date.now() - last.at < staleMs()) {
+        access.set(appId, "granted");
+      } else {
+        access.set(appId, "unknown");
+        unavailable = {
+          retryAfterSeconds: error instanceof CentralRateLimitedError ? error.retryAfterSeconds : (unavailable?.retryAfterSeconds ?? null),
+        };
+      }
+    }
+  };
+
+  for (let index = 0; index < missing.length; index += 50) {
+    const applicationIds = missing.slice(index, index + 50);
+    try {
+      const entitlements = await lookupApplicationEntitlements(user.person_id, applicationIds);
+      const granted = new Set(entitlements.filter((entitlement) => entitlement.is_active).map((entitlement) => entitlement.application_id));
+      for (const appId of applicationIds) remember(appId, granted.has(appId));
+    } catch (error) {
+      if (!isBatchLookupUnavailable(error)) {
+        logger.error("Central batch access lookup failed for cards:", error);
+        useLastKnown(applicationIds, error);
+        continue;
+      }
+      for (let start = 0; start < applicationIds.length; start += FALLBACK_CONCURRENCY) {
+        const group = applicationIds.slice(start, start + FALLBACK_CONCURRENCY);
+        const answers = await Promise.allSettled(group.map((appId) => lookupApplicationEntitlement(user.person_id, appId)));
+        answers.forEach((answer, position) => {
+          const appId = group[position]!;
+          if (answer.status === "fulfilled") {
+            remember(appId, Boolean(answer.value?.is_active));
+            return;
+          }
+          logger.error(`Central individual access lookup failed for card ${appId}:`, answer.reason);
+          useLastKnown([appId], answer.reason);
+        });
+      }
+    }
+  }
+
+  return { access, unavailable };
 }
 
 async function audit(user: HubUser, action: string, summary: string) {

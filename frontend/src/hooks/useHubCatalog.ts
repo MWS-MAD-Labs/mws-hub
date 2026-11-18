@@ -24,6 +24,8 @@ const matchesQuery = (app: HubApplication, query: string, labels: Map<string, st
 export type UseHubCatalogResult = {
   isLoading: boolean;
   hasError: boolean;
+  // Central could not be asked for some cards, so the list may be short.
+  centralUnavailable: { retryAfterSeconds: number | null } | null;
   query: string;
   isFiltering: boolean;
   visibleApplications: HubApplication[];
@@ -42,6 +44,7 @@ export default function useHubCatalog(): UseHubCatalogResult {
   const [applications, setApplications] = useState<HubApplication[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
+  const [centralUnavailable, setCentralUnavailable] = useState<UseHubCatalogResult["centralUnavailable"]>(null);
   const [reloadCount, setReloadCount] = useState(0);
   const taxonomy = useHubTaxonomy();
   const labels = useMemo(
@@ -59,8 +62,10 @@ export default function useHubCatalog(): UseHubCatalogResult {
 
     hubApi
       .listApplications()
-      .then((apps) => {
-        if (!cancelled) setApplications(apps);
+      .then(({ applications: apps, unavailable }) => {
+        if (cancelled) return;
+        setApplications(apps);
+        setCentralUnavailable(unavailable);
       })
       .catch(() => {
         if (!cancelled) setLoadFailed(true);
@@ -143,6 +148,7 @@ export default function useHubCatalog(): UseHubCatalogResult {
   return {
     isLoading,
     hasError,
+    centralUnavailable,
     query: rawQuery,
     isFiltering,
     visibleApplications,

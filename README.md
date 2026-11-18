@@ -95,7 +95,8 @@ Routes:
 - App cards for apps with a `centralEntitlementAppId` are left out for people
   Central gives no access to. In `enforce`, apps without it are left out too
   (and cannot be launched), so link an app to Central before anyone can open it.
-  In `off` and `warn` they follow Hub's own rules.
+  In `off` and `warn` they follow Hub's own rules. Hub checks the Central cards
+  in one batch request per person instead of one request per card.
 - Signing in also needs the `hub.use` permission on the person's role. An active access whose role does not carry it is turned away (`hub_use_missing`), or only logged as `hub.login_would_deny` in `warn`. Add `hub.use` to every Hub role in Central before `enforce`.
 - How fresh things are: access and role for the sign-in gate, admin and gated cards
   are at most `HUB_CENTRAL_ACCESS_CACHE_SECONDS` (30) old. The copy of the person in
@@ -107,6 +108,16 @@ Routes:
 - Only active access is cached. `HUB_CENTRAL_ACCESS_CACHE_SECONDS` (default 30)
   is how long it can take for taking access away to show for someone signed in.
   Giving access shows at the next sign-in. Open tabs re-check once a minute.
+- When Central cannot be asked (it answers 429, or is down), the cards do not quietly
+  disappear. A card Central confirmed in the last `HUB_CENTRAL_ACCESS_STALE_SECONDS`
+  (default 600) stays. For a card with no recent confirmation the page says some apps
+  could not be checked and offers Try again, with the wait Central asked for
+  (`Retry-After`). `GET /apps` carries `meta.central_unavailable` for that. After a 429
+  the Hub asks Central for nothing until `Retry-After` has passed (at most a minute), so
+  a busy morning is not made worse by retries.
+- Deploy Central before the Hub. The batch lookup is a Central endpoint
+  (`/application-entitlements/lookup-batch`). Against an older Central the Hub falls
+  back to one request per card, five at a time.
 - Hub sends the permissions its code understands to Central on every deploy, and
   the pipeline enforces it. In `.github/workflows/ci-cd.yml` the jobs
   `sync-permissions-staging` and `sync-permissions-production` run `bun run
