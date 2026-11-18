@@ -135,7 +135,7 @@ export default function Dropdown<T extends string = string>({
 
   const portalHost = getOverlayRoot();
   const menu = isOpen && portalHost ? createPortal(
-    <div ref={menuRef} id={menuId} role="listbox" aria-label={ariaLabel || placeholder} onKeyDown={handleMenuKeyDown} className={cn("admin-theme fixed z-[var(--layer-popover)] max-h-64 overflow-y-auto rounded-lg border border-[var(--admin-border-strong)] bg-[var(--admin-card)] p-1 shadow-xl", menuClassName)} style={menuStyle}>
+    <div ref={menuRef} id={menuId} role="listbox" aria-label={ariaLabel || placeholder} onKeyDown={handleMenuKeyDown} className={cn("admin-theme fixed z-[var(--layer-popover)] max-h-64 overflow-y-auto rounded-md border border-[var(--admin-border-strong)] bg-[var(--admin-card)] p-1 shadow-lg", menuClassName)} style={menuStyle}>
       {options.map((option, index) => (
         <button
           key={option.value}
@@ -147,7 +147,7 @@ export default function Dropdown<T extends string = string>({
           tabIndex={index === activeIndex ? 0 : -1}
           onFocus={() => setActiveIndex(index)}
           onClick={() => selectOption(option)}
-          className={cn("admin-focus flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-left text-sm text-[var(--admin-text-secondary)] transition hover:bg-[var(--admin-card-subtle)] hover:text-[var(--admin-text)] disabled:cursor-not-allowed disabled:opacity-50", option.value === value && "bg-[var(--admin-brand-soft)] font-semibold text-[var(--admin-brand)]")}
+          className={cn("admin-focus flex w-full items-center justify-between gap-3 rounded-sm px-3 py-2 text-left text-sm text-[var(--admin-text-secondary)] transition hover:bg-[var(--admin-card-subtle)] hover:text-[var(--admin-text)] disabled:cursor-not-allowed disabled:opacity-50", option.value === value && "bg-[var(--admin-brand-soft)] font-semibold text-[var(--admin-brand)]")}
         >
           <span className="min-w-0 truncate">{option.label}</span>
           {option.value === value ? <Check className="h-4 w-4 shrink-0" /> : null}
@@ -159,7 +159,7 @@ export default function Dropdown<T extends string = string>({
 
   return (
     <div ref={rootRef} className={cn("relative", className)}>
-      <button ref={buttonRef} type="button" disabled={disabled} aria-label={ariaLabel} aria-haspopup="listbox" aria-controls={menuId} aria-expanded={isOpen} onClick={() => setIsOpen((current) => !current)} onKeyDown={(event) => { if (!isOpen && ["ArrowDown", "ArrowUp", "Enter", " "].includes(event.key)) { event.preventDefault(); setIsOpen(true); } }} className={cn("admin-focus inline-flex w-full items-center justify-between gap-2 rounded-lg border border-[var(--admin-border-strong)] bg-[var(--admin-card)] px-3 font-semibold text-[var(--admin-text)] transition hover:bg-[var(--admin-card-subtle)] disabled:cursor-not-allowed disabled:opacity-60", size === "sm" ? "h-8 text-xs" : "h-10 text-sm", buttonClassName)}>
+      <button ref={buttonRef} type="button" disabled={disabled} aria-label={ariaLabel} aria-haspopup="listbox" aria-controls={menuId} aria-expanded={isOpen} onClick={() => setIsOpen((current) => !current)} onKeyDown={(event) => { if (!isOpen && ["ArrowDown", "ArrowUp", "Enter", " "].includes(event.key)) { event.preventDefault(); setIsOpen(true); } }} className={cn("admin-focus inline-flex w-full items-center justify-between gap-2 rounded-md border border-[var(--admin-border-strong)] bg-[var(--admin-card)] px-3 font-medium text-[var(--admin-text)] transition hover:bg-[var(--admin-card-subtle)] disabled:cursor-not-allowed disabled:opacity-60", size === "sm" ? "h-8 text-xs" : "h-9 text-sm", buttonClassName)}>
         <span className="min-w-0 truncate">{buttonLabel}</span>
         <ChevronDown className={cn("h-4 w-4 shrink-0 text-[var(--admin-text-tertiary)] transition", isOpen && "rotate-180")} />
       </button>

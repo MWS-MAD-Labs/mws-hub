@@ -1,9 +1,12 @@
 import { describe, it, expect, afterEach, beforeAll } from "bun:test";
 import {
+  CentralRateLimitedError,
   centralAuthHeaders,
+  clearCentralPauseForTest,
   listActiveEmployees,
   listUpcomingEmployeeBirthdays,
   lookupApplicationEntitlement,
+  lookupApplicationEntitlements,
   resolveCentralIdentity,
   resolveCentralIdentityById,
 } from "../lib/central-client";
@@ -17,6 +20,7 @@ beforeAll(() => {
 
 afterEach(() => {
   global.fetch = originalFetch;
+  clearCentralPauseForTest();
 });
 
 function jsonResponse(status: number, body: unknown): Response {
@@ -126,6 +130,113 @@ describe("lookupApplicationEntitlement", () => {
     await expect(lookupApplicationEntitlement("person-1", "exima")).rejects.toThrow(
       "Central lookup failed with status 503",
     );
+  });
+});
+
+describe("lookupApplicationEntitlements", () => {
+  const entitlement = {
+    id: "ent-1",
+    person_id: "person-1",
+    application_id: "exima",
+    organization_id: "org-1",
+    role: "resource-admin",
+    permissions: ["inventory:read"],
+    version: 3,
+    is_active: true,
+    granted_at: "2026-09-01T00:00:00.000Z",
+    updated_at: "2026-09-29T00:00:00.000Z",
+  };
+
+  it("sends one batch request and validates every returned entitlement", async () => {
+    let requestedUrl = "";
+    let requestedBody: unknown;
+    global.fetch = (async (
+      input: string | URL | Request,
+      init?: RequestInit,
+    ) => {
+      requestedUrl = String(input);
+      requestedBody = JSON.parse(String(init?.body));
+      return jsonResponse(200, { data: [entitlement] });
+    }) as unknown as typeof fetch;
+
+    expect(
+      await lookupApplicationEntitlements("person-1", [
+        "exima",
+        "daily-checkin",
+      ]),
+    ).toEqual([entitlement]);
+    expect(new URL(requestedUrl).pathname).toEndWith(
+      "/application-entitlements/lookup-batch",
+    );
+    expect(requestedBody).toEqual({
+      person_id: "person-1",
+      application_ids: ["exima", "daily-checkin"],
+    });
+  });
+
+  it("rejects unexpected, duplicate, malformed, and non-success responses", async () => {
+    global.fetch = (async () =>
+      jsonResponse(200, {
+        data: [{ ...entitlement, application_id: "other" }],
+      })) as unknown as typeof fetch;
+    await expect(
+      lookupApplicationEntitlements("person-1", ["exima"]),
+    ).rejects.toThrow("Central batch entitlement response data is invalid");
+
+    global.fetch = (async () =>
+      jsonResponse(200, { data: [entitlement, entitlement] })) as unknown as typeof fetch;
+    await expect(
+      lookupApplicationEntitlements("person-1", ["exima"]),
+    ).rejects.toThrow("Central batch entitlement response data is invalid");
+
+    global.fetch = (async () =>
+      jsonResponse(200, { data: {} })) as unknown as typeof fetch;
+    await expect(
+      lookupApplicationEntitlements("person-1", ["exima"]),
+    ).rejects.toThrow("Central batch entitlement response data is invalid");
+
+    global.fetch = (async () =>
+      jsonResponse(503, { errors: "down" })) as unknown as typeof fetch;
+    await expect(
+      lookupApplicationEntitlements("person-1", ["exima"]),
+    ).rejects.toThrow(
+      "Central batch entitlement lookup failed with status 503",
+    );
+  });
+});
+
+describe("a Central that rate limits", () => {
+  const limited = (retryAfter?: string) =>
+    new Response(JSON.stringify({ errors: "Too many requests" }), {
+      status: 429,
+      headers: { "Content-Type": "application/json", ...(retryAfter ? { "Retry-After": retryAfter } : {}) },
+    });
+
+  it("pauses every call for the time Central named, and says how long", async () => {
+    let calls = 0;
+    global.fetch = (async () => {
+      calls += 1;
+      return limited("12");
+    }) as unknown as typeof fetch;
+
+    const first = await lookupApplicationEntitlements("person-1", ["exima"]).catch((error) => error);
+    expect(first).toBeInstanceOf(CentralRateLimitedError);
+    expect(first.retryAfterSeconds).toBe(12);
+    expect(calls).toBe(1);
+
+    // Nothing more is asked while the pause lasts, by the batch or by any other lookup.
+    await expect(lookupApplicationEntitlements("person-1", ["exima"])).rejects.toBeInstanceOf(CentralRateLimitedError);
+    await expect(lookupApplicationEntitlement("person-1", "exima")).rejects.toBeInstanceOf(CentralRateLimitedError);
+    expect(calls).toBe(1);
+  });
+
+  it("never waits longer than a minute, and falls back to a few seconds without Retry-After", async () => {
+    global.fetch = (async () => limited("3600")) as unknown as typeof fetch;
+    expect(((await lookupApplicationEntitlements("p", ["exima"]).catch((e) => e)) as CentralRateLimitedError).retryAfterSeconds).toBe(60);
+
+    clearCentralPauseForTest();
+    global.fetch = (async () => limited()) as unknown as typeof fetch;
+    expect(((await lookupApplicationEntitlement("p", "exima").catch((e) => e)) as CentralRateLimitedError).retryAfterSeconds).toBe(5);
   });
 });
 

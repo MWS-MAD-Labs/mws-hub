@@ -22,6 +22,21 @@ type RuleWhere = {
 
 const rows: RuleRow[] = [];
 
+type ExceptionRow = {
+  id: string;
+  email: string;
+  action: "ASSIGN" | "BLOCK";
+  card_id: string | null;
+  note: string | null;
+  created_at: Date;
+  updated_at: Date;
+};
+
+const exceptions: ExceptionRow[] = [];
+
+const findException = (where: { id?: string; email?: string }) =>
+  exceptions.find((row) => (where.id ? row.id === where.id : row.email === where.email)) ?? null;
+
 const matches = (row: RuleRow, where: RuleWhere = {}) =>
   (where.card_id === undefined || row.card_id === where.card_id) &&
   (where.is_active === undefined || row.is_active === where.is_active) &&
@@ -49,6 +64,33 @@ mock.module("../lib/prisma", () => ({
           });
         }
         return { count: data.length };
+      },
+    },
+    gptCodeAccessException: {
+      findUnique: async ({ where }: { where: { id?: string; email?: string } }) => findException(where),
+      findMany: async () => [...exceptions].sort((a, b) => a.email.localeCompare(b.email)),
+      upsert: async ({
+        where,
+        create,
+        update,
+      }: {
+        where: { email: string };
+        create: Pick<ExceptionRow, "email" | "action" | "card_id" | "note">;
+        update: Pick<ExceptionRow, "action" | "card_id" | "note">;
+      }) => {
+        const now = new Date("2026-11-16T00:00:00Z");
+        const existing = findException(where);
+        if (existing) {
+          Object.assign(existing, update, { updated_at: now });
+          return existing;
+        }
+        const row = { id: `exc-${exceptions.length + 1}`, ...create, created_at: now, updated_at: now };
+        exceptions.push(row);
+        return row;
+      },
+      delete: async ({ where }: { where: { id: string } }) => {
+        const index = exceptions.findIndex((row) => row.id === where.id);
+        return exceptions.splice(index, 1)[0];
       },
     },
     // The service hands over already-started operations; settling them in
@@ -156,6 +198,7 @@ let isAdmin: ReturnType<typeof spyOn>;
 
 beforeEach(() => {
   rows.length = 0;
+  exceptions.length = 0;
   // Rule matching by default; the admin tests flip this.
   isAdmin = spyOn(adminAccess, "isHubAdmin").mockResolvedValue(false);
 });
@@ -198,37 +241,51 @@ describe("GptCodeAccessService for staff", () => {
     expect(account).toHaveBeenCalledTimes(3);
   });
 
-  it("offers a picker limited to the accounts that match when several do", async () => {
-    addRule({ card_id: "A2" });
-    addRule({ card_id: "A4", target_type: "BUILDING", target_id: "bld-main", target_name: "Main Building" });
-    addRule({ card_id: "A1", target_id: "unit-elementary", target_name: "Elementary" });
-    spyOn(GptCodeService, "listAccounts").mockResolvedValue([...ALL_ACCOUNTS]);
+  it("gives one account when several match: the most specific kind wins", async () => {
+    // RISE unit -> A1, Junior High building -> A2, Head Unit job level -> A3.
+    addRule({ card_id: "A1", target_id: "unit-rise", target_name: "RISE" });
+    addRule({ card_id: "A2", target_type: "BUILDING", target_id: "bld-jh", target_name: "Junior High" });
+    addRule({ card_id: "A3", target_type: "JOB_LEVEL", target_id: "lvl-head", target_name: "Head Unit" });
+    const account = spyOn(GptCodeService, "getAccount").mockImplementation(async (cardId: string) => ({
+      cardId,
+      email: `ai${cardId.slice(1)}@millennia21.id`,
+    }));
+    const list = spyOn(GptCodeService, "listAccounts");
 
+    const headOfRise = employee({ unitId: "unit-rise", buildingId: "bld-jh", jobLevelId: "lvl-head" });
+    const assignment = await GptCodeAccessService.assignmentFor(headOfRise);
+    expect(assignment).toMatchObject({ cardId: "A3" });
+    expect(assignment.accounts).toBeUndefined();
+
+    // Without the job level the unit beats the building.
     await expect(
-      GptCodeAccessService.assignmentFor(employee({ buildingId: "bld-main" })),
-    ).resolves.toEqual({
-      cardId: "A2",
-      email: "ai2@millennia21.id",
-      unitId: "unit-directorate",
-      unitName: "Directorate",
-      accounts: ["ai2@millennia21.id", "ai4@millennia21.id"],
-    });
+      GptCodeAccessService.assignmentFor(employee({ unitId: "unit-rise", buildingId: "bld-jh" })),
+    ).resolves.toMatchObject({ cardId: "A1" });
+    // Building only.
+    await expect(
+      GptCodeAccessService.assignmentFor(employee({ unitId: "unit-x", buildingId: "bld-jh" })),
+    ).resolves.toMatchObject({ cardId: "A2" });
+    expect(list).not.toHaveBeenCalled();
+    expect(account).toHaveBeenCalledTimes(3);
   });
 
-  it("lets a person with several matches read any of them, and nothing else", async () => {
+  it("breaks a tie within one kind by the lowest card id", async () => {
+    addRule({ card_id: "A4" });
+    addRule({ card_id: "A2" });
+    spyOn(GptCodeService, "getAccount").mockImplementation(async (cardId: string) => ({ cardId, email: "x@millennia21.id" }));
+
+    await expect(GptCodeAccessService.assignmentFor(employee())).resolves.toMatchObject({ cardId: "A2" });
+  });
+
+  it("refuses a person who names an account that matched but did not win", async () => {
     addRule({ card_id: "A2" });
     addRule({ card_id: "A4", target_type: "BUILDING", target_id: "bld-main", target_name: "Main Building" });
-    spyOn(GptCodeService, "listAccounts").mockResolvedValue([...ALL_ACCOUNTS]);
-    const fetchCode = spyOn(GptCodeService, "getCode").mockResolvedValue(code("A4"));
-    const user = employee({ buildingId: "bld-main" });
+    spyOn(GptCodeService, "getAccount").mockResolvedValue({ cardId: "A2", email: "ai2@millennia21.id" });
+    const fetchCode = spyOn(GptCodeService, "getCode");
 
-    const { assignment, viaAdmin } = await GptCodeAccessService.codeFor(user, "ai4@millennia21.id");
-    expect(fetchCode).toHaveBeenCalledWith("A4");
-    expect(assignment.cardId).toBe("A4");
-    expect(viaAdmin).toBe(false);
-
-    fetchCode.mockClear();
-    await expect(GptCodeAccessService.codeFor(user, "ai1@millennia21.id")).rejects.toMatchObject({ status: 403 });
+    await expect(
+      GptCodeAccessService.codeFor(employee({ buildingId: "bld-main" }), "ai4@millennia21.id"),
+    ).rejects.toMatchObject({ status: 403 });
     expect(fetchCode).not.toHaveBeenCalled();
   });
 
@@ -286,6 +343,10 @@ describe("GptCodeAccessService for staff", () => {
 describe("GptCodeAccessService mappings (admin screen)", () => {
   beforeEach(() => {
     spyOn(CentralDirectoryService, "accessRuleOptions").mockResolvedValue({ ...DIRECTORY });
+    spyOn(CentralDirectoryService, "directory").mockResolvedValue({
+      options: { ...DIRECTORY },
+      people: [{ email: "nama.guru@millennia21.id", name: "Nama Guru", unit: "Elementary" }],
+    });
   });
 
   it("saves several targets of every kind for one card, with Central's names", async () => {
@@ -373,6 +434,8 @@ describe("GptCodeAccessService mappings (admin screen)", () => {
     expect(configuration.targets.building).toEqual([{ id: "bld-main", label: "Main Building" }]);
     // A name-only position has no Central id to match on, so it is not offered.
     expect(configuration.targets.job_position).toEqual([{ id: "pos-dev", label: "Developer" }]);
+    // Active staff, for picking an exception by name.
+    expect(configuration.people).toEqual([{ email: "nama.guru@millennia21.id", name: "Nama Guru", unit: "Elementary" }]);
   });
 
   it("removes every rule of a card", async () => {
@@ -384,6 +447,67 @@ describe("GptCodeAccessService mappings (admin screen)", () => {
     const removed = await GptCodeAccessService.deleteMapping("A1");
     expect(removed.targets).toHaveLength(2);
     expect(rows.map((row) => row.card_id)).toEqual(["A2"]);
+  });
+});
+
+describe("GptCodeAccessService exceptions", () => {
+  it("gives an assigned person their card even when no rule matches them", async () => {
+    // Mocked first: setException checks the card with Apps Script, which CI cannot reach.
+    spyOn(GptCodeService, "getAccount").mockImplementation(async (cardId: string) => ({ cardId, email: "ai4@millennia21.id" }));
+    await GptCodeAccessService.setException({ email: " Directorate@Millennia21.id ", action: "assign", cardId: "A4" });
+
+    expect(exceptions[0]).toMatchObject({ email: "directorate@millennia21.id", action: "ASSIGN", card_id: "A4" });
+    await expect(GptCodeAccessService.assignmentFor(employee("unit-nowhere"))).resolves.toMatchObject({ cardId: "A4" });
+  });
+
+  it("beats a matching rule", async () => {
+    addRule({ card_id: "A1" });
+    spyOn(GptCodeService, "getAccount").mockImplementation(async (cardId: string) => ({ cardId, email: "x@millennia21.id" }));
+    await GptCodeAccessService.setException({ email: "directorate@millennia21.id", action: "assign", cardId: "A5" });
+
+    await expect(GptCodeAccessService.assignmentFor(employee())).resolves.toMatchObject({ cardId: "A5" });
+  });
+
+  it("blocks a person who would match a rule, before reading any code", async () => {
+    addRule();
+    await GptCodeAccessService.setException({ email: "directorate@millennia21.id", action: "block", cardId: "A1" });
+    const fetchCode = spyOn(GptCodeService, "getCode");
+
+    expect(exceptions[0].card_id).toBeNull();
+    await expect(GptCodeAccessService.codeFor(employee())).rejects.toMatchObject({ status: 403 });
+    expect(fetchCode).not.toHaveBeenCalled();
+  });
+
+  it("does not apply to a Hub admin, who keeps every account", async () => {
+    isAdmin.mockResolvedValue(true);
+    exceptions.push({
+      id: "exc-1", email: "directorate@millennia21.id", action: "BLOCK", card_id: null, note: null,
+      created_at: new Date(), updated_at: new Date(),
+    });
+    spyOn(GptCodeService, "listAccounts").mockResolvedValue([...ALL_ACCOUNTS]);
+
+    const assignment = await GptCodeAccessService.assignmentFor(employee());
+    expect(assignment.accounts).toHaveLength(5);
+  });
+
+  it("replaces the exception of an email that already has one, and removes it by id", async () => {
+    spyOn(GptCodeService, "getAccount").mockImplementation(async (cardId: string) => ({ cardId, email: "x@millennia21.id" }));
+    await GptCodeAccessService.setException({ email: "a@millennia21.id", action: "assign", cardId: "A1" });
+    const updated = await GptCodeAccessService.setException({ email: "A@millennia21.id", action: "assign", cardId: "A2", note: "Guest" });
+
+    expect(exceptions).toHaveLength(1);
+    expect(updated).toMatchObject({ email: "a@millennia21.id", action: "assign", cardId: "A2", note: "Guest" });
+
+    await GptCodeAccessService.deleteException(updated.id);
+    expect(exceptions).toHaveLength(0);
+    await expect(GptCodeAccessService.deleteException(updated.id)).rejects.toMatchObject({ status: 404 });
+  });
+
+  it("refuses a bad email, action or missing card", async () => {
+    await expect(GptCodeAccessService.setException({ email: "nope", action: "block" })).rejects.toMatchObject({ status: 400 });
+    await expect(GptCodeAccessService.setException({ email: "a@millennia21.id", action: "allow" })).rejects.toMatchObject({ status: 400 });
+    await expect(GptCodeAccessService.setException({ email: "a@millennia21.id", action: "assign" })).rejects.toMatchObject({ status: 400 });
+    expect(exceptions).toHaveLength(0);
   });
 });
 

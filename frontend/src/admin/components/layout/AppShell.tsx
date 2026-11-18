@@ -45,13 +45,13 @@ export default function AppShell({ children }: AppShellProps) {
           isSidebarOpen ? "lg:pl-[270px]" : "lg:pl-[72px]",
         )}
       >
-        <header className="sticky top-0 z-[var(--layer-sticky)] border-b border-[var(--admin-border)] bg-[var(--admin-card)]/95 backdrop-blur-xl">
+        <header className="sticky top-0 z-[var(--layer-sticky)] border-b border-[var(--admin-border)] bg-[var(--admin-card)]">
           <div className="flex h-[60px] items-center gap-3 px-4 sm:px-6 lg:px-8">
             <button
               ref={mobileMenuButtonRef}
               type="button"
               onClick={() => setIsMobileSidebarOpen(true)}
-              className="admin-focus inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--admin-border)] text-[var(--admin-text)] hover:bg-[var(--admin-card-subtle)] lg:hidden"
+              className="admin-focus inline-flex h-9 w-9 items-center justify-center rounded-md border border-[var(--admin-border)] text-[var(--admin-text)] hover:bg-[var(--admin-card-subtle)] lg:hidden"
               aria-label="Open sidebar"
               aria-expanded={isMobileSidebarOpen}
               aria-controls="admin-navigation-drawer"
@@ -62,7 +62,7 @@ export default function AppShell({ children }: AppShellProps) {
             <button
               type="button"
               onClick={() => setIsSidebarOpen((current) => !current)}
-              className="admin-focus hidden h-9 w-9 items-center justify-center rounded-lg border border-[var(--admin-border)] text-[var(--admin-text)] hover:bg-[var(--admin-card-subtle)] lg:inline-flex"
+              className="admin-focus hidden h-9 w-9 items-center justify-center rounded-md border border-[var(--admin-border)] text-[var(--admin-text)] hover:bg-[var(--admin-card-subtle)] lg:inline-flex"
               aria-label={isSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
             >
               {isSidebarOpen ? (
@@ -73,20 +73,20 @@ export default function AppShell({ children }: AppShellProps) {
             </button>
 
             <div className="min-w-0">
-              <p className="admin-heading truncate text-sm font-bold text-[var(--admin-text)]">MWS Admin</p>
+              <p className="admin-heading truncate text-sm font-bold text-[var(--admin-text)]">
+                MWS Admin
+              </p>
               <p className="hidden text-xs text-muted-foreground sm:block">
                 Hub administration
               </p>
             </div>
             <div className="ml-auto flex items-center gap-2">
-              <div>
-                {/* <Notification /> */}
-              </div>
+              <div>{/* <Notification /> */}</div>
               <div className="ml-auto flex items-center gap-2">
                 <ThemeToggle variant="admin" />
                 <Link
                   to="/support-hub"
-                  className="admin-focus rounded-full border border-[var(--admin-border-strong)] px-3 py-2 text-xs font-bold text-[var(--admin-text)] hover:bg-[var(--admin-card-subtle)]"
+                  className="admin-focus inline-flex h-9 items-center rounded-md border border-[var(--admin-border-strong)] px-3 text-xs font-bold text-[var(--admin-text)] hover:bg-[var(--admin-card-subtle)]"
                 >
                   Hub
                 </Link>

@@ -178,10 +178,40 @@ function namedRefIdOf(
   return null;
 }
 
+// Central answers 429 when it is asked too much. Until the time it names (at most a minute) nothing more is asked of
+// it: more requests only keep the limit closed. The error carries the wait so a caller can show it.
+const MAX_PAUSE_SECONDS = 60;
+const DEFAULT_PAUSE_SECONDS = 5;
+let pausedUntil = 0;
+
+export class CentralRateLimitedError extends Error {
+  constructor(public readonly retryAfterSeconds: number) {
+    super(`Central is rate limiting this app, try again in ${retryAfterSeconds}s`);
+  }
+}
+
+export function clearCentralPauseForTest() {
+  pausedUntil = 0;
+}
+
+function pauseCalls(res: Response): never {
+  const asked = Number(res.headers.get("retry-after"));
+  const seconds = Number.isFinite(asked) && asked > 0 ? Math.min(Math.ceil(asked), MAX_PAUSE_SECONDS) : DEFAULT_PAUSE_SECONDS;
+  pausedUntil = Math.max(pausedUntil, Date.now() + seconds * 1000);
+  logger.error(`Central answered 429, pausing calls for ${seconds}s`);
+  throw new CentralRateLimitedError(seconds);
+}
+
+function assertNotPaused() {
+  const left = pausedUntil - Date.now();
+  if (left > 0) throw new CentralRateLimitedError(Math.ceil(left / 1000));
+}
+
 async function lookup<T>(
   path: string,
   query: Record<string, string>,
 ): Promise<T | null> {
+  assertNotPaused();
   const params = new URLSearchParams(query);
   const res = await fetch(`${baseUrl()}${path}?${params.toString()}`, {
     headers: centralAuthHeaders(),
@@ -189,6 +219,7 @@ async function lookup<T>(
   });
 
   if (res.status === 404) return null;
+  if (res.status === 429) pauseCalls(res);
   if (!res.ok) {
     logger.error(
       `Central lookup failed (${path}):`,
@@ -249,6 +280,60 @@ export async function lookupApplicationEntitlement(
   return data === null
     ? null
     : parseApplicationEntitlement(data, personId, applicationId);
+}
+
+// Several applications for one person in one request, so a person's cards do not cost one request each.
+export async function lookupApplicationEntitlements(
+  personId: string,
+  applicationIds: string[],
+): Promise<CentralApplicationEntitlement[]> {
+  if (applicationIds.length === 0) return [];
+  assertNotPaused();
+
+  const res = await fetch(`${baseUrl()}/application-entitlements/lookup-batch`, {
+    method: "POST",
+    headers: { ...centralAuthHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ person_id: personId, application_ids: applicationIds }),
+    signal: AbortSignal.timeout(CALL_TIMEOUT_MS),
+  });
+
+  if (res.status === 429) pauseCalls(res);
+  if (!res.ok) {
+    logger.error("Central batch entitlement lookup failed:", res.status, await res.text());
+    throw new CentralBatchLookupError(res.status);
+  }
+
+  const body = (await res.json()) as { data?: unknown };
+  if (!Array.isArray(body.data)) {
+    throw new Error("Central batch entitlement response data is invalid");
+  }
+
+  const requested = new Set(applicationIds);
+  const seen = new Set<string>();
+  return body.data.map((value) => {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      throw new Error("Central batch entitlement response data is invalid");
+    }
+    const applicationId = (value as Record<string, unknown>).application_id;
+    if (!isNonEmptyString(applicationId) || !requested.has(applicationId) || seen.has(applicationId)) {
+      throw new Error("Central batch entitlement response data is invalid");
+    }
+    seen.add(applicationId);
+    return parseApplicationEntitlement(value, personId, applicationId);
+  });
+}
+
+class CentralBatchLookupError extends Error {
+  constructor(public readonly status: number) {
+    super(`Central batch entitlement lookup failed with status ${status}`);
+  }
+}
+
+// A Central that is older than this Hub has no batch endpoint. Deploy Central first, or the Hub falls back to one
+// request per card.
+export function isBatchLookupUnavailable(error: unknown): boolean {
+  const status = error && typeof error === "object" && "status" in error ? error.status : undefined;
+  return status === 404 || status === 405;
 }
 
 // An application Central published for the Hub.

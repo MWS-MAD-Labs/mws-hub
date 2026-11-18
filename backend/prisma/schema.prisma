@@ -182,6 +182,8 @@ model SsoExchangeSeen {
 // a card can serve several units, job levels, job positions and buildings,
 // and one target can be on several cards. A person matches a card when any
 // of their Central ids (unit, job level, job position, building) is listed.
+// A person still gets one card only: the most specific kind that matches wins
+// (job position, then job level, then unit, then building).
 enum GptCodeTargetType {
   UNIT
   JOB_LEVEL
@@ -207,4 +209,28 @@ model GptCodeAccessRule {
   @@index([target_type, target_id])
   @@index([is_active])
   @@map("gpt_code_access_rules")
+}
+
+// A per-person exception to the rules above, keyed by sign-in email. It wins
+// over every rule: ASSIGN gives that person exactly card_id (also when no
+// rule matches them), BLOCK keeps them out of GPT Code entirely.
+enum GptCodeExceptionAction {
+  ASSIGN
+  BLOCK
+}
+
+model GptCodeAccessException {
+  id String @id @default(cuid())
+
+  // Always stored lower case.
+  email   String                 @unique
+  action  GptCodeExceptionAction
+  // Set for ASSIGN, null for BLOCK.
+  card_id String?
+  note    String?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@map("gpt_code_access_exceptions")
 }

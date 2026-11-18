@@ -180,6 +180,7 @@ const SupportHubPage = memo(() => {
   const {
     isLoading,
     hasError,
+    centralUnavailable,
     query,
     visibleApplications,
     hasCatalog,
@@ -271,7 +272,9 @@ const SupportHubPage = memo(() => {
   );
 
   const isSettled = !isLoading && !hasError;
-  const showEmptyCatalog = isSettled && !hasCatalog;
+  // An empty menu while Central could not be asked is a failure to check, not "you have no apps".
+  const showCentralError = isSettled && !hasCatalog && Boolean(centralUnavailable);
+  const showEmptyCatalog = isSettled && !hasCatalog && !centralUnavailable;
 
   return (
     <div className="mx-auto w-full overflow-hidden bg-background text-foreground sm:overflow-visible">
@@ -285,7 +288,7 @@ const SupportHubPage = memo(() => {
         <section className="min-h-0 flex-1">
           {isLoading && <AppCardSkeletonGrid />}
 
-          {hasError && <HubEmptyState variant="error" onAction={retry} />}
+          {(hasError || showCentralError) && <HubEmptyState variant="error" onAction={retry} />}
 
           {showEmptyCatalog && (
             <div className="pt-20">
@@ -295,6 +298,26 @@ const SupportHubPage = memo(() => {
 
           {isSettled && hasCatalog && (
             <>
+              {centralUnavailable ? (
+                <div
+                  role="status"
+                  className="mb-3 flex items-center justify-between gap-3 rounded-xl border border-border bg-muted/50 px-3 py-2 text-xs font-medium text-muted-foreground"
+                >
+                  <span>
+                    Some apps could not be checked right now, so the list may be short.
+                    {centralUnavailable.retryAfterSeconds
+                      ? ` Try again in ${centralUnavailable.retryAfterSeconds} seconds.`
+                      : " Try again in a moment."}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={retry}
+                    className="shrink-0 rounded-md px-2 py-1 font-semibold text-primary hover:bg-primary/10"
+                  >
+                    Try again
+                  </button>
+                </div>
+              ) : null}
               <MobileAppLauncher
                 apps={visibleApplications}
                 scopes={scopes}

@@ -57,3 +57,8 @@ export type SsoExchangeSeen = Prisma.SsoExchangeSeenModel
  * 
  */
 export type GptCodeAccessRule = Prisma.GptCodeAccessRuleModel
+/**
+ * Model GptCodeAccessException
+ * 
+ */
+export type GptCodeAccessException = Prisma.GptCodeAccessExceptionModel
