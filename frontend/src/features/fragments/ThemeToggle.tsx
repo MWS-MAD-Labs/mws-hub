@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useCallback, type MouseEvent } from "react";
-import { motion } from "framer-motion";
 import usePreferLowMotion from "@/hooks/usePreferLowMotion";
 import { Sun, Moon } from "lucide-react";
 import { applyThemePreference, emitThemeSpell, getStoredTheme, persistTheme, type Theme } from "@/lib/theme";
@@ -83,35 +82,21 @@ export default function ThemeToggle({ variant = "default" }: ThemeToggleProps) {
     );
   }
 
+  // The mobile bottom bar: a plain button that stays in line with the other icons. No entrance or
+  // hover motion: on Android an unfinished entrance left it sitting lower than the rest of the bar.
   return (
-    <motion.div
-      initial={lowMotion ? { opacity: 1 } : { opacity: 0, y: 20 }}
-      animate={lowMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
-      transition={{ duration: lowMotion ? 0.12 : 0.4, ease: "easeOut" }}
-      className="relative"
+    <button
+      type="button"
+      onClick={handleToggleTheme}
+      aria-label={theme === "dark" ? "Switch to Light Theme" : "Switch to Dark Theme"}
+      title={theme === "dark" ? "Switch to Light Theme" : "Switch to Dark Theme"}
+      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
-      {/* blob background */}
-      <motion.div
-        className="absolute -inset-6 -z-10 rounded-full bg-primary/25 blur-2xl"
-        animate={lowMotion ? { opacity: 0.35 } : { scale: [1, 1.15, 1], opacity: [0.6, 0.4, 0.6] }}
-        transition={lowMotion ? {} : { repeat: Infinity, duration: 6, ease: "easeInOut" }}
-      />
-
-      {/* toggle button */}
-      <motion.button
-        onClick={handleToggleTheme}
-        whileTap={lowMotion ? {} : { scale: 0.9 }}
-        whileHover={lowMotion ? {} : { scale: 1.05 }}
-        transition={lowMotion ? { duration: 0.12 } : { type: "spring", stiffness: 280, damping: 18 }}
-        aria-label="Toggle theme"
-        className="relative flex h-12 w-12 items-center justify-center rounded-full border border-border bg-card/60 text-foreground shadow-lg backdrop-blur-xl"
-      >
-        {theme === "dark" ? (
-          <Sun className="h-6 w-6 text-yellow-400" />
-        ) : (
-          <Moon className="h-6 w-6 text-indigo-400" />
-        )}
-      </motion.button>
-    </motion.div>
+      {theme === "dark" ? (
+        <Sun className="h-5 w-5 text-yellow-400" aria-hidden="true" />
+      ) : (
+        <Moon className="h-5 w-5 text-indigo-400" aria-hidden="true" />
+      )}
+    </button>
   );
 }

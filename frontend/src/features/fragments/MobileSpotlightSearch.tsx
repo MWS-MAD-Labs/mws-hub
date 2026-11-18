@@ -106,9 +106,7 @@ const MobileSpotlightSearch = memo(
                 <Home className="h-5 w-5" aria-hidden="true" />
               </Link>
             ) : (
-              <div className="[&_button]:h-10 [&_button]:w-10 [&_svg]:h-5 [&_svg]:w-5">
-                <ThemeToggle />
-              </div>
+              <ThemeToggle />
             )}
 
             {showGptCode && (
