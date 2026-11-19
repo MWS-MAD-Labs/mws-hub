@@ -4,7 +4,7 @@ import { centralTaxonomy } from "../service/central-catalog-service";
 import { mintRelayToken } from "../lib/sso-relay";
 import { createSsoCode } from "../lib/sso-code-store";
 import {
-  listUpcomingEmployeeBirthdays,
+  listEmployeeBirthdaysThisMonth,
   lookupApplicationEntitlement,
   resolveCentralIdentityById,
 } from "../lib/central-client";
@@ -107,12 +107,7 @@ export class AppsController {
   }
 
   static async birthdays(c: Context<{ Variables: SessionVariables }>) {
-    const requestedLimit = Number(c.req.query("limit") || 8);
-    const limit = Number.isFinite(requestedLimit)
-      ? Math.min(Math.max(requestedLimit, 1), 20)
-      : 8;
-
-    return c.json({ data: await listUpcomingEmployeeBirthdays(limit) });
+    return c.json({ data: await listEmployeeBirthdaysThisMonth() });
   }
 
   static async launch(c: Context<{ Variables: SessionVariables }>) {

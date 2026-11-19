@@ -9,6 +9,7 @@ import type {
   StudentLookupResponse,
 } from "../type/central-type";
 import { logger } from "./logger";
+import { birthdaySeedEnabled, seedBirthdayEmployees } from "./birthday-seed";
 
 // Read when used, not once at load, so tests (and a late-set env) see the real value.
 const baseUrl = () => process.env.CENTRAL_API_BASE_URL;
@@ -62,6 +63,7 @@ export type CentralBirthdayResponse = {
   birthday: string;
   days_until: number;
   is_today: boolean;
+  has_passed: boolean;
 };
 
 type MonthDay = {
@@ -641,35 +643,45 @@ export async function listActiveEmployees(): Promise<
   return employees;
 }
 
-export async function listUpcomingEmployeeBirthdays(
-  limit = 8,
+// Everyone whose birthday falls in the current month, in calendar order.
+// Birthdays earlier this month are kept and flagged as has_passed.
+export async function listEmployeeBirthdaysThisMonth(
+  today = new Date(),
 ): Promise<CentralBirthdayResponse[]> {
-  const employees = await listActiveEmployees();
+  const employees = birthdaySeedEnabled()
+    ? seedBirthdayEmployees().map(normalizeEmployee)
+    : await listActiveEmployees();
+  const currentMonth = today.getMonth() + 1;
+  const currentDay = today.getDate();
 
   return employees
     .map((employee) => {
       const birthday = birthdayValueOf(employee);
       const monthDay = birthday ? monthDayOf(birthday) : null;
-      if (!birthday || !monthDay) return null;
+      if (!birthday || !monthDay || monthDay.month !== currentMonth) {
+        return null;
+      }
 
-      const daysUntil = daysUntilBirthday(monthDay);
+      const daysUntil = daysUntilBirthday(monthDay, today);
 
       return {
         id: employee.id,
-        name: employee.nick_name || employee.full_name,
+        name: employee.full_name || employee.nick_name || "",
         nick_name: employee.nick_name,
         avatar_url: employee.avatar_url ?? employee.photo_url,
         unit: unitNameOf(employee),
         birthday,
         days_until: daysUntil,
         is_today: daysUntil === 0,
+        has_passed: monthDay.day < currentDay,
+        day: monthDay.day,
       };
     })
-    .filter((birthday): birthday is CentralBirthdayResponse =>
+    .filter((birthday): birthday is CentralBirthdayResponse & { day: number } =>
       Boolean(birthday),
     )
-    .sort((a, b) => a.days_until - b.days_until || a.name.localeCompare(b.name))
-    .slice(0, limit);
+    .sort((a, b) => a.day - b.day || a.name.localeCompare(b.name))
+    .map(({ day: _day, ...birthday }) => birthday);
 }
 
 // The picture of a published application, as Central saved it (256 x 256, WebP). Null when it has none.

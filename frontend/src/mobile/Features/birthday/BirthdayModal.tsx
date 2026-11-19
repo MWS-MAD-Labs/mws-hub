@@ -20,6 +20,7 @@ function dateLabelOf(value: string): string {
 
 function relativeLabelOf(birthday: HubBirthday): string {
   if (birthday.is_today) return "Today";
+  if (birthday.has_passed) return "Passed";
   if (birthday.days_until === 1) return "Tomorrow";
   return `${birthday.days_until} days`;
 }
@@ -27,6 +28,10 @@ function relativeLabelOf(birthday: HubBirthday): string {
 function badgeClassOf(birthday: HubBirthday): string {
   if (birthday.is_today) {
     return "bg-primary text-primary-foreground";
+  }
+
+  if (birthday.has_passed) {
+    return "bg-muted text-muted-foreground";
   }
 
   if (birthday.days_until === 1) {
@@ -55,17 +60,17 @@ export default function BirthdayModal({
       className="fixed inset-0 z-[var(--layer-modal)] flex items-center justify-center bg-black/60 px-4 backdrop-blur-[2px] [padding-bottom:calc(env(safe-area-inset-bottom)+1rem)] [padding-top:calc(env(safe-area-inset-top)+1rem)]"
       role="dialog"
       aria-modal="true"
-      aria-label="All birthdays"
+      aria-label="Birthdays this month"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) {
           onClose();
         }
       }}
     >
-      <div className="relative w-full max-w-lg overflow-hidden rounded-2xl border border-white/80 bg-[#fffdf9] shadow-2xl dark:border-border dark:bg-card">
+      <div className="relative w-full max-w-lg overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-rose-100/70 dark:bg-primary/10"
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-primary/5 dark:bg-primary/10"
           style={{
             clipPath:
               "polygon(0 38%, 18% 26%, 36% 36%, 54% 24%, 72% 35%, 88% 27%, 100% 38%, 100% 100%, 0 100%)",
@@ -79,10 +84,10 @@ export default function BirthdayModal({
 
           <div className="min-w-0 flex-1">
             <h2 className="text-base font-extrabold leading-tight text-card-foreground">
-              All Birthdays
+              Birthday This Month
             </h2>
             <p className="text-xs font-medium text-muted-foreground">
-              Upcoming birthdays from Central
+              Everyone celebrating this month
             </p>
           </div>
 
@@ -102,15 +107,15 @@ export default function BirthdayModal({
 
         <div className="relative z-10 max-h-[min(28rem,65svh)] overflow-y-auto p-3">
           {birthdays.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-primary/15 bg-white/70 px-4 py-10 text-center dark:bg-muted/40">
+            <div className="rounded-xl border border-dashed border-primary/15 bg-muted/40 px-4 py-10 text-center">
               <span className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
                 <Cake className="h-5 w-5" />
               </span>
               <p className="text-sm font-semibold text-foreground">
-                No upcoming birthdays
+                No birthdays this month
               </p>
               <p className="mt-1 text-xs font-medium text-muted-foreground">
-                We will show the next birthdays here.
+                Check back next month.
               </p>
             </div>
           ) : (
@@ -121,7 +126,7 @@ export default function BirthdayModal({
                   className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 shadow-sm ${
                     birthday.is_today
                       ? "border-primary/20 bg-primary/5"
-                      : "border-border/50 bg-white/85 dark:bg-muted/50"
+                      : "border-border/60 bg-card"
                   }`}
                 >
                   <Avatar className="h-11 w-11 shrink-0 border-2 border-white shadow-sm dark:border-card">
