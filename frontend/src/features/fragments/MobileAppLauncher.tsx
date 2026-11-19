@@ -18,9 +18,9 @@ import type {
 import BirthdayList from "@/mobile/Features/birthday";
 import Announcements from "@/mobile/components/layout/Announcements";
 
-// How many app tiles the front grid shows: three full rows of three. The
+// How many app tiles the front grid shows: two full rows of three. The
 // rest are behind See All in the card header.
-const MOBILE_FRONT_APP_LIMIT = 9;
+const MOBILE_FRONT_APP_LIMIT = 6;
 
 type MobileAppLauncherProps = {
   apps: HubApplication[];
