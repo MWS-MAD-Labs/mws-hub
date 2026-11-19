@@ -266,11 +266,11 @@ const AppCard = memo(
                   event.preventDefault();
                   tileLinkRef.current?.focus();
                 }}
-                className="fixed left-1/2 top-1/2 z-[var(--layer-modal)] max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-[420px] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-[22px] border border-[#E7E1DB] bg-white p-6 text-center shadow-2xl duration-200 focus:outline-none motion-safe:data-[state=open]:animate-in motion-safe:data-[state=open]:fade-in-0 motion-safe:data-[state=open]:zoom-in-95 motion-safe:data-[state=closed]:animate-out motion-safe:data-[state=closed]:fade-out-0 motion-safe:data-[state=closed]:zoom-out-95 dark:border-border dark:bg-card"
+                className="fixed left-1/2 top-1/2 z-[var(--layer-modal)] max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-[420px] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-[22px] border border-border bg-card p-6 text-center shadow-2xl duration-200 focus:outline-none motion-safe:data-[state=open]:animate-in motion-safe:data-[state=open]:fade-in-0 motion-safe:data-[state=open]:zoom-in-95 motion-safe:data-[state=closed]:animate-out motion-safe:data-[state=closed]:fade-out-0 motion-safe:data-[state=closed]:zoom-out-95 dark:border-border dark:bg-card"
               >
                 <Dialog.Close
                   aria-label="Close"
-                  className="absolute right-3 top-3 flex h-11 w-11 items-center justify-center rounded-full text-[#6D6560] transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:text-muted-foreground"
+                  className="absolute right-3 top-3 flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:text-muted-foreground"
                 >
                   <X className="h-5 w-5" aria-hidden="true" />
                 </Dialog.Close>
@@ -300,7 +300,7 @@ const AppCard = memo(
                 </Dialog.Title>
 
                 {description && (
-                  <Dialog.Description className="mt-2 text-sm leading-relaxed text-[#6D6560] dark:text-muted-foreground">
+                  <Dialog.Description className="mt-2 text-sm leading-relaxed text-muted-foreground">
                     {description}
                   </Dialog.Description>
                 )}
@@ -310,17 +310,17 @@ const AppCard = memo(
                   target={launchWindowName}
                   rel="noopener noreferrer"
                   onClick={handleOpenFromDetail}
-                  className="mt-6 flex h-12 w-full items-center justify-center rounded-xl bg-[#6B1D20] text-sm font-semibold text-white transition-colors hover:bg-[#6B1D20]/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B1D20] focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-card"
+                  className="mt-6 flex h-12 w-full items-center justify-center rounded-xl bg-primary text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
                 >
                   Open app
                 </a>
 
-                <label className="mt-2 flex min-h-11 cursor-pointer items-center justify-center gap-3 text-sm text-[#6D6560] dark:text-muted-foreground">
+                <label className="mt-2 flex min-h-11 cursor-pointer items-center justify-center gap-3 text-sm text-muted-foreground">
                   <input
                     type="checkbox"
                     checked={dontShowAgain}
                     onChange={(event) => setDontShowAgain(event.target.checked)}
-                    className="h-5 w-5 cursor-pointer rounded accent-[#6B1D20] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6B1D20] focus-visible:ring-offset-2"
+                    className="h-5 w-5 cursor-pointer rounded accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   />
                   Don&apos;t show this again
                 </label>

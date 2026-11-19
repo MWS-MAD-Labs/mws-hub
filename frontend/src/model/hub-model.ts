@@ -56,6 +56,7 @@ export type HubBirthday = {
   birthday: string;
   days_until: number;
   is_today: boolean;
+  has_passed: boolean;
 };
 
 // UI-facing shape HubHeader/etc render - see model/auth-model.ts's

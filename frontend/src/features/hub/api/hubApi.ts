@@ -26,9 +26,10 @@ export const hubApi = {
     return response?.data ?? { categories: [], scopes: [] };
   },
 
-  async listBirthdays(limit = 8): Promise<HubBirthday[]> {
+  // Everyone with a birthday in the current month, in calendar order.
+  async listBirthdays(): Promise<HubBirthday[]> {
     const response = await apiRequest<{ data: HubBirthday[] }>(
-      `/apps/birthdays?limit=${limit}`,
+      "/apps/birthdays",
     );
     return response?.data ?? [];
   },

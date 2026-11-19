@@ -4,7 +4,7 @@ import {
   centralAuthHeaders,
   clearCentralPauseForTest,
   listActiveEmployees,
-  listUpcomingEmployeeBirthdays,
+  listEmployeeBirthdaysThisMonth,
   lookupApplicationEntitlement,
   lookupApplicationEntitlements,
   resolveCentralIdentity,
@@ -16,6 +16,9 @@ const originalFetch = global.fetch;
 beforeAll(() => {
   process.env.CENTRAL_API_BASE_URL ??= "http://central.test/api/internal";
   process.env.CENTRAL_API_TOKEN ??= "test-token";
+  // Bun loads backend/.env into tests; a local BIRTHDAY_SEED=true would swap
+  // the mocked Central employees for the seed. The seed test turns it on itself.
+  delete process.env.BIRTHDAY_SEED;
 });
 
 afterEach(() => {
@@ -651,7 +654,7 @@ describe("resolveCentralIdentity", () => {
     expect(employees[0]?.unit_id).toBe("unit-junior-high");
   });
 
-  it("returns employee avatars as avatar_url in upcoming birthdays", async () => {
+  it("returns this month's birthdays with full name and avatar_url", async () => {
     const today = new Date();
     const birthDate = `2000-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
     global.fetch = (async () =>
@@ -678,12 +681,77 @@ describe("resolveCentralIdentity", () => {
         paging: { current_page: 1, total_page: 1 },
       })) as unknown as typeof fetch;
 
-    const birthdays = await listUpcomingEmployeeBirthdays();
+    const birthdays = await listEmployeeBirthdaysThisMonth(today);
 
     expect(birthdays[0]).toMatchObject({
       id: "emp-1",
+      name: "Dummy Staff",
+      is_today: true,
+      has_passed: false,
       avatar_url: "https://central.test/avatar.avif",
     });
     expect(birthdays[0]).not.toHaveProperty("photo_url");
+  });
+
+  it("uses the November seed instead of Central when BIRTHDAY_SEED=true", async () => {
+    const previous = process.env.BIRTHDAY_SEED;
+    process.env.BIRTHDAY_SEED = "true";
+    let called = false;
+    global.fetch = (async () => {
+      called = true;
+      return jsonResponse(500, {});
+    }) as unknown as typeof fetch;
+
+    try {
+      const birthdays = await listEmployeeBirthdaysThisMonth(new Date(2026, 10, 17));
+
+      expect(called).toBe(false);
+      expect(birthdays).toHaveLength(9);
+      expect(birthdays.map((birthday) => birthday.name)).not.toContain("Lina Marlina");
+      expect(birthdays.filter((birthday) => birthday.is_today)).toHaveLength(2);
+      expect(birthdays[0]).toMatchObject({ name: "Andi Pratama Wijaya", has_passed: true });
+    } finally {
+      if (previous === undefined) delete process.env.BIRTHDAY_SEED;
+      else process.env.BIRTHDAY_SEED = previous;
+    }
+  });
+
+  it("keeps only this month's birthdays, in calendar order", async () => {
+    const today = new Date(2026, 10, 17);
+    const employee = (id: string, full_name: string, birth_date: string) => ({
+      id,
+      employee_id: id,
+      full_name,
+      nick_name: "Nick",
+      email: `${id}@millennia21.id`,
+      birth_date,
+      photo_url: null,
+      avatar_url: null,
+      unit: "Junior High",
+      unit_id: "unit-junior-high",
+      job_position: null,
+      job_level: null,
+      status: "ACTIVE",
+      employment_type: "CONTRACT",
+    });
+    global.fetch = (async () =>
+      jsonResponse(200, {
+        success: true,
+        data: [
+          employee("late", "Late November", "1990-11-28"),
+          employee("other", "December Person", "1990-12-01"),
+          employee("early", "Early November", "1990-11-03"),
+        ],
+        paging: { current_page: 1, total_page: 1 },
+      })) as unknown as typeof fetch;
+
+    const birthdays = await listEmployeeBirthdaysThisMonth(today);
+
+    expect(birthdays.map((birthday) => birthday.name)).toEqual([
+      "Early November",
+      "Late November",
+    ]);
+    expect(birthdays[0]?.has_passed).toBe(true);
+    expect(birthdays[1]).toMatchObject({ has_passed: false, days_until: 11 });
   });
 });
