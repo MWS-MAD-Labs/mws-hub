@@ -1,4 +1,5 @@
 import { memo, useEffect, useRef, useState } from "react";
+import ChatGptMark from "@/features/gpt-code/ChatGptMark";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { Home, Search, X } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -92,8 +93,6 @@ const MobileSpotlightSearch = memo(
           {/* Left actions */}
           <div className="flex shrink-0 items-center gap-1">
             {searchOnHub ? (
-              // Off the Hub the first slot leads back home instead of
-              // switching the theme.
               <Link
                 to="/support-hub"
                 aria-label="Back to Hub"
@@ -124,12 +123,7 @@ const MobileSpotlightSearch = memo(
                   )
                 }
               >
-                <img
-                  src="/ChatGPT-Logo.svg"
-                  alt=""
-                  className="h-5 w-5 object-contain dark:invert"
-                  aria-hidden="true"
-                />
+                <ChatGptMark className="block h-5 w-5 shrink-0 text-black dark:text-white" />
               </NavLink>
             )}
           </div>
@@ -202,7 +196,9 @@ const MobileSpotlightSearch = memo(
             }
           >
             <Avatar className="h-10 w-10">
-              {user?.name && <AvatarFallback>{user.name.trim().charAt(0)}</AvatarFallback>}
+              {user?.name && (
+                <AvatarFallback>{user.name.trim().charAt(0)}</AvatarFallback>
+              )}
               {user?.avatar_url && <AvatarImage src={user.avatar_url} alt="" />}
             </Avatar>
           </NavLink>

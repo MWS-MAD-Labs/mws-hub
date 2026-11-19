@@ -67,10 +67,10 @@ export default function BirthdayModal({
         }
       }}
     >
-      <div className="relative w-full max-w-lg overflow-hidden rounded-2xl border border-white/80 bg-[#fffdf9] shadow-2xl dark:border-border dark:bg-card">
+      <div className="relative w-full max-w-lg overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-rose-100/70 dark:bg-primary/10"
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-primary/5 dark:bg-primary/10"
           style={{
             clipPath:
               "polygon(0 38%, 18% 26%, 36% 36%, 54% 24%, 72% 35%, 88% 27%, 100% 38%, 100% 100%, 0 100%)",
@@ -107,7 +107,7 @@ export default function BirthdayModal({
 
         <div className="relative z-10 max-h-[min(28rem,65svh)] overflow-y-auto p-3">
           {birthdays.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-primary/15 bg-white/70 px-4 py-10 text-center dark:bg-muted/40">
+            <div className="rounded-xl border border-dashed border-primary/15 bg-muted/40 px-4 py-10 text-center">
               <span className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
                 <Cake className="h-5 w-5" />
               </span>
@@ -126,7 +126,7 @@ export default function BirthdayModal({
                   className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 shadow-sm ${
                     birthday.is_today
                       ? "border-primary/20 bg-primary/5"
-                      : "border-border/50 bg-white/85 dark:bg-muted/50"
+                      : "border-border/60 bg-card"
                   }`}
                 >
                   <Avatar className="h-11 w-11 shrink-0 border-2 border-white shadow-sm dark:border-card">

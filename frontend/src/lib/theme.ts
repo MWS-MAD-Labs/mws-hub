@@ -29,8 +29,8 @@ export const persistTheme = (theme: Theme): void => {
 // Keep it equal to the page background (the header's color) for the active
 // theme, so the status bar and header read as one surface.
 const STATUS_BAR_FALLBACK: Record<Theme, string> = {
-  light: "#f9f7f6",
-  dark: "#0e121b",
+  light: "#fcfafb",
+  dark: "#141011",
 };
 
 const syncStatusBarColor = (theme: Theme): void => {

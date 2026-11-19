@@ -222,12 +222,12 @@ export default function BirthdayCelebrationModal({
 
       <section
         data-birthday-celebration
-        className="relative flex h-[min(34rem,calc(100svh-2rem))] w-[calc(100%-2rem)] max-w-[22rem] flex-col overflow-hidden rounded-2xl border border-white/80 bg-[#fffdf9] shadow-2xl dark:border-border dark:bg-card motion-safe:animate-[birthday-card-rise_620ms_660ms_cubic-bezier(0.2,0.85,0.25,1)_both]"
+        className="relative flex h-[min(34rem,calc(100svh-2rem))] w-[calc(100%-2rem)] max-w-[22rem] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl motion-safe:animate-[birthday-card-rise_620ms_660ms_cubic-bezier(0.2,0.85,0.25,1)_both]"
         onMouseDown={(event) => event.stopPropagation()}
       >
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-rose-100 dark:bg-primary/10"
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-primary/5 dark:bg-primary/10"
           style={{
             clipPath:
               "polygon(0 32%, 16% 24%, 33% 35%, 50% 22%, 68% 33%, 84% 24%, 100% 34%, 100% 100%, 0 100%)",

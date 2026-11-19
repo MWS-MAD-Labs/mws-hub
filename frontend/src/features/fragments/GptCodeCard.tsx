@@ -1,4 +1,5 @@
 import { memo } from "react";
+import ChatGptMark from "@/features/gpt-code/ChatGptMark";
 import { Link } from "react-router-dom";
 
 // GPT Code lives in Hub itself (route /gpt-code), not in Central's catalog,
@@ -15,7 +16,7 @@ const GptCodeCard = memo(() => (
         aria-hidden="true"
         className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-md bg-card ring-1 ring-border/55"
       >
-        <img src="/ChatGPT-Logo.svg" alt="" className="h-6 w-6 object-contain dark:invert" />
+        <ChatGptMark className="h-6 w-6 text-black dark:text-white" />
       </span>
       <span className="min-w-0 flex-1">
         <span className="block truncate text-sm font-semibold text-foreground">GPT Code</span>

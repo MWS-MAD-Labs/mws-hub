@@ -13,6 +13,9 @@ const originalFetch = global.fetch;
 beforeAll(() => {
   process.env.CENTRAL_API_BASE_URL ??= "http://central.test/api/internal";
   process.env.CENTRAL_API_TOKEN ??= "test-token";
+  // Bun loads backend/.env into tests; a local BIRTHDAY_SEED=true would swap
+  // the mocked Central employees for the seed. The seed test turns it on itself.
+  delete process.env.BIRTHDAY_SEED;
 });
 
 afterEach(() => {
