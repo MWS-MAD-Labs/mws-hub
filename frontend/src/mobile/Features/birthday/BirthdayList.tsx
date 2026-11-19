@@ -99,13 +99,17 @@ function firstNameOf(name: string): string {
 function BirthdayAvatar({
   birthday,
   className,
+  fallbackClassName,
 }: {
   birthday: HubBirthday;
   className?: string;
+  // Initials when there is no photo; the today card swaps the burgundy
+  // default for white so it does not melt into its burgundy background.
+  fallbackClassName?: string;
 }) {
   return (
     <Avatar className={cn("shrink-0", className)}>
-      <AvatarFallback className="text-[11px] font-semibold">
+      <AvatarFallback className={cn("text-[11px] font-semibold", fallbackClassName)}>
         {initialsOf(birthday.name)}
       </AvatarFallback>
       {birthday.avatar_url && <AvatarImage src={birthday.avatar_url} alt="" />}
@@ -250,6 +254,7 @@ const BirthdayList = memo(({ className }: BirthdayListProps) => {
                       <BirthdayAvatar
                         key={birthday.id}
                         birthday={birthday}
+                        fallbackClassName="border-0 bg-primary-foreground text-primary"
                         className={cn(
                           "h-10 w-10 border-2 border-primary",
                           index > 0 && "-ml-3",
@@ -281,7 +286,7 @@ const BirthdayList = memo(({ className }: BirthdayListProps) => {
                   onClick={() => setIsBirthdayCelebrationOpen(true)}
                   className="mt-3 rounded-md bg-primary-foreground px-3 py-1.5 text-[11px] font-bold text-primary transition-opacity hover:opacity-90"
                 >
-                  Send wishes 🎉
+                  Celebrate 🎉
                 </button>
               </div>
             ) : (
