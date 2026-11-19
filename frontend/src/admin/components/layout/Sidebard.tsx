@@ -6,7 +6,7 @@ import {
   X,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
-import Logo from "@/assets/logo.webp";
+import Logo from "@/assets/hub-crest.webp";
 import { cn } from "@/lib/utils";
 
 type SidebarProps = {

@@ -2,7 +2,7 @@ import { memo } from "react";
 import { Link } from "react-router-dom";
 import { LayoutDashboard } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import Logo from "@/assets/logo.webp";
+import Logo from "@/assets/hub-crest.webp";
 import type { HubUser } from "@/model/hub-model";
 import InstallAppButton from "./InstallAppButton";
 

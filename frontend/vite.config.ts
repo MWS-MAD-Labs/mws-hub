@@ -41,7 +41,7 @@ export default defineConfig({
         // "any" and "maskable" are separate files on purpose: the rounded
         // "any" icon gets cropped badly when a launcher applies its own mask,
         // so the maskable ones are full-bleed with the logo inside the 80%
-        // safe zone. PNGs cover launchers that don't render SVG icons.
+        // safe zone. All are generated from icon-source/PWA-New.png.
         icons: [
           {
             src: "/pwa-192x192.png",
@@ -53,12 +53,6 @@ export default defineConfig({
             src: "/pwa-512x512.png",
             sizes: "512x512",
             type: "image/png",
-            purpose: "any",
-          },
-          {
-            src: "/pwa-icon.svg",
-            sizes: "any",
-            type: "image/svg+xml",
             purpose: "any",
           },
           {

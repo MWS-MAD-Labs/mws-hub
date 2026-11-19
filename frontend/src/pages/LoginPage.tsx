@@ -1,11 +1,11 @@
 import { useEffect, useRef } from "react";
 import { Navigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
-import Logo from "@/assets/logo.webp";
+import Crest from "@/assets/hub-crest.webp";
+import LoginBackground from "@/assets/login-background.png";
 import { GoogleLoginButton } from "@/features/auth/components/GoogleLoginButton";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { isServerPath, sanitizeRedirectPath } from "@/lib/redirect-path";
-import LoginPages from "@/mobile/pages/LoginPages";
 
 const HOME_PATH = "/support-hub";
 
@@ -105,42 +105,40 @@ export default function LoginPage() {
     searchParams.get("error") === "account_not_registered";
 
   return (
-    <>
-      <LoginPages
-        isSessionLoading={isSessionLoading}
-        showAccountNotRegisteredError={showAccountNotRegisteredError}
-      >
-        <GoogleLoginButton />
-      </LoginPages>
+    <main className="relative isolate flex min-h-screen min-h-dvh flex-col items-center justify-center overflow-hidden px-4 py-10 text-foreground">
+      <div
+        aria-hidden
+        className="absolute inset-[-4px] -z-10 scale-[1.02] bg-cover bg-center bg-no-repeat blur-[3px]"
+        style={{ backgroundImage: `url(${LoginBackground})` }}
+      />
+      <div aria-hidden className="absolute inset-0 -z-10 bg-gradient-to-b from-black/20 via-black/35 to-black/55" />
 
-      <main className="hidden min-h-screen items-center justify-center bg-background px-4 text-foreground sm:flex">
-        <div className="w-full max-w-sm rounded-2xl border border-border/60 bg-card p-6 shadow-sm">
-          <div className="mb-6 flex items-center gap-2.5">
-            <img src={Logo} alt="" className="h-8 w-8 object-contain" />
-            <div>
-              <p className="text-sm font-semibold">MWS Hub</p>
-              <p className="text-xs text-muted-foreground">
-                Sign in with your MWS Google account
-              </p>
-            </div>
-          </div>
-
-          <GoogleLoginButton />
-
-          {showAccountNotRegisteredError && (
-            <p className="mt-4 rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs leading-relaxed text-destructive">
-              Your account is not registered in the Central database yet. Please
-              contact the administrator.
-            </p>
-          )}
-
-          {isSessionLoading && (
-            <p className="mt-4 text-xs text-muted-foreground">
-              Checking session...
-            </p>
-          )}
+      <div className="w-full max-w-sm rounded-3xl border border-white/20 bg-card/95 p-7 shadow-2xl shadow-black/30 backdrop-blur-md">
+        <div className="mb-7 flex flex-col items-center text-center">
+          <img src={Crest} alt="" width={72} height={72} className="mb-4 h-[72px] w-[72px] drop-shadow-md" />
+          <h1 className="text-xl font-semibold tracking-tight">MWS Hub</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Sign in with your MWS Google account
+          </p>
         </div>
-      </main>
-    </>
+
+        <GoogleLoginButton />
+
+        {showAccountNotRegisteredError && (
+          <p className="mt-4 rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs leading-relaxed text-destructive">
+            Your account is not registered in the Central database yet. Please
+            contact the administrator.
+          </p>
+        )}
+
+        {isSessionLoading && (
+          <p className="mt-4 text-center text-xs text-muted-foreground">
+            Checking session...
+          </p>
+        )}
+      </div>
+
+      <p className="mt-6 text-xs font-medium text-white/90 [text-shadow:0_1px_3px_rgb(0_0_0/0.6)]">Millennia World School</p>
+    </main>
   );
 }
