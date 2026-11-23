@@ -165,6 +165,11 @@ describe("AuthController.sessions", () => {
         revoked_at: null,
       },
     ];
+    // Other test files replace ../lib/prisma with partial mocks (bun's
+    // mock.module leaks across files), so loginSession may not exist here.
+    const db = prisma as unknown as Record<string, any>;
+    const hadLoginSession = "loginSession" in db && db.loginSession != null;
+    if (!hadLoginSession) db.loginSession = {};
     const originalTransaction = prisma.$transaction;
     const originalFindMany = prisma.loginSession.findMany;
     const originalCount = prisma.loginSession.count;
@@ -191,5 +196,6 @@ describe("AuthController.sessions", () => {
     prisma.$transaction = originalTransaction;
     prisma.loginSession.findMany = originalFindMany;
     prisma.loginSession.count = originalCount;
+    if (!hadLoginSession) delete db.loginSession;
   });
 });
