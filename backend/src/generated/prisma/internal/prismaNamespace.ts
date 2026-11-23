@@ -402,6 +402,7 @@ export const ModelName = {
   AccessRequest: 'AccessRequest',
   AuditLog: 'AuditLog',
   UserSession: 'UserSession',
+  LoginSession: 'LoginSession',
   RefreshToken: 'RefreshToken',
   SsoExchangeSeen: 'SsoExchangeSeen',
   GptCodeAccessRule: 'GptCodeAccessRule',
@@ -421,7 +422,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "ssoCode" | "appReport" | "accessRequest" | "auditLog" | "userSession" | "refreshToken" | "ssoExchangeSeen" | "gptCodeAccessRule" | "gptCodeAccessException"
+    modelProps: "ssoCode" | "appReport" | "accessRequest" | "auditLog" | "userSession" | "loginSession" | "refreshToken" | "ssoExchangeSeen" | "gptCodeAccessRule" | "gptCodeAccessException"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -792,6 +793,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.UserSessionCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.UserSessionCountAggregateOutputType> | number
+        }
+      }
+    }
+    LoginSession: {
+      payload: Prisma.$LoginSessionPayload<ExtArgs>
+      fields: Prisma.LoginSessionFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.LoginSessionFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LoginSessionPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.LoginSessionFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LoginSessionPayload>
+        }
+        findFirst: {
+          args: Prisma.LoginSessionFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LoginSessionPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.LoginSessionFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LoginSessionPayload>
+        }
+        findMany: {
+          args: Prisma.LoginSessionFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LoginSessionPayload>[]
+        }
+        create: {
+          args: Prisma.LoginSessionCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LoginSessionPayload>
+        }
+        createMany: {
+          args: Prisma.LoginSessionCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.LoginSessionCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LoginSessionPayload>[]
+        }
+        delete: {
+          args: Prisma.LoginSessionDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LoginSessionPayload>
+        }
+        update: {
+          args: Prisma.LoginSessionUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LoginSessionPayload>
+        }
+        deleteMany: {
+          args: Prisma.LoginSessionDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.LoginSessionUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.LoginSessionUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LoginSessionPayload>[]
+        }
+        upsert: {
+          args: Prisma.LoginSessionUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LoginSessionPayload>
+        }
+        aggregate: {
+          args: Prisma.LoginSessionAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateLoginSession>
+        }
+        groupBy: {
+          args: Prisma.LoginSessionGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.LoginSessionGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.LoginSessionCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.LoginSessionCountAggregateOutputType> | number
         }
       }
     }
@@ -1198,11 +1273,32 @@ export const UserSessionScalarFieldEnum = {
 export type UserSessionScalarFieldEnum = (typeof UserSessionScalarFieldEnum)[keyof typeof UserSessionScalarFieldEnum]
 
 
+export const LoginSessionScalarFieldEnum = {
+  id: 'id',
+  central_id: 'central_id',
+  person_id: 'person_id',
+  source: 'source',
+  email: 'email',
+  account_version: 'account_version',
+  device_name: 'device_name',
+  user_agent: 'user_agent',
+  trusted_at: 'trusted_at',
+  created_at: 'created_at',
+  last_seen_at: 'last_seen_at',
+  expires_at: 'expires_at',
+  revoked_at: 'revoked_at',
+  revoked_reason: 'revoked_reason'
+} as const
+
+export type LoginSessionScalarFieldEnum = (typeof LoginSessionScalarFieldEnum)[keyof typeof LoginSessionScalarFieldEnum]
+
+
 export const RefreshTokenScalarFieldEnum = {
   id: 'id',
   family_id: 'family_id',
   token_hash: 'token_hash',
   central_id: 'central_id',
+  session_id: 'session_id',
   source: 'source',
   session_version: 'session_version',
   family_expires_at: 'family_expires_at',
@@ -1585,6 +1681,7 @@ export type GlobalOmitConfig = {
   accessRequest?: Prisma.AccessRequestOmit
   auditLog?: Prisma.AuditLogOmit
   userSession?: Prisma.UserSessionOmit
+  loginSession?: Prisma.LoginSessionOmit
   refreshToken?: Prisma.RefreshTokenOmit
   ssoExchangeSeen?: Prisma.SsoExchangeSeenOmit
   gptCodeAccessRule?: Prisma.GptCodeAccessRuleOmit

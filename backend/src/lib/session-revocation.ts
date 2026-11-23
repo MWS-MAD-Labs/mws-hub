@@ -32,6 +32,14 @@ const CALL_TIMEOUT_MS = 5000;
 // `source` to disambiguate them with here, so Person.id is the only one
 // that's safe to match on unconditionally.
 export async function revokeSessionsForUser(email: string, personId?: string): Promise<void> {
+  return revokeSessions(email, personId);
+}
+
+export async function revokeSessionForUser(email: string, personId: string | undefined, sessionId: string): Promise<void> {
+  return revokeSessions(email, personId, sessionId);
+}
+
+async function revokeSessions(email: string, personId?: string, sessionId?: string): Promise<void> {
   if (!email) return;
 
   const secret = process.env.HUB_INTERNAL_SECRET;
@@ -42,7 +50,16 @@ export async function revokeSessionsForUser(email: string, personId?: string): P
     return;
   }
 
-  const targets = await AppsService.revokeSessionTargets(secret);
+  let targets = await AppsService.revokeSessionTargets(secret);
+  if (sessionId) {
+    const capable = new Set(
+      (process.env.HUB_SESSION_SCOPED_REVOKE_APPS || "")
+        .split(",")
+        .map((value) => value.trim())
+        .filter(Boolean),
+    );
+    targets = targets.filter(({ applicationId }) => capable.has("*") || capable.has(applicationId));
+  }
   if (targets.length === 0) return;
 
   await Promise.allSettled(
@@ -54,7 +71,11 @@ export async function revokeSessionsForUser(email: string, personId?: string): P
             "Content-Type": "application/json",
             "X-Hub-Internal-Secret": sent,
           },
-          body: JSON.stringify({ email, ...(personId ? { central_id: personId } : {}) }),
+          body: JSON.stringify({
+            email,
+            ...(personId ? { central_id: personId } : {}),
+            ...(sessionId ? { session_id: sessionId } : {}),
+          }),
           signal: AbortSignal.timeout(CALL_TIMEOUT_MS),
         });
         if (!res.ok) {

@@ -1,13 +1,18 @@
 import { GoogleAuth } from "../lib/google-auth";
 import { resolveCentralIdentity } from "../lib/central-client";
-import { signSession } from "../lib/session";
-import { revokeSessionsForUser } from "../lib/session-revocation";
+import { createSession } from "../lib/session";
 import { enforceHubAccessOnLogin } from "../lib/hub-access-gate";
 import { ResponseError } from "../error/response-error";
 import type { HubUser } from "../type/central-type";
+import type { DeviceMetadata } from "../lib/device-session";
 
 export class AuthService {
-  static async loginWithGoogle(code: string): Promise<{ token: string; user: HubUser }> {
+  static async loginWithGoogle(code: string, device?: DeviceMetadata): Promise<{
+    token: string;
+    user: HubUser;
+    sessionId: string;
+    sessionVersion: number;
+  }> {
     const payload = await GoogleAuth.verifyCode(code);
     if (!payload) {
       throw new ResponseError(401, "Google sign-in failed.");
@@ -37,11 +42,12 @@ export class AuthService {
     // Before a session exists, so a refused person never ends anyone else's session.
     await enforceHubAccessOnLogin(user);
 
-    const token = await signSession(user);
-    // Single-session policy: a fresh login here also ends this person's
-    // other active sessions in every connected app, not just Hub's own
-    // (signSession above already did the Hub half via session_version).
-    await revokeSessionsForUser(user.email, user.person_id);
-    return { token, user };
+    const session = await createSession(user, device);
+    return {
+      token: session.token,
+      user,
+      sessionId: session.sessionId,
+      sessionVersion: session.sessionVersion,
+    };
   }
 }

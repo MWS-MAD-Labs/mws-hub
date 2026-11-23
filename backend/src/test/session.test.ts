@@ -8,6 +8,8 @@ import type { HubUser } from "../type/central-type";
 // central_id, matching the real UserSession model - not email, which
 // Central allows changing (see the schema comment on UserSession).
 const sessionVersions = new Map<string, number>();
+const loginSessions = new Map<string, { id: string; central_id: string; account_version: number; expires_at: Date; revoked_at: Date | null }>();
+let nextSessionId = 1;
 
 mock.module("../lib/prisma", () => ({
   prisma: {
@@ -19,9 +21,7 @@ mock.module("../lib/prisma", () => ({
         where: { central_id: string };
         create: { session_version: number };
       }) => {
-        const next = sessionVersions.has(where.central_id)
-          ? sessionVersions.get(where.central_id)! + 1
-          : create.session_version;
+        const next = sessionVersions.get(where.central_id) ?? create.session_version;
         sessionVersions.set(where.central_id, next);
         return { central_id: where.central_id, session_version: next };
       },
@@ -29,6 +29,14 @@ mock.module("../lib/prisma", () => ({
         if (!sessionVersions.has(where.central_id)) return null;
         return { central_id: where.central_id, session_version: sessionVersions.get(where.central_id)! };
       },
+    },
+    loginSession: {
+      create: async ({ data }: { data: { central_id: string; account_version: number; expires_at: Date } }) => {
+        const row = { id: `session-${nextSessionId++}`, central_id: data.central_id, account_version: data.account_version, expires_at: data.expires_at, revoked_at: null };
+        loginSessions.set(row.id, row);
+        return row;
+      },
+      findUnique: async ({ where }: { where: { id: string } }) => loginSessions.get(where.id) ?? null,
     },
   },
 }));
@@ -111,11 +119,26 @@ describe("signSession / verifySession", () => {
     const firstSession = await verifySession(token);
     const laterSession = await verifySession(laterToken);
 
-    // The single-session policy still applies (a later signSession() for
-    // the same central id bumps session_version and invalidates the
-    // earlier token) - the point of this test is *why* it invalidates:
-    // same id, not "coincidentally the same email string".
-    expect(firstSession).toBeNull();
+    expect(firstSession?.user.email).toBe("employee@millennia21.id");
     expect(laterSession?.user.email).toBe("new.email@millennia21.id");
+  });
+
+  it("keeps two device sessions valid at the same time", async () => {
+    const first = await signSession(testUser);
+    const second = await signSession(testUser);
+
+    expect((await verifySession(first))?.sessionId).toBeTruthy();
+    expect((await verifySession(second))?.sessionId).toBeTruthy();
+    expect((await verifySession(first))?.sessionId).not.toBe((await verifySession(second))?.sessionId);
+  });
+
+  it("revokes one device without ending another", async () => {
+    const first = await signSession(testUser);
+    const second = await signSession(testUser);
+    const firstSession = await verifySession(first);
+    loginSessions.get(firstSession!.sessionId)!.revoked_at = new Date();
+
+    expect(await verifySession(first)).toBeNull();
+    expect(await verifySession(second)).not.toBeNull();
   });
 });

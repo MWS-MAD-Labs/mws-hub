@@ -174,8 +174,8 @@ describe("applications published in Central", () => {
     spyOn(centralClient, "lookupApplicationEntitlement").mockResolvedValue({ is_active: true } as never);
     const targets = await AppsService.revokeSessionTargets("master-secret-0123456789abcdef");
     expect(targets).toEqual([
-      { url: "https://own.example.com/auth/revoke-session", secret: deriveAppSecret("master-secret-0123456789abcdef", "own-app", 2) },
-      { url: "https://old.example.com/auth/revoke-session", secret: "master-secret-0123456789abcdef" },
+      { applicationId: "own-app", url: "https://own.example.com/auth/revoke-session", secret: deriveAppSecret("master-secret-0123456789abcdef", "own-app", 2) },
+      { applicationId: "old-app", url: "https://old.example.com/auth/revoke-session", secret: "master-secret-0123456789abcdef" },
     ]);
     const cards = await AppsService.listFor(user);
     expect(JSON.stringify(cards)).not.toContain("hubSecret");
@@ -189,6 +189,7 @@ describe("applications published in Central", () => {
     const targets = await AppsService.revokeSessionTargets("master-secret-0123456789abcdef");
     expect(targets).toEqual([
       {
+        applicationId: "daily-checkin",
         url: "https://daily-checkin.example.com/auth/revoke-session",
         secret: deriveAppSecret("master-secret-0123456789abcdef", "daily-checkin", 1),
       },

@@ -27,6 +27,7 @@ type Row = {
   family_id: string;
   token_hash: string;
   central_id: string;
+  session_id: string;
   source: string;
   session_version: number;
   family_expires_at: Date;
@@ -51,6 +52,9 @@ const fakeStore: RefreshStore = {
   revokeFamily: async (familyId) => {
     rows.filter((row) => row.family_id === familyId && !row.revoked_at).forEach((row) => (row.revoked_at = new Date()));
   },
+  revokeSession: async (sessionId) => {
+    rows.filter((row) => row.session_id === sessionId && !row.revoked_at).forEach((row) => (row.revoked_at = new Date()));
+  },
 };
 
 const sessions = new Map<string, number>();
@@ -59,12 +63,15 @@ let centralDown = false;
 let hubSignedIn: unknown = null;
 const deps: RefreshDeps = {
   sessionVersionOf: async (id) => sessions.get(id) ?? null,
+  sessionActive: async (sessionId) => sessionId === "session-1",
   resolveIdentity: async () => {
     if (centralDown) throw new Error("central is down");
     return identity as never;
   },
   tagsFor: () => [],
-  currentHubUser: async () => hubSignedIn as never,
+  currentHubSession: async () => hubSignedIn
+    ? { user: hubSignedIn as never, sessionId: "session-1", sessionVersion: sessions.get("employee-1") ?? 0 }
+    : null,
 };
 
 const person = {
@@ -91,7 +98,7 @@ app.post("/auth/logout", async (c) => {
   return c.json({ ok: true });
 });
 app.post("/login", async (c) => {
-  await issueSharedSession(c, person as never, [], sessions.get("employee-1") ?? 0);
+  await issueSharedSession(c, person as never, [], "session-1", sessions.get("employee-1") ?? 0);
   return c.json({ ok: true });
 });
 
@@ -116,7 +123,7 @@ function claimsOf(token: string) {
   return { ok, claims: JSON.parse(Buffer.from(body, "base64url").toString()) };
 }
 
-const signedIn = () => startFamily(person, sessions.get("employee-1") ?? 0);
+const signedIn = () => startFamily(person, "session-1", sessions.get("employee-1") ?? 0);
 
 describe("shared session", () => {
   beforeEach(() => {

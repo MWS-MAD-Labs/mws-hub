@@ -1,11 +1,12 @@
 import { describe, it, expect, spyOn, afterEach, beforeAll, mock } from "bun:test";
 import { GoogleAuth } from "../lib/google-auth";
 import * as centralClient from "../lib/central-client";
-import * as sessionRevocation from "../lib/session-revocation";
 import type { HubUser } from "../type/central-type";
 import type { GooglePayload } from "../type/google-type";
 
 const sessionVersions = new Map<string, number>();
+const loginSessions = new Map<string, { id: string; central_id: string; account_version: number; expires_at: Date; revoked_at: Date | null }>();
+let nextSessionId = 1;
 
 mock.module("../lib/prisma", () => ({
   prisma: {
@@ -14,19 +15,25 @@ mock.module("../lib/prisma", () => ({
         where,
         create,
       }: {
-        where: { email: string };
+        where: { central_id: string };
         create: { session_version: number };
       }) => {
-        const next = sessionVersions.has(where.email)
-          ? sessionVersions.get(where.email)! + 1
-          : create.session_version;
-        sessionVersions.set(where.email, next);
-        return { email: where.email, session_version: next };
+        const next = sessionVersions.get(where.central_id) ?? create.session_version;
+        sessionVersions.set(where.central_id, next);
+        return { central_id: where.central_id, session_version: next };
       },
-      findUnique: async ({ where }: { where: { email: string } }) => {
-        if (!sessionVersions.has(where.email)) return null;
-        return { email: where.email, session_version: sessionVersions.get(where.email)! };
+      findUnique: async ({ where }: { where: { central_id: string } }) => {
+        if (!sessionVersions.has(where.central_id)) return null;
+        return { central_id: where.central_id, session_version: sessionVersions.get(where.central_id)! };
       },
+    },
+    loginSession: {
+      create: async ({ data }: { data: { central_id: string; account_version: number; expires_at: Date } }) => {
+        const row = { id: `session-${nextSessionId++}`, central_id: data.central_id, account_version: data.account_version, expires_at: data.expires_at, revoked_at: null };
+        loginSessions.set(row.id, row);
+        return row;
+      },
+      findUnique: async ({ where }: { where: { id: string } }) => loginSessions.get(where.id) ?? null,
     },
   },
 }));
@@ -75,7 +82,7 @@ describe("AuthService.loginWithGoogle and the Central access gate", () => {
     const error = await AuthService.loginWithGoogle("code").catch((caught) => caught);
     expect(error.status).toBe(403);
     expect(error.code).toBe("hub_access_denied");
-    expect(sessionVersions.has("employee@millennia21.id")).toBe(false);
+    expect(sessionVersions.has("emp-1")).toBe(false);
     delete process.env.HUB_CENTRAL_ACCESS_MODE;
   });
 });
@@ -150,21 +157,15 @@ describe("AuthService.loginWithGoogle", () => {
     expect(session?.user).toMatchObject({ avatar_url: avatarUrl });
   });
 
-  // Regression: revokeSessionsForUser's second argument must be the
-  // Central Person.id (what a receiving satellite app's centralPersonId
-  // field stores, and what mintRelayToken's `sub` carries), not
-  // Employee.id/Student.id (HubUser.id, a different id space entirely,
-  // scoped to a source the receiving app has no way to know here). The
-  // fixture's id ("emp-1") and person_id ("person-1") are deliberately
-  // different values so a regression fails loudly instead of coincidentally
-  // passing.
-  it("revokes other sessions using the Central Person.id, not Employee.id/Student.id", async () => {
+  it("keeps an existing device session valid when the same user logs in again", async () => {
     spyOn(GoogleAuth, "verifyCode").mockResolvedValue(googlePayload);
     spyOn(centralClient, "resolveCentralIdentity").mockResolvedValue(centralUser);
-    const revokeSpy = spyOn(sessionRevocation, "revokeSessionsForUser").mockResolvedValue(undefined);
 
-    await AuthService.loginWithGoogle("code");
+    const first = await AuthService.loginWithGoogle("code");
+    const second = await AuthService.loginWithGoogle("code");
 
-    expect(revokeSpy).toHaveBeenCalledWith(centralUser.email, "person-1");
+    expect((await verifySession(first.token))?.sessionId).toBe(first.sessionId);
+    expect((await verifySession(second.token))?.sessionId).toBe(second.sessionId);
+    expect(first.sessionId).not.toBe(second.sessionId);
   });
 });

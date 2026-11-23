@@ -17,6 +17,7 @@ type ApiRequestOptions = Omit<RequestInit, "body"> & { body?: unknown };
 export async function apiRequest<T>(path: string, options: ApiRequestOptions = {}): Promise<T | null> {
   const { body, headers, ...fetchOptions } = options;
   const shouldSerialize = isJsonBody(body);
+  const method = (fetchOptions.method || "GET").toUpperCase();
 
   const response = await fetch(`${env.hubApiBaseUrl}${path}`, {
     ...fetchOptions,
@@ -24,6 +25,7 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
     headers: {
       Accept: "application/json",
       ...(shouldSerialize ? { "Content-Type": "application/json" } : {}),
+      ...(method === "GET" || method === "HEAD" ? {} : { "X-Requested-With": "mws-hub" }),
       ...headers,
     },
     body: shouldSerialize ? JSON.stringify(body) : (body as BodyInit | undefined),

@@ -279,6 +279,7 @@ export class AppsController {
           unitId: user.unit_id || (user.source === "employee" ? user.unitId : null) || null,
         },
         relayEntitlement,
+        c.var.session.sessionId,
       );
       // The browser only ever carries a short opaque, single-use code - the
       // actual token is fetched by the receiving app's own backend calling

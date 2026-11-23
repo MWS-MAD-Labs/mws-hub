@@ -97,6 +97,7 @@ export interface RefreshStore {
   findByHash(tokenHash: string): Promise<StoredRefreshToken | null>;
   claimRotation(id: string): Promise<boolean>;
   revokeFamily(familyId: string): Promise<void>;
+  revokeSession(sessionId: string): Promise<void>;
 }
 
 const databaseStore: RefreshStore = {
@@ -108,6 +109,9 @@ const databaseStore: RefreshStore = {
   },
   revokeFamily: async (familyId) => {
     await prisma.refreshToken.updateMany({ where: { family_id: familyId, revoked_at: null }, data: { revoked_at: new Date() } });
+  },
+  revokeSession: async (sessionId) => {
+    await prisma.refreshToken.updateMany({ where: { session_id: sessionId, revoked_at: null }, data: { revoked_at: new Date() } });
   },
 };
 
@@ -122,7 +126,7 @@ const newToken = () => randomBytes(32).toString("base64url");
 export async function signAccessToken(
   person: { person_id: string; email: string; source: string },
   tags: HubAccessSource[],
-  familyId: string,
+  sessionId: string,
 ): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
   return signHubJwt({
@@ -133,7 +137,7 @@ export async function signAccessToken(
     email: person.email,
     source: person.source,
     tags,
-    sid: familyId,
+    sid: sessionId,
     jti: randomUUID(),
     iat: now,
     exp: now + accessTtlSeconds(),
@@ -144,6 +148,7 @@ export type StoredRefreshToken = {
   id: string;
   family_id: string;
   central_id: string;
+  session_id: string;
   source: string;
   session_version: number;
   family_expires_at: Date;
@@ -154,6 +159,7 @@ export type StoredRefreshToken = {
 type NewTokenRow = {
   family_id: string;
   central_id: string;
+  session_id: string;
   source: string;
   session_version: number;
   family_expires_at: Date;
@@ -166,7 +172,7 @@ async function createToken(row: NewTokenRow): Promise<string> {
 }
 
 // `sessionVersion` is the person's UserSession.session_version now: a newer sign-in elsewhere ends this family.
-export async function startFamily(person: { id: string; source: string }, sessionVersion: number): Promise<{
+export async function startFamily(person: { id: string; source: string }, sessionId: string, sessionVersion: number): Promise<{
   token: string;
   familyId: string;
   expiresAt: Date;
@@ -176,6 +182,7 @@ export async function startFamily(person: { id: string; source: string }, sessio
   const token = await createToken({
     family_id: familyId,
     central_id: person.id,
+    session_id: sessionId,
     source: person.source,
     session_version: sessionVersion,
     family_expires_at: expiresAt,
@@ -207,6 +214,7 @@ export async function rotateRefreshToken(row: StoredRefreshToken): Promise<strin
   return createToken({
     family_id: row.family_id,
     central_id: row.central_id,
+    session_id: row.session_id,
     source: row.source,
     session_version: row.session_version,
     family_expires_at: row.family_expires_at,
@@ -215,6 +223,10 @@ export async function rotateRefreshToken(row: StoredRefreshToken): Promise<strin
 
 export async function revokeFamily(familyId: string): Promise<void> {
   await store.revokeFamily(familyId);
+}
+
+export async function revokeSharedSession(sessionId: string): Promise<void> {
+  await store.revokeSession(sessionId);
 }
 
 export function setSharedCookies(
@@ -238,10 +250,11 @@ export async function issueSharedSession(
   c: Context,
   user: HubUser,
   tags: HubAccessSource[],
+  sessionId: string,
   sessionVersion: number,
 ): Promise<void> {
-  const family = await startFamily(user, sessionVersion);
-  const access = await signAccessToken(user, tags, family.familyId);
+  const family = await startFamily(user, sessionId, sessionVersion);
+  const access = await signAccessToken(user, tags, sessionId);
   setSharedCookies(c, { access, refresh: family.token, familyExpiresAt: family.expiresAt });
 }
 
@@ -258,12 +271,13 @@ export async function endSharedSession(c: Context): Promise<void> {
 export interface RefreshDeps {
   // UserSession.session_version of the person, or null when there is none.
   sessionVersionOf(centralId: string): Promise<number | null>;
+  sessionActive(sessionId: string, centralId: string, accountVersion: number): Promise<boolean>;
   // The person as Central knows them now. null: not active any more. A thrown error: Central could not be reached.
   resolveIdentity(centralId: string, source: HubSource): Promise<HubUser | null>;
   tagsFor(user: HubUser): HubAccessSource[];
   // The person signed in to the Hub itself (its own cookie), if any. Lets a Hub session from before the shared
   // session existed turn into one without signing in again.
-  currentHubUser?(c: Context): Promise<HubUser | null>;
+  currentHubSession?(c: Context): Promise<{ user: HubUser; sessionId: string; sessionVersion: number } | null>;
 }
 
 type RefreshOutcome = { ok: true } | { ok: false; status: 401 | 503; message: string };
@@ -281,9 +295,13 @@ async function performRefresh(c: Context, deps: RefreshDeps): Promise<RefreshOut
   if (check.status === "invalid" || check.status === "reuse") return end("Session ended.");
   const { row } = check;
 
-  // A newer sign-in elsewhere ended this one.
+  // Account-wide resets and per-device revocation both end this family.
   const version = await deps.sessionVersionOf(row.central_id);
-  if (version === null || version !== row.session_version) {
+  if (
+    version === null ||
+    version !== row.session_version ||
+    !(await deps.sessionActive(row.session_id, row.central_id, row.session_version))
+  ) {
     await revokeFamily(row.family_id);
     return end("Session ended.");
   }
@@ -300,7 +318,7 @@ async function performRefresh(c: Context, deps: RefreshDeps): Promise<RefreshOut
     return end("Your account is no longer active.");
   }
 
-  const access = await signAccessToken(user, deps.tagsFor(user), row.family_id);
+  const access = await signAccessToken(user, deps.tagsFor(user), row.session_id);
   const refresh = check.status === "ok" ? await rotateRefreshToken(row) : null;
   setSharedCookies(c, { access, ...(refresh ? { refresh } : {}), familyExpiresAt: row.family_expires_at });
   return { ok: true };
@@ -330,11 +348,10 @@ export async function handleRestore(c: Context, deps: RefreshDeps, hubHome: stri
   if (!back || !refreshOriginAllowed(back.origin)) return c.redirect(hubHome, 302);
 
   // No refresh token yet, but the person is signed in to the Hub: start the shared session from that.
-  if (!getCookie(c, refreshCookieName()) && deps.currentHubUser) {
-    const user = await deps.currentHubUser(c).catch(() => null);
-    const version = user ? await deps.sessionVersionOf(user.id) : null;
-    if (user && version !== null) {
-      await issueSharedSession(c, user, deps.tagsFor(user), version);
+  if (!getCookie(c, refreshCookieName()) && deps.currentHubSession) {
+    const session = await deps.currentHubSession(c).catch(() => null);
+    if (session) {
+      await issueSharedSession(c, session.user, deps.tagsFor(session.user), session.sessionId, session.sessionVersion);
       back.searchParams.set("restored", "1");
       return c.redirect(back.toString(), 302);
     }

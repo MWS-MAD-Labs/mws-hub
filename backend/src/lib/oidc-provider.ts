@@ -213,6 +213,7 @@ export type OidcIdentityClaims = {
   email_verified: true;
   name: string;
   groups: string[];
+  sid: string;
 };
 
 // What a code stands for until the relying party's backend trades it in.

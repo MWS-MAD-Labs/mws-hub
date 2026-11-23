@@ -11,6 +11,7 @@ const SupportHubConceptsPage = lazy(
   () => import("@/pages/SupportHubConceptsPage"),
 );
 const ProfilePage = lazy(() => import("@/pages/ProfilePage"));
+const ProfileSessionsPage = lazy(() => import("@/pages/ProfileSessionsPage"));
 const LoginPage = lazy(() => import("@/pages/LoginPage"));
 const LogoutRelayPage = lazy(() => import("@/pages/LogoutRelayPage"));
 const Dashboard = lazy(() => import("@/admin/features/dashboard/DashboardPage"));
@@ -80,6 +81,16 @@ export default function App() {
               <PageLoader>
                 <RequireAuth>
                   <ProfilePage />
+                </RequireAuth>
+              </PageLoader>
+            }
+          />
+          <Route
+            path="/profile/sessions"
+            element={
+              <PageLoader>
+                <RequireAuth>
+                  <ProfileSessionsPage />
                 </RequireAuth>
               </PageLoader>
             }

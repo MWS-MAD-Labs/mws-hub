@@ -7,12 +7,14 @@ import type { HubUser } from "../type/central-type";
 
 // A plain map stands in for the session row, like the other session tests.
 const sessionVersions = new Map<string, number>();
+const loginSessions = new Map<string, { id: string; central_id: string; account_version: number; expires_at: Date; revoked_at: Date | null }>();
+let nextSessionId = 1;
 
 mock.module("../lib/prisma", () => ({
   prisma: {
     userSession: {
       upsert: async ({ where, create }: { where: { central_id: string }; create: { session_version: number } }) => {
-        const next = sessionVersions.has(where.central_id) ? sessionVersions.get(where.central_id)! + 1 : create.session_version;
+        const next = sessionVersions.get(where.central_id) ?? create.session_version;
         sessionVersions.set(where.central_id, next);
         return { session_version: next };
       },
@@ -20,6 +22,14 @@ mock.module("../lib/prisma", () => ({
         sessionVersions.has(where.central_id)
           ? { central_id: where.central_id, session_version: sessionVersions.get(where.central_id)! }
           : null,
+    },
+    loginSession: {
+      create: async ({ data }: { data: { central_id: string; account_version: number; expires_at: Date } }) => {
+        const row = { id: `session-${nextSessionId++}`, central_id: data.central_id, account_version: data.account_version, expires_at: data.expires_at, revoked_at: null };
+        loginSessions.set(row.id, row);
+        return row;
+      },
+      findUnique: async ({ where }: { where: { id: string } }) => loginSessions.get(where.id) ?? null,
     },
   },
 }));

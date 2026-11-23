@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { AuthController } from "../controller/auth-controller";
 import type { HubUser } from "../type/central-type";
 import type { SessionVariables } from "../type/hono-context";
+import { prisma } from "../lib/prisma";
 
 type MeResponse = {
   data: Record<string, unknown>;
@@ -147,5 +148,48 @@ describe("AuthController.me", () => {
       avatar_url: "https://central.test/photo.avif",
     });
     expect(response.data).not.toHaveProperty("photo_url");
+  });
+});
+
+describe("AuthController.sessions", () => {
+  it("returns paginated active sessions with active and history counts", async () => {
+    const now = new Date();
+    const rows = [
+      {
+        id: "session-current",
+        device_name: "Chrome on Windows",
+        trusted_at: now,
+        created_at: now,
+        last_seen_at: now,
+        expires_at: new Date(now.getTime() + 60_000),
+        revoked_at: null,
+      },
+    ];
+    const originalTransaction = prisma.$transaction;
+    const originalFindMany = prisma.loginSession.findMany;
+    const originalCount = prisma.loginSession.count;
+    prisma.loginSession.findMany = (async () => rows) as typeof prisma.loginSession.findMany;
+    prisma.loginSession.count = (async (args?: { where?: { OR?: unknown } }) => args?.where?.OR ? 4 : 2) as unknown as typeof prisma.loginSession.count;
+    prisma.$transaction = (async (queries: Promise<unknown>[]) => Promise.all(queries)) as typeof prisma.$transaction;
+
+    const app = new Hono<{ Variables: SessionVariables }>();
+    app.get("/auth/sessions", (c) => {
+      c.set("user", admin);
+      c.set("session", { user: admin, sessionId: "session-current", sessionVersion: 1, exp: Math.floor(Date.now() / 1000) + 3600 });
+      return AuthController.sessions(c);
+    });
+    const response = await app.request("/auth/sessions?status=active&page=1&pageSize=20");
+    const body = await response.json() as {
+      data: Array<{ current: boolean; status: string }>;
+      meta: { pagination: { total: number }; counts: { active: number; history: number } };
+    };
+
+    expect(body.data[0]).toMatchObject({ current: true, status: "active" });
+    expect(body.meta.pagination.total).toBe(2);
+    expect(body.meta.counts).toEqual({ active: 2, history: 4 });
+
+    prisma.$transaction = originalTransaction;
+    prisma.loginSession.findMany = originalFindMany;
+    prisma.loginSession.count = originalCount;
   });
 });

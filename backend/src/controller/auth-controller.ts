@@ -10,15 +10,16 @@ import { verifySession } from "../lib/session";
 import { sessionCookieOptions } from "../lib/session-cookie";
 import { sessionSecondsLeft } from "../lib/session-expiry";
 import { AppsService } from "../service/apps-service";
-import { revokeSessionsForUser } from "../lib/session-revocation";
+import { revokeSessionForUser, revokeSessionsForUser } from "../lib/session-revocation";
 import { recordAuditLog } from "../service/audit-log-service";
 import { getUserUnitId, isHubAdmin } from "../lib/admin-access";
 import { hubAccessMode, resolveHubAccess } from "../lib/hub-access-gate";
 import type { SessionVariables } from "../type/hono-context";
 import { sanitizeLaunchRedirect } from "../lib/sso-state";
-import { endSharedSession, handleRefresh, handleRestore, issueSharedSession, type RefreshDeps } from "../lib/shared-session";
+import { endSharedSession, handleRefresh, handleRestore, issueSharedSession, revokeSharedSession, type RefreshDeps } from "../lib/shared-session";
 import { prisma } from "../lib/prisma";
 import { resolveCentralIdentityById } from "../lib/central-client";
+import { deviceMetadata } from "../lib/device-session";
 
 const OAUTH_STATE_COOKIE = "hub_google_oauth_state";
 
@@ -69,10 +70,14 @@ function oauthStateCookieOptions() {
 }
 
 // The shared session next to Hub's own. A failure here must not stop the person from signing in to the Hub.
-async function startSharedSession(c: Context, user: SessionVariables["user"]) {
+async function startSharedSession(
+  c: Context,
+  user: SessionVariables["user"],
+  sessionId: string,
+  sessionVersion: number,
+) {
   try {
-    const current = await prisma.userSession.findUnique({ where: { central_id: user.id } });
-    await issueSharedSession(c, user, AppsService.accessTagsFor(user), current?.session_version ?? 0);
+    await issueSharedSession(c, user, AppsService.accessTagsFor(user), sessionId, sessionVersion);
   } catch (error) {
     logger.error("Could not start the shared session:", error);
   }
@@ -142,20 +147,41 @@ async function authUserResponse(user: SessionVariables["user"]) {
   };
 }
 
-async function sessionUserFromCookie(c: Context): Promise<SessionVariables["user"] | null> {
+async function sessionFromCookie(c: Context) {
   const cookieName = process.env.SESSION_COOKIE_NAME || "hub_session";
   const token = getCookie(c, cookieName);
   if (!token) return null;
-  return (await verifySession(token))?.user ?? null;
+  return verifySession(token);
+}
+
+function requireMutationRequest(c: Context) {
+  if (c.req.header("origin") !== frontendOrigin() || !c.req.header("x-requested-with")) {
+    throw new ResponseError(403, "Origin not allowed.");
+  }
 }
 
 function refreshDeps(): RefreshDeps {
   return {
     sessionVersionOf: async (centralId) =>
       (await prisma.userSession.findUnique({ where: { central_id: centralId } }))?.session_version ?? null,
+    sessionActive: async (sessionId, centralId, accountVersion) => {
+      const session = await prisma.loginSession.findUnique({ where: { id: sessionId } });
+      return Boolean(
+        session &&
+        session.central_id === centralId &&
+        session.account_version === accountVersion &&
+        !session.revoked_at &&
+        session.expires_at.getTime() > Date.now(),
+      );
+    },
     resolveIdentity: resolveCentralIdentityById,
     tagsFor: (user) => AppsService.accessTagsFor(user),
-    currentHubUser: (c) => sessionUserFromCookie(c),
+    currentHubSession: async (c) => {
+      const session = await sessionFromCookie(c);
+      return session
+        ? { user: session.user, sessionId: session.sessionId, sessionVersion: session.sessionVersion }
+        : null;
+    },
   };
 }
 
@@ -175,7 +201,7 @@ export class AuthController {
   static async loginWithGoogle(c: Context) {
     const { code } = await c.req.json<{ code: string }>();
 
-    const { token, user } = await AuthService.loginWithGoogle(code);
+    const { token, user, sessionId, sessionVersion } = await AuthService.loginWithGoogle(code, deviceMetadata(c));
 
     const cookieName = process.env.SESSION_COOKIE_NAME || "hub_session";
     setCookie(c, cookieName, token, {
@@ -183,7 +209,7 @@ export class AuthController {
       maxAge: sessionSecondsLeft(),
     });
 
-    await startSharedSession(c, user);
+    await startSharedSession(c, user, sessionId, sessionVersion);
 
     logger.info("User logged in:", user.email);
     await recordAuditLog({
@@ -195,6 +221,7 @@ export class AuthController {
         method: "google",
         source: user.source,
         unit_id: getUserUnitId(user),
+        session_id: sessionId,
       },
     });
 
@@ -216,8 +243,10 @@ export class AuthController {
 
     let token: string;
     let user: SessionVariables["user"];
+    let sessionId: string;
+    let sessionVersion: number;
     try {
-      ({ token, user } = await AuthService.loginWithGoogle(code));
+      ({ token, user, sessionId, sessionVersion } = await AuthService.loginWithGoogle(code, deviceMetadata(c)));
     } catch (err) {
       logger.error("Google callback failed:", err);
       const errorCode =
@@ -235,7 +264,7 @@ export class AuthController {
       maxAge: sessionSecondsLeft(),
     });
 
-    await startSharedSession(c, user);
+    await startSharedSession(c, user, sessionId, sessionVersion);
 
     logger.info("User logged in from Google callback:", user.email);
     await recordAuditLog({
@@ -248,6 +277,7 @@ export class AuthController {
         source: user.source,
         unit_id: getUserUnitId(user),
         redirect: redirect ?? "/support-hub",
+        session_id: sessionId,
       },
     });
 
@@ -268,22 +298,180 @@ export class AuthController {
     return c.json({ data: await authUserResponse(user) });
   }
 
+  static async sessions(c: Context<{ Variables: SessionVariables }>) {
+    const page = Math.max(1, Number(c.req.query("page")) || 1);
+    const pageSize = Math.min(50, Math.max(1, Number(c.req.query("pageSize")) || 20));
+    const requestedStatus = c.req.query("status");
+    const status = requestedStatus === "history" || requestedStatus === "all" ? requestedStatus : "active";
+    const now = new Date();
+    const currentId = c.var.session.sessionId;
+    const activeWhere = { central_id: c.var.user.id, revoked_at: null, expires_at: { gt: now } };
+    const historyWhere = {
+      central_id: c.var.user.id,
+      OR: [{ revoked_at: { not: null } }, { expires_at: { lte: now } }],
+    };
+    const where = status === "active" ? activeWhere : status === "history" ? historyWhere : { central_id: c.var.user.id };
+    const [sessions, total, activeCount, historyCount] = await prisma.$transaction([
+      prisma.loginSession.findMany({
+        where,
+        orderBy: [{ last_seen_at: "desc" }, { created_at: "desc" }],
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      prisma.loginSession.count({ where }),
+      prisma.loginSession.count({ where: activeWhere }),
+      prisma.loginSession.count({ where: historyWhere }),
+    ]);
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    return c.json({
+      data: sessions.map((session) => ({
+        id: session.id,
+        current: session.id === currentId,
+        device_name: session.device_name || "Unknown device",
+        trusted: Boolean(session.trusted_at),
+        created_at: session.created_at,
+        last_seen_at: session.last_seen_at,
+        expires_at: session.expires_at,
+        revoked_at: session.revoked_at,
+        status: session.revoked_at ? "revoked" : session.expires_at.getTime() <= now.getTime() ? "expired" : "active",
+      })),
+      meta: {
+        pagination: {
+          page,
+          pageSize,
+          total,
+          totalPages,
+          hasPreviousPage: page > 1,
+          hasNextPage: page < totalPages,
+        },
+        counts: { active: activeCount, history: historyCount },
+      },
+    });
+  }
+
+  static async revokeSession(c: Context<{ Variables: SessionVariables }>) {
+    requireMutationRequest(c);
+    const targetId = c.req.param("sessionId");
+    const target = await prisma.loginSession.findFirst({
+      where: { id: targetId, central_id: c.var.user.id },
+    });
+    if (!target) throw new ResponseError(404, "Session not found.");
+
+    if (!target.revoked_at) {
+      await prisma.loginSession.update({
+        where: { id: target.id },
+        data: { revoked_at: new Date(), revoked_reason: "user_revoked" },
+      });
+      await revokeSharedSession(target.id);
+      await revokeSessionForUser(c.var.user.email, c.var.user.person_id, target.id);
+      await recordAuditLog({
+        actor: c.var.user,
+        action: "auth.session_revoked",
+        entity: { type: "session", id: target.id },
+        summary: `${c.var.user.email} revoked a device session`,
+        metadata: { session_id: target.id, current: target.id === c.var.session.sessionId },
+      });
+    }
+
+    if (target.id === c.var.session.sessionId) {
+      deleteCookie(c, process.env.SESSION_COOKIE_NAME || "hub_session", cookieOptions());
+      await endSharedSession(c).catch((error) => logger.error("Could not end the shared session:", error));
+    }
+    return c.json({ data: "Session revoked" });
+  }
+
+  static async trustSession(c: Context<{ Variables: SessionVariables }>) {
+    requireMutationRequest(c);
+    const targetId = c.req.param("sessionId");
+    if (targetId !== c.var.session.sessionId) {
+      throw new ResponseError(403, "Only the current device can be trusted.");
+    }
+    await prisma.loginSession.updateMany({
+      where: { id: targetId, central_id: c.var.user.id, revoked_at: null },
+      data: { trusted_at: new Date() },
+    });
+    await recordAuditLog({
+      actor: c.var.user,
+      action: "auth.device_trusted",
+      entity: { type: "session", id: targetId },
+      summary: `${c.var.user.email} trusted the current device`,
+      metadata: { session_id: targetId },
+    });
+    return c.json({ data: "Device trusted" });
+  }
+
+  static async untrustSession(c: Context<{ Variables: SessionVariables }>) {
+    requireMutationRequest(c);
+    const targetId = c.req.param("sessionId");
+    if (targetId !== c.var.session.sessionId) {
+      throw new ResponseError(403, "Only the current device can change its trust status.");
+    }
+    await prisma.loginSession.updateMany({
+      where: { id: targetId, central_id: c.var.user.id, revoked_at: null },
+      data: { trusted_at: null },
+    });
+    await recordAuditLog({
+      actor: c.var.user,
+      action: "auth.device_untrusted",
+      entity: { type: "session", id: targetId },
+      summary: `${c.var.user.email} removed trust from the current device`,
+      metadata: { session_id: targetId },
+    });
+    return c.json({ data: "Device trust removed" });
+  }
+
+  static async logoutAll(c: Context<{ Variables: SessionVariables }>) {
+    requireMutationRequest(c);
+    const now = new Date();
+    await prisma.$transaction([
+      prisma.userSession.update({
+        where: { central_id: c.var.user.id },
+        data: { session_version: { increment: 1 } },
+      }),
+      prisma.loginSession.updateMany({
+        where: { central_id: c.var.user.id, revoked_at: null },
+        data: { revoked_at: now, revoked_reason: "logout_all" },
+      }),
+      prisma.refreshToken.updateMany({
+        where: { central_id: c.var.user.id, revoked_at: null },
+        data: { revoked_at: now },
+      }),
+    ]);
+    deleteCookie(c, process.env.SESSION_COOKIE_NAME || "hub_session", cookieOptions());
+    await endSharedSession(c).catch((error) => logger.error("Could not end the shared session:", error));
+    await revokeSessionsForUser(c.var.user.email, c.var.user.person_id);
+    await recordAuditLog({
+      actor: c.var.user,
+      action: "auth.logout_all",
+      entity: { type: "user", id: c.var.user.id },
+      summary: `${c.var.user.email} signed out all devices`,
+      metadata: { session_id: c.var.session.sessionId },
+    });
+    return c.json({ data: "All sessions ended" });
+  }
+
   // Hub's own sign-out button, called as an XHR from the Hub UI.
   static async logout(c: Context) {
-    const user = await sessionUserFromCookie(c);
+    requireMutationRequest(c);
+    const session = await sessionFromCookie(c);
+    const user = session?.user ?? null;
     const cookieName = process.env.SESSION_COOKIE_NAME || "hub_session";
     deleteCookie(c, cookieName, cookieOptions());
     await endSharedSession(c).catch((error) => logger.error("Could not end the shared session:", error));
 
-    if (user) {
+    if (user && session) {
+      await prisma.loginSession.updateMany({
+        where: { id: session.sessionId, central_id: user.id, revoked_at: null },
+        data: { revoked_at: new Date(), revoked_reason: "user_logout" },
+      });
       logger.info("User logged out:", user.email);
-      await revokeSessionsForUser(user.email, user.person_id);
+      await revokeSessionForUser(user.email, user.person_id, session.sessionId);
       await recordAuditLog({
         actor: user,
         action: "auth.logout",
         entity: { type: "user", id: user.id },
         summary: `${user.email} logged out`,
-        metadata: { surface: "hub" },
+        metadata: { surface: "hub", session_id: session.sessionId },
       });
     } else {
       logger.info("Logout requested without a valid Hub session");
@@ -306,7 +494,7 @@ export class AuthController {
   // end all of them (POST /auth/logout). Here the browser is only sent back to where the application asked, or to
   // the Hub front page.
   static async logoutFromApp(c: Context) {
-    const user = await sessionUserFromCookie(c);
+    const user = (await sessionFromCookie(c))?.user ?? null;
     const target = (await resolveLogoutRedirect(c.req.query("redirect"))) || `${frontendOrigin()}/`;
 
     if (user) {

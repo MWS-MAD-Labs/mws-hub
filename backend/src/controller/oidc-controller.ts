@@ -119,6 +119,7 @@ export class OidcController {
       email_verified: true as const,
       name: user.full_name || user.email,
       groups: AppsService.accessTagsFor(user),
+      sid: c.var.session.sessionId,
     };
     const code = await createSsoCode(packPendingAuthorization(request, claims), codeStoreAppId(client.clientId));
 

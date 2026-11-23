@@ -105,6 +105,7 @@ function decodeJwt(token: string) {
 const signedIn = new Hono<{ Variables: SessionVariables }>();
 signedIn.use("*", async (c, next) => {
   c.set("user", employee());
+  c.set("session", { user: employee(), sessionId: "session-1", sessionVersion: 1, exp: Math.floor(Date.now() / 1000) + 3600 });
   await next();
 });
 signedIn.get("/sso/oidc/authorize", OidcController.authorize);

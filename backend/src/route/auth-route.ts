@@ -9,6 +9,7 @@ authRoute.get("/google/start", AuthController.startGoogleLogin);
 authRoute.get("/google/callback", AuthController.googleCallback);
 authRoute.post("/google", AuthController.loginWithGoogle);
 authRoute.post("/logout", AuthController.logout);
+authRoute.post("/logout-all", sessionAuthMiddleware, AuthController.logoutAll);
 // Called by the apps' pages with the shared session cookies (see lib/shared-session.ts).
 authRoute.post("/refresh", AuthController.refresh);
 // A page without an access token comes here to get one back and return (see lib/shared-session.ts).
@@ -19,3 +20,7 @@ authRoute.get("/restore", AuthController.restore);
 authRoute.get("/logout", AuthController.logoutFromApp);
 authRoute.get("/logout-targets", AuthController.logoutTargets);
 authRoute.get("/me", sessionAuthMiddleware, AuthController.me);
+authRoute.get("/sessions", sessionAuthMiddleware, AuthController.sessions);
+authRoute.delete("/sessions/:sessionId", sessionAuthMiddleware, AuthController.revokeSession);
+authRoute.post("/sessions/:sessionId/trust", sessionAuthMiddleware, AuthController.trustSession);
+authRoute.delete("/sessions/:sessionId/trust", sessionAuthMiddleware, AuthController.untrustSession);

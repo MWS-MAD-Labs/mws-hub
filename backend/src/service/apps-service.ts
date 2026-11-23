@@ -294,7 +294,7 @@ export class AppsService {
 
   static async revokeSessionTargets(
     master: string,
-  ): Promise<{ url: string; secret: string }[]> {
+  ): Promise<{ applicationId: string; url: string; secret: string }[]> {
     const catalog = await effectiveCatalog();
     return (
       catalog
@@ -307,6 +307,7 @@ export class AppsService {
           ),
         )
         .map((entry) => ({
+          applicationId: entry.sso?.appId ?? entry.id,
           url: appEndpoints(entry.sso!.logoutUrl!)!.revoke,
           // An application with a secret of its own is sent that one, the others the Hub's own.
           secret:

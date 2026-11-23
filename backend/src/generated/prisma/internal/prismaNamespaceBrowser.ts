@@ -56,6 +56,7 @@ export const ModelName = {
   AccessRequest: 'AccessRequest',
   AuditLog: 'AuditLog',
   UserSession: 'UserSession',
+  LoginSession: 'LoginSession',
   RefreshToken: 'RefreshToken',
   SsoExchangeSeen: 'SsoExchangeSeen',
   GptCodeAccessRule: 'GptCodeAccessRule',
@@ -146,11 +147,32 @@ export const UserSessionScalarFieldEnum = {
 export type UserSessionScalarFieldEnum = (typeof UserSessionScalarFieldEnum)[keyof typeof UserSessionScalarFieldEnum]
 
 
+export const LoginSessionScalarFieldEnum = {
+  id: 'id',
+  central_id: 'central_id',
+  person_id: 'person_id',
+  source: 'source',
+  email: 'email',
+  account_version: 'account_version',
+  device_name: 'device_name',
+  user_agent: 'user_agent',
+  trusted_at: 'trusted_at',
+  created_at: 'created_at',
+  last_seen_at: 'last_seen_at',
+  expires_at: 'expires_at',
+  revoked_at: 'revoked_at',
+  revoked_reason: 'revoked_reason'
+} as const
+
+export type LoginSessionScalarFieldEnum = (typeof LoginSessionScalarFieldEnum)[keyof typeof LoginSessionScalarFieldEnum]
+
+
 export const RefreshTokenScalarFieldEnum = {
   id: 'id',
   family_id: 'family_id',
   token_hash: 'token_hash',
   central_id: 'central_id',
+  session_id: 'session_id',
   source: 'source',
   session_version: 'session_version',
   family_expires_at: 'family_expires_at',

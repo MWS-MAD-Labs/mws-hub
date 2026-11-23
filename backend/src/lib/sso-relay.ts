@@ -148,6 +148,7 @@ export async function mintRelayToken(
   sso: HubAppSso,
   identity: { source: IdentitySource; tags: HubAccessSource[]; unitId?: string | null },
   entitlement?: RelayEntitlement,
+  sessionId?: string,
 ): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
   const header = {
@@ -171,6 +172,7 @@ export async function mintRelayToken(
     tags: identity.tags,
     ...(identity.unitId ? { unit_id: identity.unitId } : {}),
     ...(entitlement ? { entitlement } : {}),
+    ...(sessionId ? { sid: sessionId } : {}),
     jti: crypto.randomUUID(),
     iat: now,
     exp: now + RELAY_TTL_SECONDS,

@@ -12,6 +12,8 @@ import type { HubUser } from "../type/central-type";
 // so this stands in for it with a plain in-memory map instead of a live
 // Postgres.
 const sessionVersions = new Map<string, number>();
+const loginSessions = new Map<string, { id: string; central_id: string; account_version: number; expires_at: Date; revoked_at: Date | null }>();
+let nextSessionId = 1;
 
 mock.module("../lib/prisma", () => ({
   prisma: {
@@ -20,19 +22,25 @@ mock.module("../lib/prisma", () => ({
         where,
         create,
       }: {
-        where: { email: string };
+        where: { central_id: string };
         create: { session_version: number };
       }) => {
-        const next = sessionVersions.has(where.email)
-          ? sessionVersions.get(where.email)! + 1
-          : create.session_version;
-        sessionVersions.set(where.email, next);
-        return { email: where.email, session_version: next };
+        const next = sessionVersions.get(where.central_id) ?? create.session_version;
+        sessionVersions.set(where.central_id, next);
+        return { central_id: where.central_id, session_version: next };
       },
-      findUnique: async ({ where }: { where: { email: string } }) => {
-        if (!sessionVersions.has(where.email)) return null;
-        return { email: where.email, session_version: sessionVersions.get(where.email)! };
+      findUnique: async ({ where }: { where: { central_id: string } }) => {
+        if (!sessionVersions.has(where.central_id)) return null;
+        return { central_id: where.central_id, session_version: sessionVersions.get(where.central_id)! };
       },
+    },
+    loginSession: {
+      create: async ({ data }: { data: { central_id: string; account_version: number; expires_at: Date } }) => {
+        const row = { id: `session-${nextSessionId++}`, central_id: data.central_id, account_version: data.account_version, expires_at: data.expires_at, revoked_at: null };
+        loginSessions.set(row.id, row);
+        return row;
+      },
+      findUnique: async ({ where }: { where: { id: string } }) => loginSessions.get(where.id) ?? null,
     },
   },
 }));

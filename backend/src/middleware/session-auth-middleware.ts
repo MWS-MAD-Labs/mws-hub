@@ -2,7 +2,7 @@ import type { Context, Next } from "hono";
 import { getCookie } from "hono/cookie";
 import { currentSessionUser } from "../lib/identity-refresh";
 import { sessionCookieName } from "../lib/session-cookie";
-import { verifySession } from "../lib/session";
+import { touchSession, verifySession } from "../lib/session";
 import { ensureHubAccessForSession } from "../lib/hub-access-gate";
 import { ResponseError } from "../error/response-error";
 import type { SessionVariables } from "../type/hono-context";
@@ -26,5 +26,7 @@ export async function sessionAuthMiddleware(
   await ensureHubAccessForSession(user);
 
   c.set("user", user);
+  c.set("session", session);
+  void touchSession(session.sessionId).catch(() => {});
   await next();
 }

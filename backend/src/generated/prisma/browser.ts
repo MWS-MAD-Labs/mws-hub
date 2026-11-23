@@ -43,6 +43,11 @@ export type AuditLog = Prisma.AuditLogModel
  */
 export type UserSession = Prisma.UserSessionModel
 /**
+ * Model LoginSession
+ *
+ */
+export type LoginSession = Prisma.LoginSessionModel
+/**
  * Model RefreshToken
  * 
  */

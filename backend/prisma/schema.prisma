@@ -122,9 +122,8 @@ model AuditLog {
   @@map("audit_logs")
 }
 
-// Session bookkeeping only, not identity - bumped on every Hub login so any
-// previously-issued session JWT for that person (any other browser/device)
-// fails its next verifySession() check. See lib/session.ts.
+// Account-wide session generation. Normal logins do not bump this value;
+// security resets and "sign out all devices" do, invalidating every device.
 //
 // Keyed by Central's own Employee/Student id, not email: email is an
 // editable field in Central (see EmployeeValidation.UPDATE server-side), so
@@ -144,6 +143,30 @@ model UserSession {
   @@map("user_sessions")
 }
 
+// One independently revocable Hub sign-in. User-agent data is display-only;
+// it is never used as proof that a browser is trusted.
+model LoginSession {
+  id              String   @id @default(cuid())
+  central_id      String
+  person_id       String
+  source          String
+  email           String
+  account_version Int
+  device_name     String?
+  user_agent      String?
+  trusted_at      DateTime?
+  created_at      DateTime @default(now())
+  last_seen_at    DateTime @default(now())
+  expires_at      DateTime
+  revoked_at      DateTime?
+  revoked_reason  String?
+
+  @@index([central_id, revoked_at])
+  @@index([person_id])
+  @@index([expires_at])
+  @@map("login_sessions")
+}
+
 // The long-lived half of the shared session. One row per token: each refresh issues a new row in the same
 // family and marks the old one rotated. Only the hash is kept. A rotated token that comes back after the
 // short grace window means a copy was stolen, so the whole family is revoked.
@@ -152,6 +175,7 @@ model RefreshToken {
   family_id         String
   token_hash        String    @unique
   central_id        String
+  session_id        String
   source            String
   // UserSession.session_version when the family started: a newer login elsewhere ends the older family.
   session_version   Int
@@ -162,6 +186,7 @@ model RefreshToken {
 
   @@index([family_id])
   @@index([central_id])
+  @@index([session_id])
   @@map("refresh_tokens")
 }
 

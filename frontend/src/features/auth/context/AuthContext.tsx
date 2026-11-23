@@ -124,6 +124,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const logoutAll = useCallback(async () => {
+    await authApi.logoutAll();
+    setUser(null);
+  }, []);
+
   const value = useMemo(
     () => ({
       user,
@@ -132,9 +137,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isLoggingIn,
       loginWithGoogle,
       logout,
+      logoutAll,
       refreshUser,
     }),
-    [user, isSessionLoading, isLoggingIn, loginWithGoogle, logout, refreshUser],
+    [user, isSessionLoading, isLoggingIn, loginWithGoogle, logout, logoutAll, refreshUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
