@@ -83,15 +83,6 @@ function rememberUpcomingOpen(open: boolean) {
   }
 }
 
-function initialsOf(name: string): string {
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((word) => word.charAt(0).toUpperCase())
-    .join("");
-}
-
 function firstNameOf(name: string): string {
   return name.trim().split(/\s+/)[0] ?? name;
 }
@@ -110,7 +101,7 @@ function BirthdayAvatar({
   return (
     <Avatar className={cn("shrink-0", className)}>
       <AvatarFallback className={cn("text-[11px] font-semibold", fallbackClassName)}>
-        {initialsOf(birthday.name)}
+        {birthday.name.trim().charAt(0)}
       </AvatarFallback>
       {birthday.avatar_url && <AvatarImage src={birthday.avatar_url} alt="" />}
     </Avatar>
