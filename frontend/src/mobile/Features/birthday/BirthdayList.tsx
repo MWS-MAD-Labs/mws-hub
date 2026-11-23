@@ -83,10 +83,6 @@ function rememberUpcomingOpen(open: boolean) {
   }
 }
 
-function firstNameOf(name: string): string {
-  return name.trim().split(/\s+/)[0] ?? name;
-}
-
 function BirthdayAvatar({
   birthday,
   className,
@@ -256,9 +252,12 @@ const BirthdayList = memo(({ className }: BirthdayListProps) => {
 
                   <p className="min-w-0 text-base font-bold leading-tight">
                     {todayBirthdays.length > 2
-                      ? `${firstNameOf(todayBirthdays[0].name)} & ${todayBirthdays.length - 1} others`
+                      ? `${todayBirthdays[0].nick_name || todayBirthdays[0].name} & ${todayBirthdays.length - 1} others`
                       : todayBirthdays
-                          .map((birthday) => firstNameOf(birthday.name))
+                          .map(
+                            (birthday) =>
+                              birthday.nick_name || birthday.name,
+                          )
                           .join(" & ")}
                   </p>
                 </div>
@@ -321,35 +320,40 @@ const BirthdayList = memo(({ className }: BirthdayListProps) => {
 
                 {isUpcomingOpen && (
                   <ul id="birthday-upcoming-list" className="mt-1">
-                    {upcomingBirthdays.slice(0, UPCOMING_LIMIT).map((birthday) => (
-                      <li
-                        key={birthday.id}
-                        className="flex items-center gap-2.5 border-t border-border/50 py-1.5 first:border-t-0"
-                      >
-                        <BirthdayAvatar birthday={birthday} className="h-8 w-8" />
-
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-xs font-semibold text-foreground sm:text-sm">
-                            {birthday.name}
-                          </p>
-                          <p className="truncate text-[10px] font-medium text-muted-foreground sm:text-xs">
-                            {dateLabelOf(birthday.birthday)}
-                            {birthday.unit ? ` · ${birthday.unit}` : ""}
-                          </p>
-                        </div>
-
-                        <span
-                          className={cn(
-                            "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold",
-                            birthday.days_until === 1
-                              ? "bg-accent/10 text-accent"
-                              : "bg-primary/10 text-primary",
-                          )}
+                    {upcomingBirthdays
+                      .slice(0, UPCOMING_LIMIT)
+                      .map((birthday) => (
+                        <li
+                          key={birthday.id}
+                          className="flex items-center gap-2.5 border-t border-border/50 py-1.5 first:border-t-0"
                         >
-                          {relativeLabelOf(birthday)}
-                        </span>
-                      </li>
-                    ))}
+                          <BirthdayAvatar
+                            birthday={birthday}
+                            className="h-8 w-8"
+                          />
+
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-xs font-semibold text-foreground sm:text-sm">
+                              {birthday.name}
+                            </p>
+                            <p className="truncate text-[10px] font-medium text-muted-foreground sm:text-xs">
+                              {dateLabelOf(birthday.birthday)}
+                              {birthday.unit ? ` · ${birthday.unit}` : ""}
+                            </p>
+                          </div>
+
+                          <span
+                            className={cn(
+                              "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                              birthday.days_until === 1
+                                ? "bg-accent/10 text-accent"
+                                : "bg-primary/10 text-primary",
+                            )}
+                          >
+                            {relativeLabelOf(birthday)}
+                          </span>
+                        </li>
+                      ))}
 
                     {upcomingBirthdays.length > UPCOMING_LIMIT && (
                       <li className="pt-1">
@@ -358,7 +362,8 @@ const BirthdayList = memo(({ className }: BirthdayListProps) => {
                           onClick={() => setIsModalOpen(true)}
                           className="text-[11px] font-semibold text-primary hover:underline"
                         >
-                          +{upcomingBirthdays.length - UPCOMING_LIMIT} more this month
+                          +{upcomingBirthdays.length - UPCOMING_LIMIT} more this
+                          month
                         </button>
                       </li>
                     )}
@@ -398,7 +403,8 @@ const BirthdayList = memo(({ className }: BirthdayListProps) => {
         open={isBirthdayCelebrationOpen}
         birthdays={todayBirthdays}
         onOpenChange={(open) => {
-          if (!open) rememberCelebrationDismissed(celebrationKeyOf(todayBirthdays));
+          if (!open)
+            rememberCelebrationDismissed(celebrationKeyOf(todayBirthdays));
           setIsBirthdayCelebrationOpen(open);
         }}
       />
