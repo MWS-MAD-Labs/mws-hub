@@ -647,6 +647,7 @@ export async function listActiveEmployees(): Promise<
 // Birthdays earlier this month are kept and flagged as has_passed.
 export async function listEmployeeBirthdaysThisMonth(
   today = new Date(),
+  currentUser?: HubUser,
 ): Promise<CentralBirthdayResponse[]> {
   const employees = birthdaySeedEnabled()
     ? seedBirthdayEmployees().map(normalizeEmployee)
@@ -663,12 +664,21 @@ export async function listEmployeeBirthdaysThisMonth(
       }
 
       const daysUntil = daysUntilBirthday(monthDay, today);
+      const currentUserAvatar =
+        currentUser?.source === "employee" && currentUser.id === employee.id
+          ? currentUser.avatar_url ?? currentUser.photo_url
+          : null;
 
       return {
         id: employee.id,
         name: employee.full_name || employee.nick_name || "",
         nick_name: employee.nick_name,
-        avatar_url: employee.avatar_url ?? employee.photo_url,
+        // Central's employee list is the source for everyone. The signed-in
+        // person's session may additionally carry their Google avatar (the
+        // same fallback exposed by /auth/me), so preserve it when Central has
+        // no employee photo yet.
+        avatar_url:
+          employee.avatar_url ?? employee.photo_url ?? currentUserAvatar ?? null,
         unit: unitNameOf(employee),
         birthday,
         days_until: daysUntil,

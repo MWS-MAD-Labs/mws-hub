@@ -10,6 +10,7 @@ import {
   resolveCentralIdentity,
   resolveCentralIdentityById,
 } from "../lib/central-client";
+import type { HubUser } from "../type/central-type";
 
 const originalFetch = global.fetch;
 
@@ -691,6 +692,56 @@ describe("resolveCentralIdentity", () => {
       avatar_url: "https://central.test/avatar.avif",
     });
     expect(birthdays[0]).not.toHaveProperty("photo_url");
+  });
+
+  it("uses the signed-in employee's session avatar when Central has no photo", async () => {
+    const today = new Date(2026, 10, 23);
+    global.fetch = (async () =>
+      jsonResponse(200, {
+        success: true,
+        data: [
+          {
+            id: "employee-1",
+            person_id: "person-1",
+            employee_id: "15.26.905",
+            full_name: "Muhammad Asror Alva'Izzi",
+            nick_name: "Asror",
+            email: "asror@millennia21.id",
+            birth_date: "2004-11-23",
+            photo_url: null,
+            avatar_url: null,
+            unit: "MAD Lab",
+            job_position: "Junior Full Stack Web Developer",
+            job_level: "Staff",
+            status: "ACTIVE",
+            employment_type: "PROBATION",
+          },
+        ],
+        paging: { current_page: 1, total_page: 1 },
+      })) as unknown as typeof fetch;
+
+    const currentUser = {
+      source: "employee",
+      id: "employee-1",
+      person_id: "person-1",
+      employee_id: "15.26.905",
+      full_name: "Muhammad Asror Alva'Izzi",
+      nick_name: "Asror",
+      email: "asror@millennia21.id",
+      photo_url: null,
+      avatar_url: "https://lh3.googleusercontent.com/avatar=s96-c",
+      unit: "MAD Lab",
+      job_position: "Junior Full Stack Web Developer",
+      job_level: "Staff",
+      status: "ACTIVE",
+      employment_type: "PROBATION",
+    } as HubUser;
+
+    const birthdays = await listEmployeeBirthdaysThisMonth(today, currentUser);
+
+    expect(birthdays[0]?.avatar_url).toBe(
+      "https://lh3.googleusercontent.com/avatar=s96-c",
+    );
   });
 
   it("uses the November seed instead of Central when BIRTHDAY_SEED=true", async () => {

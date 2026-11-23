@@ -107,7 +107,9 @@ export class AppsController {
   }
 
   static async birthdays(c: Context<{ Variables: SessionVariables }>) {
-    return c.json({ data: await listEmployeeBirthdaysThisMonth() });
+    return c.json({
+      data: await listEmployeeBirthdaysThisMonth(new Date(), c.var.user),
+    });
   }
 
   static async launch(c: Context<{ Variables: SessionVariables }>) {
