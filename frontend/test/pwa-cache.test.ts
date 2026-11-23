@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const read = (file: string) => readFileSync(join(import.meta.dir, "..", file), "utf8");
@@ -27,5 +27,23 @@ describe("service worker caching", () => {
 
   it("answers 404 for the old worker name", () => {
     expect(block("location = /sw.js")).toContain("return 404");
+  });
+
+  it("uses versioned install icon URLs so existing PWAs can detect a logo update", () => {
+    const config = read("vite.config.ts");
+    const html = read("index.html");
+    const icons = [
+      "mws-hub-v2-192x192.png",
+      "mws-hub-v2-512x512.png",
+      "mws-hub-v2-maskable-192x192.png",
+      "mws-hub-v2-maskable-512x512.png",
+    ];
+
+    for (const icon of icons) {
+      expect(config).toContain(`/${icon}`);
+      expect(existsSync(join(import.meta.dir, "..", "public", icon))).toBe(true);
+    }
+    expect(html).toContain("/mws-hub-v2-192x192.png");
+    expect(html).toContain("/mws-hub-v2-apple-touch-icon.png");
   });
 });

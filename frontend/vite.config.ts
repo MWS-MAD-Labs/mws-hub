@@ -14,11 +14,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: "autoUpdate",
-      // Not sw.js: Cloudflare kept an old copy of /sw.js for hours. A new name is always fetched from the server.
       filename: "hub-sw.js",
-      // The plugin disables its service worker during `vite dev` by default.
-      // Enable it so localhost can satisfy Chrome's PWA installability checks
-      // and emit `beforeinstallprompt` for the custom Install App button.
       devOptions: {
         enabled: true,
         type: "module",
@@ -38,37 +34,27 @@ export default defineConfig({
         theme_color: "#fcfafb",
         background_color: "#fcfafb",
         categories: ["education", "productivity"],
-        // "any" and "maskable" are separate files on purpose: the rounded
-        // "any" icon gets cropped badly when a launcher applies its own mask,
-        // so the maskable ones are full-bleed with the logo inside the 80%
-        // safe zone. PNGs cover launchers that don't render SVG icons.
         icons: [
           {
-            src: "/pwa-192x192.png",
+            src: "/mws-hub-v2-192x192.png",
             sizes: "192x192",
             type: "image/png",
             purpose: "any",
           },
           {
-            src: "/pwa-512x512.png",
+            src: "/mws-hub-v2-512x512.png",
             sizes: "512x512",
             type: "image/png",
             purpose: "any",
           },
           {
-            src: "/pwa-icon.svg",
-            sizes: "any",
-            type: "image/svg+xml",
-            purpose: "any",
-          },
-          {
-            src: "/pwa-maskable-192x192.png",
+            src: "/mws-hub-v2-maskable-192x192.png",
             sizes: "192x192",
             type: "image/png",
             purpose: "maskable",
           },
           {
-            src: "/pwa-maskable-512x512.png",
+            src: "/mws-hub-v2-maskable-512x512.png",
             sizes: "512x512",
             type: "image/png",
             purpose: "maskable",
@@ -100,13 +86,7 @@ export default defineConfig({
     port: 5175,
     // A taken port stops the start. Moving to another port would put the Hub where another app is expected.
     strictPort: true,
-    // Vite's own CORS answers preflights before the proxy, without Access-Control-Allow-Credentials, so the apps'
-    // credentialed POST /auth/refresh failed in dev. Off, the backend answers CORS here the same as behind nginx.
     cors: false,
-    // Dev proxies the same prefixes nginx proxies in production, so both
-    // run on one origin. Without this the session cookie (SameSite=Strict)
-    // would behave differently here than in production - exactly the class
-    // of bug that only shows up after deploy.
     proxy: {
       "/auth": { target: API_TARGET, changeOrigin: true },
       "/apps": { target: API_TARGET, changeOrigin: true },
