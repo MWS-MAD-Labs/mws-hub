@@ -5,10 +5,6 @@ import { fanOutLogout } from "@/features/auth/utils/logoutFanOut";
 const DEFAULT_REDIRECT = "/login";
 const REDIRECT_COOKIE = "hub_post_logout_redirect";
 
-// Set by AuthController.logoutFromApp right before this page loads, and only
-// ever by Hub's own server - the value already passed resolveLogoutRedirect
-// there, so reading it back here carries none of the risk a raw ?redirect=
-// query param would.
 function readAndClearRedirectCookie(): string | null {
   const match = document.cookie.match(
     new RegExp(`(?:^|; )${REDIRECT_COOKIE}=([^;]*)`),
@@ -17,11 +13,6 @@ function readAndClearRedirectCookie(): string | null {
   return match ? decodeURIComponent(match[1]) : null;
 }
 
-// Landed on when a satellite app's own "sign out" button sends the browser
-// back through Hub. Hub's session cookie is already cleared server-side by
-// the time this loads - what's still open is every OTHER app the person may
-// have signed into, which only the browser can reach. Run the same hidden-
-// iframe fan-out Hub's own "Sign out" button uses, then finish the trip.
 export default function LogoutRelayPage() {
   const ranRef = useRef(false);
 
